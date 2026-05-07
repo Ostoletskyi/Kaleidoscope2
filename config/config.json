@@ -1,0 +1,21 @@
+﻿{
+    "ProjectPath":  "C:\\Projects\\CLIPS\\Kaleidoskop2",
+    "GitRemoteUrl":  "https://github.com/Ostoletskyi/Kaleidoscope2",
+    "DefaultBranch":  "main",
+    "ConflictStrategy":  "manual",
+    "CodexCommand":  "codex",
+    "IgnoreFolders":  [
+                          ".git",
+                          "node_modules",
+                          "bin",
+                          "obj",
+                          "dist",
+                          "build",
+                          ".vs",
+                          ".idea",
+                          ".vscode"
+                      ],
+    "LogPath":  "C:\\Projects\\CLIPS\\Kaleidoskop2\\logs",
+    "ConfirmSafeOperations":  true,
+    "AutoFetchBeforeGitAnalysis":  true
+}
