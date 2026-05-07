@@ -4,5 +4,8 @@
 EditorBuildSettings:
   m_ObjectHideFlags: 0
   serializedVersion: 2
-  m_Scenes: []
+  m_Scenes:
+  - enabled: 1
+    path: Assets/_Project/Kaleidoscope2/Scenes/Kaleidoscope2_Main.unity
+    guid: 85d616b6056f4764b9c29cda00246e94
   m_configObjects: {}

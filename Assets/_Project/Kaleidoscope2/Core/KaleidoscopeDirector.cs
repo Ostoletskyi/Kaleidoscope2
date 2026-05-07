@@ -12,6 +12,9 @@ namespace Kaleidoscope2.Core
 
         private readonly List<IKaleidoscopeModule> modules = new List<IKaleidoscopeModule>();
         private readonly List<KaleidoscopeModuleStatus> moduleStatuses = new List<KaleidoscopeModuleStatus>();
+        private IKaleidoscopeSourceProvider sourceProvider;
+        private IKaleidoscopeTextureProcessor textureProcessor;
+        private Texture finalOutputTexture;
 
         public event Action<KaleidoscopeCommand> CommandDispatched;
 
@@ -27,6 +30,11 @@ namespace Kaleidoscope2.Core
         public IReadOnlyList<IKaleidoscopeModule> RegisteredModules
         {
             get { return modules; }
+        }
+
+        public Texture FinalOutputTexture
+        {
+            get { return finalOutputTexture; }
         }
 
         private void Awake()
@@ -53,6 +61,7 @@ namespace Kaleidoscope2.Core
                 }
             }
 
+            RefreshRenderPipeline();
             RefreshModuleStatuses();
         }
 
@@ -73,6 +82,7 @@ namespace Kaleidoscope2.Core
 
             modules.Add(module);
             module.Initialize(state);
+            RegisterRenderEndpoint(module);
             RefreshModuleStatuses();
             return true;
         }
@@ -80,6 +90,9 @@ namespace Kaleidoscope2.Core
         public void ClearRegisteredModules()
         {
             modules.Clear();
+            sourceProvider = null;
+            textureProcessor = null;
+            finalOutputTexture = null;
             RefreshModuleStatuses();
         }
 
@@ -183,6 +196,10 @@ namespace Kaleidoscope2.Core
                     state.MirrorSettings.SetRotation(command.FloatValue);
                     return true;
 
+                case KaleidoscopeCommandType.SetMirrorRotationSpeed:
+                    state.MirrorSettings.SetRotationSpeed(command.FloatValue);
+                    return true;
+
                 case KaleidoscopeCommandType.SetMirrorZoom:
                     state.MirrorSettings.SetZoom(command.FloatValue);
                     return true;
@@ -215,6 +232,10 @@ namespace Kaleidoscope2.Core
                     state.ClearWarnings();
                     state.ClearErrors();
                     state.ClearMissingReferences();
+                    return true;
+
+                case KaleidoscopeCommandType.SetDiagnosticsVisible:
+                    state.SetDiagnosticsVisible(command.BoolValue);
                     return true;
             }
 
@@ -269,6 +290,48 @@ namespace Kaleidoscope2.Core
             }
 
             state.SetModuleStatuses(moduleStatuses);
+        }
+
+        private void RegisterRenderEndpoint(IKaleidoscopeModule module)
+        {
+            IKaleidoscopeSourceProvider provider = module as IKaleidoscopeSourceProvider;
+            if (provider != null)
+            {
+                if (sourceProvider != null && !ReferenceEquals(sourceProvider, provider))
+                {
+                    state.ReportWarning("[Director] Multiple source providers registered. Keeping the first provider.");
+                }
+                else
+                {
+                    sourceProvider = provider;
+                }
+            }
+
+            IKaleidoscopeTextureProcessor processor = module as IKaleidoscopeTextureProcessor;
+            if (processor != null)
+            {
+                if (textureProcessor != null && !ReferenceEquals(textureProcessor, processor))
+                {
+                    state.ReportWarning("[Director] Multiple texture processors registered. Keeping the first processor.");
+                }
+                else
+                {
+                    textureProcessor = processor;
+                }
+            }
+        }
+
+        public void RefreshRenderPipeline()
+        {
+            Texture sourceTexture = sourceProvider != null ? sourceProvider.SourceTexture : null;
+
+            if (textureProcessor != null)
+            {
+                finalOutputTexture = textureProcessor.Process(sourceTexture, state);
+                return;
+            }
+
+            finalOutputTexture = sourceTexture;
         }
 
         private bool IsRegistered(IKaleidoscopeModule module)

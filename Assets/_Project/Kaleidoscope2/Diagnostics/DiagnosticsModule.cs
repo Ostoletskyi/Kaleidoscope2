@@ -36,7 +36,8 @@ namespace Kaleidoscope2.Diagnostics
         public override KaleidoscopeModuleStatus GetStatus()
         {
             float fps = State != null ? State.Diagnostics.FramesPerSecond : 0f;
-            return CreateStatus("FPS " + fps.ToString("0.0") + ". Debug HUD reads state only.");
+            string visibility = State != null && State.Diagnostics.HudVisible ? "visible" : "hidden";
+            return CreateStatus("FPS " + fps.ToString("0.0") + ". Debug HUD " + visibility + ".");
         }
     }
 }

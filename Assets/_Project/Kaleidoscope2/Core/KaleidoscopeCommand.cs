@@ -17,7 +17,9 @@ namespace Kaleidoscope2.Core
         SetActivePreset = 9,
         SetQualityLevel = 10,
         ValidateSystem = 11,
-        ClearDiagnostics = 12
+        ClearDiagnostics = 12,
+        SetMirrorRotationSpeed = 13,
+        SetDiagnosticsVisible = 14
     }
 
     [Serializable]
@@ -121,6 +123,14 @@ namespace Kaleidoscope2.Core
             };
         }
 
+        public static KaleidoscopeCommand SetMirrorRotationSpeed(float rotationSpeed)
+        {
+            return new KaleidoscopeCommand(KaleidoscopeCommandType.SetMirrorRotationSpeed)
+            {
+                floatValue = rotationSpeed
+            };
+        }
+
         public static KaleidoscopeCommand SetMirrorZoom(float zoom)
         {
             return new KaleidoscopeCommand(KaleidoscopeCommandType.SetMirrorZoom)
@@ -177,6 +187,14 @@ namespace Kaleidoscope2.Core
         public static KaleidoscopeCommand ClearDiagnostics()
         {
             return new KaleidoscopeCommand(KaleidoscopeCommandType.ClearDiagnostics);
+        }
+
+        public static KaleidoscopeCommand SetDiagnosticsVisible(bool visible)
+        {
+            return new KaleidoscopeCommand(KaleidoscopeCommandType.SetDiagnosticsVisible)
+            {
+                boolValue = visible
+            };
         }
 
         public override string ToString()

@@ -35,6 +35,11 @@ namespace Kaleidoscope2.Diagnostics
                 return;
             }
 
+            if (director != null && !director.State.Diagnostics.HudVisible)
+            {
+                return;
+            }
+
             if (labelStyle == null || titleStyle == null)
             {
                 OnEnable();
@@ -56,8 +61,10 @@ namespace Kaleidoscope2.Diagnostics
             GUILayout.Label("Mode: " + state.ActiveVisualMode, labelStyle);
             GUILayout.Label("Source: " + state.ActiveSourceMode, labelStyle);
             GUILayout.Label("Mirror Count: " + state.MirrorSettings.MirrorCount, labelStyle);
+            GUILayout.Label("Zoom: " + state.MirrorSettings.Zoom.ToString("0.00"), labelStyle);
+            GUILayout.Label("Rotation Speed: " + state.MirrorSettings.RotationSpeed.ToString("0.0"), labelStyle);
             GUILayout.Label("Tunnel: " + (state.TunnelEnabled ? "Enabled" : "Disabled"), labelStyle);
-            GUILayout.Label("Recording: " + state.RecordingStatus, labelStyle);
+            GUILayout.Label("Recording: " + (state.RecordingStatus == KaleidoscopeRecordingStatus.Idle ? "Disabled" : "Enabled") + " (" + state.RecordingStatus + ")", labelStyle);
             GUILayout.Label("Quality: " + state.QualityLevel, labelStyle);
             GUILayout.Label("FPS: " + diagnostics.FramesPerSecond.ToString("0.0"), labelStyle);
 

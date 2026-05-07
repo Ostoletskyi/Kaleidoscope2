@@ -19,6 +19,18 @@ namespace Kaleidoscope2.Core
         KaleidoscopeModuleStatus GetStatus();
     }
 
+    public interface IKaleidoscopeSourceProvider
+    {
+        Texture SourceTexture { get; }
+        KaleidoscopeSourceMode SourceMode { get; }
+    }
+
+    public interface IKaleidoscopeTextureProcessor
+    {
+        Texture OutputTexture { get; }
+        Texture Process(Texture sourceTexture, KaleidoscopeState runtimeState);
+    }
+
     [Serializable]
     public struct KaleidoscopeModuleStatus
     {

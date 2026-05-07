@@ -41,7 +41,7 @@ namespace Kaleidoscope2.Core
     [Serializable]
     public sealed class KaleidoscopeState
     {
-        [SerializeField] private KaleidoscopeSourceMode activeSourceMode = KaleidoscopeSourceMode.None;
+        [SerializeField] private KaleidoscopeSourceMode activeSourceMode = KaleidoscopeSourceMode.ProceduralTexture;
         [SerializeField] private KaleidoscopeVisualMode activeVisualMode = KaleidoscopeVisualMode.Classic;
         [SerializeField] private MirrorSettings mirrorSettings = new MirrorSettings();
         [SerializeField] private CameraSettings cameraSettings = new CameraSettings();
@@ -185,6 +185,11 @@ namespace Kaleidoscope2.Core
         {
             diagnostics.ClearMissingReferences();
         }
+
+        public void SetDiagnosticsVisible(bool visible)
+        {
+            diagnostics.SetHudVisible(visible);
+        }
     }
 
     [Serializable]
@@ -192,6 +197,7 @@ namespace Kaleidoscope2.Core
     {
         [SerializeField] private int mirrorCount = 6;
         [SerializeField] private float rotation;
+        [SerializeField] private float rotationSpeed;
         [SerializeField] private float zoom = 1f;
         [SerializeField] private Vector2 centerOffset = Vector2.zero;
 
@@ -203,6 +209,11 @@ namespace Kaleidoscope2.Core
         public float Rotation
         {
             get { return rotation; }
+        }
+
+        public float RotationSpeed
+        {
+            get { return rotationSpeed; }
         }
 
         public float Zoom
@@ -223,6 +234,11 @@ namespace Kaleidoscope2.Core
         public void SetRotation(float value)
         {
             rotation = value;
+        }
+
+        public void SetRotationSpeed(float value)
+        {
+            rotationSpeed = Mathf.Clamp(value, -180f, 180f);
         }
 
         public void SetZoom(float value)
@@ -263,6 +279,7 @@ namespace Kaleidoscope2.Core
     public sealed class DiagnosticsState
     {
         [SerializeField] private float framesPerSecond;
+        [SerializeField] private bool hudVisible = true;
         [SerializeField] private List<KaleidoscopeModuleStatus> moduleStatuses = new List<KaleidoscopeModuleStatus>();
         [SerializeField] private List<string> warnings = new List<string>();
         [SerializeField] private List<string> errors = new List<string>();
@@ -271,6 +288,11 @@ namespace Kaleidoscope2.Core
         public float FramesPerSecond
         {
             get { return framesPerSecond; }
+        }
+
+        public bool HudVisible
+        {
+            get { return hudVisible; }
         }
 
         public IReadOnlyList<KaleidoscopeModuleStatus> ModuleStatuses
@@ -296,6 +318,11 @@ namespace Kaleidoscope2.Core
         public void SetFramesPerSecond(float value)
         {
             framesPerSecond = Mathf.Max(0f, value);
+        }
+
+        public void SetHudVisible(bool visible)
+        {
+            hudVisible = visible;
         }
 
         public void SetModuleStatuses(IReadOnlyList<KaleidoscopeModuleStatus> statuses)
