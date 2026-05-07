@@ -28,6 +28,7 @@ Responsibilities:
 - Own `KaleidoscopeDirector`, `KaleidoscopeState`, commands, module registration, lifecycle, command routing, and validation.
 - Hold the authoritative runtime state.
 - Route commands to registered modules through `IKaleidoscopeModule`.
+- Own bootstrap wiring through explicit module registration slots.
 
 Allowed dependencies:
 
@@ -39,6 +40,14 @@ Forbidden dependencies:
 - Scene-object name searches as production logic.
 - Direct shader, camera, recording, tunnel, audio, or physics implementation details.
 - Global mutable production state outside `KaleidoscopeState`.
+- Hidden scene discovery as a substitute for serialized bootstrap wiring.
+
+Bootstrap rules:
+
+- New scenes must register modules through `KaleidoscopeBootstrap` module slots.
+- Each slot must declare the module area it owns.
+- Legacy flat module arrays are migration fallback only and must not be used for new scenes.
+- Bootstrap may assign module references to Director, but modules must still communicate through Director, commands, state, or explicit interfaces.
 
 ## Control
 
@@ -266,7 +275,7 @@ Allowed communication:
 - Director routes commands to registered `IKaleidoscopeModule` implementations.
 - Modules synchronize user-facing values through `KaleidoscopeState`.
 - Modules report warnings, errors, and missing references through state diagnostics.
-- Bootstrap assigns serialized references explicitly.
+- Bootstrap assigns serialized module slots explicitly.
 
 Forbidden communication:
 

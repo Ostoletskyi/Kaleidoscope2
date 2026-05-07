@@ -3,6 +3,14 @@ using UnityEngine;
 
 namespace Kaleidoscope2.CameraSystem
 {
+    public enum KaleidoscopeCameraRole
+    {
+        Source = 0,
+        Viewer = 1,
+        Render = 2,
+        Offline = 3
+    }
+
     [DisallowMultipleComponent]
     public sealed class CameraModule : KaleidoscopeModuleBase
     {
@@ -36,6 +44,32 @@ namespace Kaleidoscope2.CameraSystem
             get { return offlineCamera; }
         }
 
+        public UnityEngine.Camera GetCamera(KaleidoscopeCameraRole role)
+        {
+            switch (role)
+            {
+                case KaleidoscopeCameraRole.Source:
+                    return sourceCamera;
+
+                case KaleidoscopeCameraRole.Viewer:
+                    return viewerCamera;
+
+                case KaleidoscopeCameraRole.Render:
+                    return renderCamera;
+
+                case KaleidoscopeCameraRole.Offline:
+                    return offlineCamera;
+            }
+
+            return null;
+        }
+
+        public bool TryGetCamera(KaleidoscopeCameraRole role, out UnityEngine.Camera camera)
+        {
+            camera = GetCamera(role);
+            return camera != null;
+        }
+
         public override void Validate()
         {
             if (sourceCamera == null)
@@ -61,7 +95,29 @@ namespace Kaleidoscope2.CameraSystem
 
         public override KaleidoscopeModuleStatus GetStatus()
         {
-            return CreateStatus("Placeholder. Explicit camera roles are reserved for Stage 05.");
+            int assignedRoles = 0;
+
+            if (sourceCamera != null)
+            {
+                assignedRoles++;
+            }
+
+            if (viewerCamera != null)
+            {
+                assignedRoles++;
+            }
+
+            if (renderCamera != null)
+            {
+                assignedRoles++;
+            }
+
+            if (offlineCamera != null)
+            {
+                assignedRoles++;
+            }
+
+            return CreateStatus("Placeholder. Explicit camera roles assigned: " + assignedRoles + "/4.");
         }
     }
 }
