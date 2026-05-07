@@ -1,45 +1,90 @@
-# Unity Cache / Generated
-Library/
-Temp/
-Obj/
-Build/
-Builds/
-Logs/
-UserSettings/
-MemoryCaptures/
-Recordings/
+# Unity cache / generated
+.utmp/
+/[Ll]ibrary/
+/[Tt]emp/
+/[Oo]bj/
+/[Bb]uild/
+/[Bb]uilds/
+/[Ll]ogs/
+/[Uu]ser[Ss]ettings/
+/[Mm]emoryCaptures/
+/[Rr]ecordings/
 
-# Unity Addressables / Cache
-ServerData/
+# Local utility/runtime logs
+*.log
 
-# Crash / Diagnostics
-crashlytics-build.properties
+# Addressables / cache
+/ServerData
+/[Aa]ssets/StreamingAssets/aa*
+/[Aa]ssets/AddressableAssetsData/link.xml*
+/[Aa]ssets/Addressables_Temp*
+/[Aa]ssets/AddressableAssetsData/*/*.bin*
 
-# Unity auto-generated
+# Unity packages / build exports
 *.apk
 *.aab
+*.app
 *.unitypackage
+*.unitypackage.meta
 
-# Addressables / AssetBundles
-Assets/StreamingAssets/aa/
+# Crash / diagnostics
+crashlytics-build.properties
+sysinfo.txt
+mono_crash.*
 
-# Cache server
-Cache/
+# Test runner / generated scenes
+InitTestScene*.unity*
+/[Aa]ssets/[Ii]nit[Tt]est[Ss]cene*.unity*
+/[Aa]ssets/[Ss]ceneDependencyCache*
 
-# Rider / VS additional
+# Visual scripting generated assets
+/[Aa]ssets/Unity.VisualScripting.Generated/VisualScripting.Flow/UnitOptions.db
+/[Aa]ssets/Unity.VisualScripting.Generated/VisualScripting.Flow/UnitOptions.db.meta
+/[Aa]ssets/Unity.VisualScripting.Generated/VisualScripting.Core/Property Providers
+/[Aa]ssets/Unity.VisualScripting.Generated/VisualScripting.Core/Property Providers.meta
+
+# IDE / generated project files
 .idea/
 .vscode/
+.vs/
+.gradle/
+ExportedObj/
+.consulo/
+*.csproj
+*.unityproj
+*.sln
+*.slnx
+*.suo
+*.tmp
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+*.DotSettings.user
 
-# Backup files (часто забывают)
+# Unity generated meta files for ignored binaries
+*.pidb.meta
+*.pdb.meta
+*.mdb.meta
+*.blend1
+*.blend1.meta
+
+# Local backup/export artifacts
+Cache/
 *.bak
 *.backup
 *.old
 *.orig
-
-# Large temporary exports
 *.zip
 *.rar
 *.7z
 
 # OS
-ehthumbs.dbv
+ehthumbs.db
+Thumbs.db
+.DS_Store

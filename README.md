@@ -1,18 +1,26 @@
-# Afrika - Ave Matanga
+# Kaleidoscope2
 
-Unity-проект для ритмичного real-time клипа под Drum & Bass трек.
+Modular cinematic kaleidoscope engine for Unity with centralized orchestration, isolated runtime modules, diagnostics-first development, and a deterministic render pipeline target.
 
-## База проекта
+## Architecture
 
-- Unity 2022.3 LTS
-- Universal Render Pipeline (URP)
-- Трек: `Afrika - Ave Matanga`
+```text
+UI / Input / Audio
+        |
+        v
+KaleidoscopeDirector
+        |
+        v
+Independent Modules
+        |
+        v
+Final Render Output
+```
 
-## Текущий этап
+## Current Stage
 
-Подготовка инфраструктуры проекта:
+- STAGE 00 - Project Foundation
+- STAGE 01 - Core Architecture
+- STAGE 02 - Diagnostics First
 
-- базовая структура папок в `Assets`;
-- стартовая сцена `Assets/Scenes/Main.unity`;
-- editor bootstrap для безопасной инициализации;
-- каркасные core-скрипты для дальнейшей разработки клипа.
+Future visual systems must preserve the contracts in `AGENTS.md`, `ROADMAP.md`, and `Assets/_Project/Kaleidoscope2/Docs/MODULE_BOUNDARIES.md`.
