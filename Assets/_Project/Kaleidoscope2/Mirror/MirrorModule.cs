@@ -9,6 +9,9 @@ namespace Kaleidoscope2.Mirror
         public static readonly int Rotation = Shader.PropertyToID("_Rotation");
         public static readonly int Zoom = Shader.PropertyToID("_Zoom");
         public static readonly int CenterOffset = Shader.PropertyToID("_CenterOffset");
+        public static readonly int Scroll = Shader.PropertyToID("_Scroll");
+        public static readonly int GuidesVisible = Shader.PropertyToID("_GuidesVisible");
+        public static readonly int GuideStrength = Shader.PropertyToID("_GuideStrength");
     }
 
     [DisallowMultipleComponent]
@@ -19,9 +22,11 @@ namespace Kaleidoscope2.Mirror
         [Header("Shader")]
         [SerializeField] private Shader mirrorShader;
         [SerializeField] private Material mirrorMaterial;
+        [SerializeField, Range(0f, 1f)] private float guideStrength = 0.65f;
 
         private Material runtimeMaterial;
         private RenderTexture outputTexture;
+        private float scroll;
 
         public override string ModuleId
         {
@@ -62,11 +67,15 @@ namespace Kaleidoscope2.Mirror
             float rotationRadians = settings != null ? settings.Rotation * Mathf.Deg2Rad : 0f;
             float zoom = settings != null ? settings.Zoom : 1f;
             Vector2 centerOffset = settings != null ? settings.CenterOffset : Vector2.zero;
+            float guidesVisible = settings != null && settings.GuidesVisible ? 1f : 0f;
 
             material.SetFloat(MirrorShaderIds.MirrorCount, mirrorCount);
             material.SetFloat(MirrorShaderIds.Rotation, rotationRadians);
             material.SetFloat(MirrorShaderIds.Zoom, zoom);
             material.SetVector(MirrorShaderIds.CenterOffset, centerOffset);
+            material.SetFloat(MirrorShaderIds.Scroll, scroll);
+            material.SetFloat(MirrorShaderIds.GuidesVisible, guidesVisible);
+            material.SetFloat(MirrorShaderIds.GuideStrength, guideStrength);
 
             Graphics.Blit(sourceTexture, outputTexture, material);
             return outputTexture;
@@ -85,13 +94,24 @@ namespace Kaleidoscope2.Mirror
                 return;
             }
 
-            float speed = settings.RotationSpeed;
-            if (Mathf.Abs(speed) <= 0.0001f)
+            float rotationUnits = settings.RotationSpeed;
+            if (Mathf.Abs(rotationUnits) > 0.0001f)
             {
-                return;
+                // Units are treated as degrees/second.
+                settings.SetRotation(settings.Rotation + rotationUnits * deltaTime);
             }
 
-            settings.SetRotation(settings.Rotation + speed * deltaTime);
+            float forwardUnits = settings.ForwardSpeedUnits;
+            if (Mathf.Abs(forwardUnits) > 0.0001f)
+            {
+                // A lightweight "forward movement" illusion by scrolling sampling radius.
+                // Units are arbitrary; tuned to be noticeable at ~100.
+                scroll += forwardUnits * deltaTime * 0.0025f;
+                if (scroll > 10000f || scroll < -10000f)
+                {
+                    scroll = 0f;
+                }
+            }
         }
 
         public override bool CanHandle(KaleidoscopeCommand command)
@@ -105,7 +125,11 @@ namespace Kaleidoscope2.Mirror
                 || command.Type == KaleidoscopeCommandType.SetMirrorRotation
                 || command.Type == KaleidoscopeCommandType.SetMirrorRotationSpeed
                 || command.Type == KaleidoscopeCommandType.SetMirrorZoom
-                || command.Type == KaleidoscopeCommandType.SetMirrorCenterOffset;
+                || command.Type == KaleidoscopeCommandType.SetMirrorCenterOffset
+                || command.Type == KaleidoscopeCommandType.ToggleMirrorGuides
+                || command.Type == KaleidoscopeCommandType.SetMirrorGuidesVisible
+                || command.Type == KaleidoscopeCommandType.SetMirrorRotationSpeedUnits
+                || command.Type == KaleidoscopeCommandType.SetMirrorForwardSpeedUnits;
         }
 
         public override KaleidoscopeModuleStatus GetStatus()

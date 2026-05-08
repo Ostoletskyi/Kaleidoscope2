@@ -7,6 +7,9 @@ Shader "Kaleidoscope2/Mirror"
         _Rotation ("Rotation (rad)", Float) = 0
         _Zoom ("Zoom", Float) = 1
         _CenterOffset ("Center Offset", Vector) = (0, 0, 0, 0)
+        _Scroll ("Forward Scroll", Float) = 0
+        _GuidesVisible ("Guides Visible", Float) = 0
+        _GuideStrength ("Guide Strength", Range(0,1)) = 0.65
     }
     SubShader
     {
@@ -29,6 +32,9 @@ Shader "Kaleidoscope2/Mirror"
             float _Rotation;
             float _Zoom;
             float4 _CenterOffset;
+            float _Scroll;
+            float _GuidesVisible;
+            float _GuideStrength;
 
             struct appdata
             {
@@ -73,12 +79,33 @@ Shader "Kaleidoscope2/Mirror"
                 angle = abs(angle - segment * 0.5);
 
                 float2 dir = float2(cos(angle), sin(angle));
-                float2 sampleUV = (dir * r) + 0.5;
+                // "Forward" illusion: scroll along radius.
+                float rr = r + _Scroll;
+                float2 sampleUV = (dir * rr) + 0.5;
 
-                return tex2D(_MainTex, sampleUV);
+                fixed4 col = tex2D(_MainTex, sampleUV);
+
+                // Segment guides (toggle with numpad 0 via module state).
+                if (_GuidesVisible > 0.5)
+                {
+                    // Compute distance to segment boundary using the non-mirrored angle.
+                    float rawAngle = atan2(p.y, p.x) + _Rotation;
+                    float a = rawAngle - segment * floor(rawAngle / segment);
+                    float d = min(a, segment - a);
+
+                    // Add a subtle "bend" illusion by modulating the boundary distance along radius.
+                    float bend = sin(r * 22.0 + _Time.y * 1.7) * 0.18 * segment;
+                    d = abs(d + bend);
+
+                    float guideLine = 1.0 - smoothstep(0.0, segment * 0.035, d);
+                    float strength = saturate(_GuideStrength);
+                    float3 inv = float3(1.0, 1.0, 1.0) - col.rgb;
+                    col.rgb = lerp(col.rgb, inv, guideLine * strength);
+                }
+
+                return col;
             }
             ENDCG
         }
     }
 }
-

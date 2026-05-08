@@ -25,7 +25,11 @@ namespace Kaleidoscope2.Core
         SetImageFilePath = 17,
         SetImageFolderPath = 18,
         SetAudioFilePath = 19,
-        SetAudioFolderPath = 20
+        SetAudioFolderPath = 20,
+        ToggleMirrorGuides = 21,
+        SetMirrorGuidesVisible = 22,
+        SetMirrorRotationSpeedUnits = 23,
+        SetMirrorForwardSpeedUnits = 24
     }
 
     [Serializable]
@@ -245,6 +249,35 @@ namespace Kaleidoscope2.Core
             return new KaleidoscopeCommand(KaleidoscopeCommandType.SetAudioFolderPath)
             {
                 stringValue = path
+            };
+        }
+
+        public static KaleidoscopeCommand ToggleMirrorGuides()
+        {
+            return new KaleidoscopeCommand(KaleidoscopeCommandType.ToggleMirrorGuides);
+        }
+
+        public static KaleidoscopeCommand SetMirrorGuidesVisible(bool visible)
+        {
+            return new KaleidoscopeCommand(KaleidoscopeCommandType.SetMirrorGuidesVisible)
+            {
+                boolValue = visible
+            };
+        }
+
+        public static KaleidoscopeCommand SetMirrorRotationSpeedUnits(float speedUnits)
+        {
+            return new KaleidoscopeCommand(KaleidoscopeCommandType.SetMirrorRotationSpeedUnits)
+            {
+                floatValue = speedUnits
+            };
+        }
+
+        public static KaleidoscopeCommand SetMirrorForwardSpeedUnits(float speedUnits)
+        {
+            return new KaleidoscopeCommand(KaleidoscopeCommandType.SetMirrorForwardSpeedUnits)
+            {
+                floatValue = speedUnits
             };
         }
 

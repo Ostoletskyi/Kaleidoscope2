@@ -11,6 +11,24 @@ namespace Kaleidoscope2.Control
     [DisallowMultipleComponent]
     public sealed class RuntimeMenuController : KaleidoscopeModuleBase
     {
+        // Legacy serialized fields from earlier iterations. Kept to avoid breaking scene references.
+        // They are unused by the current runtime menu implementation.
+#pragma warning disable 649
+        [SerializeField] private Dropdown sourceModeDropdown;
+        [SerializeField] private Slider mirrorCountSlider;
+        [SerializeField] private Text mirrorCountValue;
+        [SerializeField] private Slider zoomSlider;
+        [SerializeField] private Text zoomValue;
+        [SerializeField] private Slider rotationSpeedSlider;
+        [SerializeField] private Text rotationSpeedValue;
+        [SerializeField] private Button resetCenterOffsetButton;
+        [SerializeField] private Button toggleDiagnosticsButton;
+        [SerializeField] private Text diagnosticsButtonLabel;
+        [SerializeField] private Toggle tunnelModeToggle;
+        [SerializeField] private Button recordingButton;
+        [SerializeField] private Text recordingButtonLabel;
+#pragma warning restore 649
+
         private const float ReferenceWidth = 1920f;
         private const float ReferenceHeight = 1080f;
 
@@ -30,11 +48,6 @@ namespace Kaleidoscope2.Control
         [SerializeField] private KaleidoscopeDirector director;
         [SerializeField] private RawImage outputImage;
 
-        [Header("Menu Input")]
-        [SerializeField] private bool allowLocalInput = true;
-        [SerializeField] private KeyCode toggleMenuMouseButton = KeyCode.Mouse2; // middle click
-        [SerializeField] private KeyCode closeKey = KeyCode.Escape;
-
         private RectTransform canvasRoot;
         private CanvasScaler canvasScaler;
 
@@ -45,18 +58,23 @@ namespace Kaleidoscope2.Control
         private Text modeValueText;
         private Text imagePathText;
         private Text audioPathText;
+        private Text guidesValueText;
+        private Text forwardSpeedValueText;
+        private Text rotationSpeedValueText;
 
         private BrowserMode activeBrowserMode;
         private string browserCurrentPath;
         private RectTransform browserListContent;
         private Text browserPathText;
         private Button browserSelectFolderButton;
+        private InputField browserPathInput;
 
         private Font uiFont;
         private Texture2D solidTexture;
         private Sprite solidSprite;
 
         private readonly List<GameObject> browserRowPool = new List<GameObject>(128);
+        private float nextStateSyncTime;
 
         public override string ModuleId
         {
@@ -82,11 +100,7 @@ namespace Kaleidoscope2.Control
 
         private void Start()
         {
-            // Ensure Control is registered after Bootstrap has populated the director.
-            if (director != null)
-            {
-                director.RegisterModule(this);
-            }
+            // Intentionally empty. This module is expected to be registered through Bootstrap.
         }
 
         private void Update()
@@ -96,12 +110,13 @@ namespace Kaleidoscope2.Control
                 return;
             }
 
-            if (allowLocalInput)
-            {
-                HandleLocalInput();
-            }
-
             UpdateOutputTexture();
+
+            if (menuRoot != null && menuRoot.activeSelf && Time.unscaledTime >= nextStateSyncTime)
+            {
+                SyncUiFromState();
+                nextStateSyncTime = Time.unscaledTime + 0.1f;
+            }
         }
 
         public override bool CanHandle(KaleidoscopeCommand command)
@@ -125,11 +140,11 @@ namespace Kaleidoscope2.Control
             switch (command.Type)
             {
                 case KaleidoscopeCommandType.ToggleControlMenu:
-                    SetMenuVisible(menuRoot != null && !menuRoot.activeSelf, updateState: true);
+                    SetMenuVisible(director != null ? director.State.ControlMenuVisible : (menuRoot == null || !menuRoot.activeSelf), updateState: false);
                     break;
 
                 case KaleidoscopeCommandType.SetControlMenuVisible:
-                    SetMenuVisible(command.BoolValue, updateState: false);
+                    SetMenuVisible(director != null ? director.State.ControlMenuVisible : command.BoolValue, updateState: false);
                     break;
             }
         }
@@ -138,19 +153,6 @@ namespace Kaleidoscope2.Control
         {
             DestroyGeneratedAsset(solidSprite);
             DestroyGeneratedAsset(solidTexture);
-        }
-
-        private void HandleLocalInput()
-        {
-            if (Input.GetKeyDown(toggleMenuMouseButton))
-            {
-                SetMenuVisible(menuRoot == null || !menuRoot.activeSelf, updateState: true);
-            }
-
-            if (menuRoot != null && menuRoot.activeSelf && Input.GetKeyDown(closeKey))
-            {
-                SetMenuVisible(false, updateState: true);
-            }
         }
 
         private void UpdateOutputTexture()
@@ -189,10 +191,26 @@ namespace Kaleidoscope2.Control
             }
 
             KaleidoscopeState state = director.State;
+            MirrorSettings mirror = state != null ? state.MirrorSettings : null;
 
             if (modeValueText != null)
             {
                 modeValueText.text = state.TunnelEnabled ? "3D (Tunnel)" : "2D";
+            }
+
+            if (guidesValueText != null)
+            {
+                guidesValueText.text = mirror != null && mirror.GuidesVisible ? "Вкл" : "Выкл";
+            }
+
+            if (forwardSpeedValueText != null)
+            {
+                forwardSpeedValueText.text = mirror != null ? mirror.ForwardSpeedUnits.ToString("0") : "0";
+            }
+
+            if (rotationSpeedValueText != null)
+            {
+                rotationSpeedValueText.text = mirror != null ? mirror.RotationSpeed.ToString("0") : "0";
             }
 
             if (imagePathText != null)
@@ -295,7 +313,7 @@ namespace Kaleidoscope2.Control
             scrim.color = ScrimColor;
             scrim.raycastTarget = true;
 
-            RectTransform panel = CreatePanel(rootRect, "MenuPanel", new Vector2(560f, 520f));
+            RectTransform panel = CreatePanel(rootRect, "MenuPanel", new Vector2(620f, 680f));
             VerticalLayoutGroup layout = panel.gameObject.AddComponent<VerticalLayoutGroup>();
             layout.padding = new RectOffset(18, 18, 18, 18);
             layout.spacing = 10f;
@@ -326,6 +344,13 @@ namespace Kaleidoscope2.Control
 
             RectTransform modeRow = CreateRow(panel, "Режим:", out modeValueText);
             CreateButton(modeRow, "ToggleMode", "2D / 3D", ButtonColor, ToggleMode);
+
+            RectTransform guidesRow = CreateRow(panel, "Линии:", out guidesValueText);
+            CreateButton(guidesRow, "ToggleGuides", "Вкл/Выкл", ButtonColor, ToggleGuides);
+
+            CreateRow(panel, "Скорость вперёд:", out forwardSpeedValueText);
+            CreateRow(panel, "Скорость вращения:", out rotationSpeedValueText);
+            CreateButton(panel, "ResetSpeeds", "Сбросить скорости", MutedButtonColor, ResetSpeeds);
 
             CreateButton(panel, "Help", "Помощь", ButtonColor, OpenHelp);
             CreateButton(panel, "Close", "Закрыть панель", MutedButtonColor, () => SetMenuVisible(false, updateState: true));
@@ -360,6 +385,8 @@ namespace Kaleidoscope2.Control
                 "Управление:\n" +
                 "Колесо мыши (клик) — открыть/закрыть меню\n" +
                 "Esc — закрыть меню\n\n" +
+                "Num0 (доп. клавиатура) — линии сегментов (вкл/выкл)\n" +
+                "Стрелки: Вверх/Вниз — скорость движения вперёд, Влево/Вправо — скорость вращения\n\n" +
                 "Режимы:\n" +
                 "2D — классический калейдоскоп (сегменты от центра).\n" +
                 "3D — туннельная перспектива на основе финальной текстуры.\n\n" +
@@ -388,7 +415,7 @@ namespace Kaleidoscope2.Control
             scrim.color = ScrimColor;
             scrim.raycastTarget = true;
 
-            RectTransform panel = CreatePanel(rootRect, "BrowserPanel", new Vector2(980f, 720f));
+            RectTransform panel = CreatePanel(rootRect, "BrowserPanel", new Vector2(980f, 780f));
             VerticalLayoutGroup layout = panel.gameObject.AddComponent<VerticalLayoutGroup>();
             layout.padding = new RectOffset(16, 16, 16, 16);
             layout.spacing = 10f;
@@ -399,6 +426,37 @@ namespace Kaleidoscope2.Control
 
             browserPathText = CreateText(panel, "BrowserPath", "", 14, FontStyle.Bold, TextColor, TextAnchor.MiddleLeft);
             browserPathText.gameObject.AddComponent<LayoutElement>().preferredHeight = 28f;
+
+            // Path input (direct jump) and drive chooser.
+            RectTransform jumpRow = CreateRect("JumpRow", panel);
+            HorizontalLayoutGroup jumpLayout = jumpRow.gameObject.AddComponent<HorizontalLayoutGroup>();
+            jumpLayout.spacing = 10f;
+            jumpLayout.childControlHeight = true;
+            jumpLayout.childForceExpandHeight = false;
+            jumpRow.gameObject.AddComponent<LayoutElement>().preferredHeight = 38f;
+
+            browserPathInput = CreateInputField(jumpRow, "PathInput", "Путь (например D:\\\\Music)", 14);
+            SetLayoutPreferred(browserPathInput.gameObject, 720f, 38f);
+
+            CreateButton(jumpRow, "Go", "Перейти", ButtonColor, () =>
+            {
+                if (browserPathInput == null)
+                {
+                    return;
+                }
+
+                string value = browserPathInput.text;
+                TryNavigateToPath(value);
+            });
+
+            RectTransform drivesRow = CreateRect("DrivesRow", panel);
+            HorizontalLayoutGroup drivesLayout = drivesRow.gameObject.AddComponent<HorizontalLayoutGroup>();
+            drivesLayout.spacing = 8f;
+            drivesLayout.childControlHeight = true;
+            drivesLayout.childForceExpandHeight = false;
+            drivesRow.gameObject.AddComponent<LayoutElement>().preferredHeight = 38f;
+
+            BuildDriveButtons(drivesRow);
 
             RectTransform actions = CreateRect("Actions", panel);
             HorizontalLayoutGroup actionsLayout = actions.gameObject.AddComponent<HorizontalLayoutGroup>();
@@ -415,7 +473,7 @@ namespace Kaleidoscope2.Control
             listRoot.gameObject.AddComponent<Image>().color = PanelStrongColor;
             listRoot.gameObject.GetComponent<Image>().sprite = solidSprite;
             LayoutElement listRootLayout = listRoot.gameObject.AddComponent<LayoutElement>();
-            listRootLayout.preferredHeight = 520f;
+            listRootLayout.preferredHeight = 500f;
 
             ScrollRect scroll = listRoot.gameObject.AddComponent<ScrollRect>();
             scroll.horizontal = false;
@@ -443,6 +501,72 @@ namespace Kaleidoscope2.Control
             browserRoot.SetActive(false);
         }
 
+        private void BuildDriveButtons(RectTransform parent)
+        {
+            try
+            {
+                DriveInfo[] drives = DriveInfo.GetDrives();
+                for (int i = 0; i < drives.Length; i++)
+                {
+                    DriveInfo drive = drives[i];
+                    if (drive == null)
+                    {
+                        continue;
+                    }
+
+                    string root = drive.Name;
+                    string label = root.TrimEnd('\\');
+
+                    Button button = CreateButton(parent, "Drive_" + label, label, MutedButtonColor, () =>
+                    {
+                        SetBrowserPath(root);
+                        RefreshBrowserList();
+                    });
+                    SetLayoutPreferred(button.gameObject, 72f, 40f);
+                }
+            }
+            catch (Exception exception)
+            {
+                Debug.LogWarning("[Control] Drive listing failed: " + exception.Message);
+            }
+        }
+
+        private void TryNavigateToPath(string value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return;
+            }
+
+            value = value.Trim();
+
+            try
+            {
+                if (File.Exists(value))
+                {
+                    string folder = Path.GetDirectoryName(value);
+                    if (!string.IsNullOrWhiteSpace(folder))
+                    {
+                        SetBrowserPath(folder);
+                        RefreshBrowserList();
+                    }
+
+                    return;
+                }
+
+                if (Directory.Exists(value))
+                {
+                    SetBrowserPath(value);
+                    RefreshBrowserList();
+                    return;
+                }
+            }
+            catch (Exception exception)
+            {
+                Debug.LogWarning("[Control] Navigate to path failed: " + exception.Message);
+            }
+        }
+
         private void OpenHelp()
         {
             SetActiveIfDifferent(helpRoot, true);
@@ -457,6 +581,29 @@ namespace Kaleidoscope2.Control
 
             bool nextTunnelEnabled = !director.State.TunnelEnabled;
             director.Dispatch(KaleidoscopeCommand.SetTunnelEnabled(nextTunnelEnabled));
+            SyncUiFromState();
+        }
+
+        private void ToggleGuides()
+        {
+            if (director == null)
+            {
+                return;
+            }
+
+            director.Dispatch(KaleidoscopeCommand.ToggleMirrorGuides());
+            SyncUiFromState();
+        }
+
+        private void ResetSpeeds()
+        {
+            if (director == null)
+            {
+                return;
+            }
+
+            director.Dispatch(KaleidoscopeCommand.SetMirrorForwardSpeedUnits(0f));
+            director.Dispatch(KaleidoscopeCommand.SetMirrorRotationSpeedUnits(0f));
             SyncUiFromState();
         }
 
@@ -544,6 +691,11 @@ namespace Kaleidoscope2.Control
             if (browserPathText != null)
             {
                 browserPathText.text = path ?? string.Empty;
+            }
+
+            if (browserPathInput != null)
+            {
+                browserPathInput.text = path ?? string.Empty;
             }
         }
 
@@ -805,9 +957,9 @@ namespace Kaleidoscope2.Control
             labelText.gameObject.AddComponent<LayoutElement>().preferredWidth = 140f;
 
             valueText = CreateText(row, "Value", "—", 14, FontStyle.Normal, Accent, TextAnchor.MiddleLeft);
-            valueText.gameObject.AddComponent<LayoutElement>().preferredWidth = 360f;
+            valueText.gameObject.AddComponent<LayoutElement>().preferredWidth = 400f;
 
-            row.gameObject.AddComponent<LayoutElement>().preferredHeight = 26f;
+            row.gameObject.AddComponent<LayoutElement>().preferredHeight = 40f;
             return row;
         }
 
@@ -846,6 +998,67 @@ namespace Kaleidoscope2.Control
 
             Stretch(rect);
             return text;
+        }
+
+        private InputField CreateInputField(RectTransform parent, string name, string placeholder, int fontSize)
+        {
+            RectTransform root = CreateRect(name, parent);
+            root.gameObject.AddComponent<Image>().sprite = solidSprite;
+            root.gameObject.GetComponent<Image>().color = PanelStrongColor;
+            root.gameObject.AddComponent<LayoutElement>().preferredHeight = 38f;
+
+            InputField input = root.gameObject.AddComponent<InputField>();
+
+            // Text
+            Text text = CreateText(root, "Text", string.Empty, fontSize, FontStyle.Normal, TextColor, TextAnchor.MiddleLeft);
+            text.raycastTarget = false;
+            text.horizontalOverflow = HorizontalWrapMode.Overflow;
+            text.verticalOverflow = VerticalWrapMode.Truncate;
+            RectTransform textRect = text.rectTransform;
+            textRect.anchorMin = new Vector2(0f, 0f);
+            textRect.anchorMax = new Vector2(1f, 1f);
+            textRect.offsetMin = new Vector2(10f, 6f);
+            textRect.offsetMax = new Vector2(-10f, -6f);
+
+            // Placeholder
+            Text hint = CreateText(root, "Placeholder", placeholder, fontSize, FontStyle.Italic, MutedTextColor, TextAnchor.MiddleLeft);
+            RectTransform hintRect = hint.rectTransform;
+            hintRect.anchorMin = new Vector2(0f, 0f);
+            hintRect.anchorMax = new Vector2(1f, 1f);
+            hintRect.offsetMin = new Vector2(10f, 6f);
+            hintRect.offsetMax = new Vector2(-10f, -6f);
+
+            input.textComponent = text;
+            input.placeholder = hint;
+            input.lineType = InputField.LineType.SingleLine;
+            input.contentType = InputField.ContentType.Standard;
+            input.characterLimit = 260;
+
+            return input;
+        }
+
+        private static void SetLayoutPreferred(GameObject target, float preferredWidth, float preferredHeight)
+        {
+            if (target == null)
+            {
+                return;
+            }
+
+            LayoutElement element = target.GetComponent<LayoutElement>();
+            if (element == null)
+            {
+                element = target.AddComponent<LayoutElement>();
+            }
+
+            if (preferredWidth >= 0f)
+            {
+                element.preferredWidth = preferredWidth;
+            }
+
+            if (preferredHeight >= 0f)
+            {
+                element.preferredHeight = preferredHeight;
+            }
         }
 
         private Font GetUiFont()

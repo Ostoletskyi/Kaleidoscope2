@@ -263,9 +263,11 @@ namespace Kaleidoscope2.Core
     {
         [SerializeField] private int mirrorCount = 6;
         [SerializeField] private float rotation;
-        [SerializeField] private float rotationSpeed;
+        [SerializeField] private float rotationSpeedUnits;
+        [SerializeField] private float forwardSpeedUnits;
         [SerializeField] private float zoom = 1f;
         [SerializeField] private Vector2 centerOffset = Vector2.zero;
+        [SerializeField] private bool guidesVisible;
 
         public int MirrorCount
         {
@@ -279,7 +281,17 @@ namespace Kaleidoscope2.Core
 
         public float RotationSpeed
         {
-            get { return rotationSpeed; }
+            get { return rotationSpeedUnits; }
+        }
+
+        public float ForwardSpeedUnits
+        {
+            get { return forwardSpeedUnits; }
+        }
+
+        public bool GuidesVisible
+        {
+            get { return guidesVisible; }
         }
 
         public float Zoom
@@ -304,7 +316,17 @@ namespace Kaleidoscope2.Core
 
         public void SetRotationSpeed(float value)
         {
-            rotationSpeed = Mathf.Clamp(value, -180f, 180f);
+            rotationSpeedUnits = Mathf.Clamp(value, -500f, 500f);
+        }
+
+        public void SetForwardSpeedUnits(float value)
+        {
+            forwardSpeedUnits = Mathf.Clamp(value, -500f, 500f);
+        }
+
+        public void SetGuidesVisible(bool visible)
+        {
+            guidesVisible = visible;
         }
 
         public void SetZoom(float value)

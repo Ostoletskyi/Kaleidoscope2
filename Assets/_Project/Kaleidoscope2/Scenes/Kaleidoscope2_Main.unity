@@ -401,6 +401,12 @@ MonoBehaviour:
   - moduleArea: 5
     moduleBehaviour: {fileID: 1133593879}
     required: 1
+  - moduleArea: 1
+    moduleBehaviour: {fileID: 720120273}
+    required: 1
+  - moduleArea: 2
+    moduleBehaviour: {fileID: 900000023}
+    required: 1
   - moduleArea: 8
     moduleBehaviour: {fileID: 900000003}
     required: 1
@@ -1630,6 +1636,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 46dc6e5ca5bbc87428da2967115fa361, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  startActive: 1
   director: {fileID: 2063111828}
   outputImage: {fileID: 1194547710}
   sourceModeDropdown: {fileID: 329456914}
@@ -3682,6 +3689,7 @@ Transform:
   - {fileID: 2063111829}
   - {fileID: 338442052}
   - {fileID: 1133593878}
+  - {fileID: 900000022}
   - {fileID: 900000002}
   - {fileID: 955706882}
   - {fileID: 900000012}
@@ -4869,19 +4877,26 @@ MonoBehaviour:
     mirrorSettings:
       mirrorCount: 6
       rotation: 0
-      rotationSpeed: 0
+      rotationSpeedUnits: 0
+      forwardSpeedUnits: 0
       zoom: 1
       centerOffset: {x: 0, y: 0}
+      guidesVisible: 0
     cameraSettings:
       renderWidth: 1920
       renderHeight: 1080
+    imageFilePath: ''
+    imageFolderPath: ''
+    audioFilePath: ''
+    audioFolderPath: ''
+    controlMenuVisible: 0
     activePreset: None
     tunnelEnabled: 0
     recordingStatus: 0
     qualityLevel: 0
     diagnostics:
       framesPerSecond: 0
-      hudVisible: 1
+      hudVisible: 0
       moduleStatuses: []
       warnings: []
       errors: []
@@ -4951,8 +4966,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 4e29b1a8efbd4b44bb3f3716e73f07ff, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name: ''
+  m_EditorClassIdentifier: ''
   m_Navigation:
     m_Mode: 3
     m_WrapAround: 0
@@ -5120,6 +5135,62 @@ MonoBehaviour:
   startActive: 1
   audioSource: {fileID: 0}
   autoplayOnLoad: 1
+--- !u!1 &900000021
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 900000022}
+  - component: {fileID: 900000023}
+  m_Layer: 0
+  m_Name: InputModule
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &900000022
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 900000021}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1413481328}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &900000023
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 900000021}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0fd626b7f90c56c42920156091c1f2dd, type: 3}
+  m_Name: ''
+  m_EditorClassIdentifier: ''
+  startActive: 1
+  director: {fileID: 2063111828}
+  toggleMenuKey: 325
+  closeMenuKey: 27
+  toggleGuidesKey: 256
+  unitsStepPerPress: 25
+  unitsStepPerSecond: 220
+  forwardIncreaseKey: 273
+  forwardDecreaseKey: 274
+  rotationLeftKey: 276
+  rotationRightKey: 275
+  resetSpeedsKey: 261
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

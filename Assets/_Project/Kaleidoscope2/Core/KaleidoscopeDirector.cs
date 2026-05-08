@@ -210,6 +210,22 @@ namespace Kaleidoscope2.Core
                     state.MirrorSettings.SetCenterOffset(command.Vector2Value);
                     return true;
 
+                case KaleidoscopeCommandType.ToggleMirrorGuides:
+                    state.MirrorSettings.SetGuidesVisible(!state.MirrorSettings.GuidesVisible);
+                    return true;
+
+                case KaleidoscopeCommandType.SetMirrorGuidesVisible:
+                    state.MirrorSettings.SetGuidesVisible(command.BoolValue);
+                    return true;
+
+                case KaleidoscopeCommandType.SetMirrorRotationSpeedUnits:
+                    state.MirrorSettings.SetRotationSpeed(command.FloatValue);
+                    return true;
+
+                case KaleidoscopeCommandType.SetMirrorForwardSpeedUnits:
+                    state.MirrorSettings.SetForwardSpeedUnits(command.FloatValue);
+                    return true;
+
                 case KaleidoscopeCommandType.SetTunnelEnabled:
                     state.SetTunnelEnabled(command.BoolValue);
                     return true;
