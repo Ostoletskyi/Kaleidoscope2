@@ -4885,6 +4885,8 @@ MonoBehaviour:
     cameraSettings:
       renderWidth: 1920
       renderHeight: 1080
+    tunnelSettings:
+      bend: {x: 0, y: 0}
     imageFilePath: ''
     imageFolderPath: ''
     audioFilePath: ''
@@ -5186,11 +5188,21 @@ MonoBehaviour:
   toggleGuidesKey: 256
   unitsStepPerPress: 25
   unitsStepPerSecond: 220
-  forwardIncreaseKey: 273
-  forwardDecreaseKey: 274
+  zoomStepPerSecond: 1.4
+  zoomInKey: 273
+  zoomOutKey: 274
   rotationLeftKey: 276
   rotationRightKey: 275
   resetSpeedsKey: 261
+  centerStepPerSecond: 1.25
+  centerUpKey: 119
+  centerLeftKey: 97
+  centerDownKey: 115
+  centerRightKey: 100
+  tunnelBendUpKey: 112
+  tunnelBendDownKey: 59
+  tunnelBendLeftKey: 108
+  tunnelBendRightKey: 39
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

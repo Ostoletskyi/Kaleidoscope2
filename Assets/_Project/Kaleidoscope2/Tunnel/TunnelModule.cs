@@ -3,6 +3,20 @@ using UnityEngine;
 
 namespace Kaleidoscope2.Tunnel
 {
+    public static class TunnelShaderIds
+    {
+        public static readonly int DepthScale = Shader.PropertyToID("_DepthScale");
+        public static readonly int CenterDarken = Shader.PropertyToID("_CenterDarken");
+        public static readonly int Scroll = Shader.PropertyToID("_Scroll");
+        public static readonly int Bend = Shader.PropertyToID("_Bend");
+        public static readonly int TunnelBendOffset = Shader.PropertyToID("_TunnelBendOffset");
+        public static readonly int TunnelFoldStrength = Shader.PropertyToID("_TunnelFoldStrength");
+        public static readonly int TunnelFoldShadowStrength = Shader.PropertyToID("_TunnelFoldShadowStrength");
+        public static readonly int TunnelDarknessDepth = Shader.PropertyToID("_TunnelDarknessDepth");
+        public static readonly int TunnelEndLightVisibility = Shader.PropertyToID("_TunnelEndLightVisibility");
+        public static readonly int TunnelDepthFade = Shader.PropertyToID("_TunnelDepthFade");
+    }
+
     [DisallowMultipleComponent]
     public sealed class TunnelModule : KaleidoscopeModuleBase, IKaleidoscopeTextureProcessor
     {
@@ -57,9 +71,29 @@ namespace Kaleidoscope2.Tunnel
                 return sourceTexture;
             }
 
-            material.SetFloat("_DepthScale", depthScale);
-            material.SetFloat("_CenterDarken", centerDarken);
-            material.SetFloat("_Scroll", Time.unscaledTime * scrollSpeed);
+            Vector2 bend = runtimeState.TunnelSettings != null ? runtimeState.TunnelSettings.Bend : Vector2.zero;
+            TunnelBendSettings bendSettings = runtimeState.TunnelBendSettings;
+            TunnelBendState bendState = runtimeState.TunnelBendState;
+            Vector2 hoseBend = bendState != null ? bendState.BendOffset : Vector2.zero;
+            float bendMagnitude = Mathf.Clamp01(hoseBend.magnitude);
+            float foldStrength = bendSettings != null ? bendSettings.FoldStrength * bendMagnitude : bendMagnitude;
+            float foldShadowStrength = bendSettings != null ? bendSettings.FoldShadowStrength * bendMagnitude : bendMagnitude;
+            float darknessDepth = bendSettings != null ? bendSettings.DarknessDepth : 0.85f;
+            float endLightVisibility = bendSettings != null
+                ? bendSettings.EndLightVisibility * Mathf.Clamp01(1f - bendMagnitude)
+                : Mathf.Clamp01(1f - bendMagnitude);
+            float depthFade = Mathf.Lerp(0.95f, 2.2f, bendMagnitude * darknessDepth);
+
+            material.SetFloat(TunnelShaderIds.DepthScale, depthScale);
+            material.SetFloat(TunnelShaderIds.CenterDarken, centerDarken);
+            material.SetFloat(TunnelShaderIds.Scroll, Time.unscaledTime * scrollSpeed);
+            material.SetVector(TunnelShaderIds.Bend, bend);
+            material.SetVector(TunnelShaderIds.TunnelBendOffset, hoseBend);
+            material.SetFloat(TunnelShaderIds.TunnelFoldStrength, foldStrength);
+            material.SetFloat(TunnelShaderIds.TunnelFoldShadowStrength, foldShadowStrength);
+            material.SetFloat(TunnelShaderIds.TunnelDarknessDepth, darknessDepth);
+            material.SetFloat(TunnelShaderIds.TunnelEndLightVisibility, endLightVisibility);
+            material.SetFloat(TunnelShaderIds.TunnelDepthFade, depthFade);
 
             Graphics.Blit(sourceTexture, outputTexture, material);
             return outputTexture;
@@ -73,7 +107,9 @@ namespace Kaleidoscope2.Tunnel
         public override KaleidoscopeModuleStatus GetStatus()
         {
             bool enabled = State != null && State.TunnelEnabled;
-            return CreateStatus(enabled ? "Tunnel enabled (post-process)" : "Tunnel disabled");
+            Vector2 bend = State != null && State.TunnelSettings != null ? State.TunnelSettings.Bend : Vector2.zero;
+            Vector2 hoseBend = State != null && State.TunnelBendState != null ? State.TunnelBendState.BendOffset : Vector2.zero;
+            return CreateStatus(enabled ? "Tunnel enabled. Legacy bend " + bend.ToString("0.00") + ", hose bend " + hoseBend.ToString("0.00") + "." : "Tunnel disabled");
         }
 
         private void OnDestroy()

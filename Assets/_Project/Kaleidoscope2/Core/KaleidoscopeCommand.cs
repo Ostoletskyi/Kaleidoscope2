@@ -29,7 +29,8 @@ namespace Kaleidoscope2.Core
         ToggleMirrorGuides = 21,
         SetMirrorGuidesVisible = 22,
         SetMirrorRotationSpeedUnits = 23,
-        SetMirrorForwardSpeedUnits = 24
+        SetMirrorForwardSpeedUnits = 24,
+        SetTunnelBend = 25
     }
 
     [Serializable]
@@ -278,6 +279,14 @@ namespace Kaleidoscope2.Core
             return new KaleidoscopeCommand(KaleidoscopeCommandType.SetMirrorForwardSpeedUnits)
             {
                 floatValue = speedUnits
+            };
+        }
+
+        public static KaleidoscopeCommand SetTunnelBend(Vector2 bend)
+        {
+            return new KaleidoscopeCommand(KaleidoscopeCommandType.SetTunnelBend)
+            {
+                vector2Value = bend
             };
         }
 

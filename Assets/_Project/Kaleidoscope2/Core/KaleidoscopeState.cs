@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Kaleidoscope2.Tunnel;
 using UnityEngine;
 
 namespace Kaleidoscope2.Core
@@ -45,6 +46,9 @@ namespace Kaleidoscope2.Core
         [SerializeField] private KaleidoscopeVisualMode activeVisualMode = KaleidoscopeVisualMode.Classic;
         [SerializeField] private MirrorSettings mirrorSettings = new MirrorSettings();
         [SerializeField] private CameraSettings cameraSettings = new CameraSettings();
+        [SerializeField] private TunnelSettings tunnelSettings = new TunnelSettings();
+        [SerializeField] private TunnelBendSettings tunnelBendSettings = new TunnelBendSettings();
+        [SerializeField] private TunnelBendState tunnelBendState = new TunnelBendState();
         [SerializeField] private string imageFilePath = string.Empty;
         [SerializeField] private string imageFolderPath = string.Empty;
         [SerializeField] private string audioFilePath = string.Empty;
@@ -74,6 +78,21 @@ namespace Kaleidoscope2.Core
         public CameraSettings CameraSettings
         {
             get { return cameraSettings; }
+        }
+
+        public TunnelSettings TunnelSettings
+        {
+            get { return tunnelSettings; }
+        }
+
+        public TunnelBendSettings TunnelBendSettings
+        {
+            get { return tunnelBendSettings; }
+        }
+
+        public TunnelBendState TunnelBendState
+        {
+            get { return tunnelBendState; }
         }
 
         public string ImageFilePath
@@ -138,6 +157,21 @@ namespace Kaleidoscope2.Core
                 cameraSettings = new CameraSettings();
             }
 
+            if (tunnelSettings == null)
+            {
+                tunnelSettings = new TunnelSettings();
+            }
+
+            if (tunnelBendSettings == null)
+            {
+                tunnelBendSettings = new TunnelBendSettings();
+            }
+
+            if (tunnelBendState == null)
+            {
+                tunnelBendState = new TunnelBendState();
+            }
+
             if (diagnostics == null)
             {
                 diagnostics = new DiagnosticsState();
@@ -181,6 +215,7 @@ namespace Kaleidoscope2.Core
             imageFilePath = path ?? string.Empty;
             if (!string.IsNullOrWhiteSpace(imageFilePath))
             {
+                imageFolderPath = string.Empty;
                 activeSourceMode = KaleidoscopeSourceMode.ImageTexture;
             }
         }
@@ -190,6 +225,7 @@ namespace Kaleidoscope2.Core
             imageFolderPath = path ?? string.Empty;
             if (!string.IsNullOrWhiteSpace(imageFolderPath))
             {
+                imageFilePath = string.Empty;
                 activeSourceMode = KaleidoscopeSourceMode.ImageTexture;
             }
         }
@@ -360,6 +396,24 @@ namespace Kaleidoscope2.Core
         {
             renderWidth = Mathf.Max(1, width);
             renderHeight = Mathf.Max(1, height);
+        }
+    }
+
+    [Serializable]
+    public sealed class TunnelSettings
+    {
+        [SerializeField] private Vector2 bend = Vector2.zero;
+
+        public Vector2 Bend
+        {
+            get { return bend; }
+        }
+
+        public void SetBend(Vector2 value)
+        {
+            bend = new Vector2(
+                Mathf.Clamp(value.x, -1f, 1f),
+                Mathf.Clamp(value.y, -1f, 1f));
         }
     }
 

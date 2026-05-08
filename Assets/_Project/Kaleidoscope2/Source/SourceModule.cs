@@ -1,7 +1,5 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
 using Kaleidoscope2.Core;
+using Kaleidoscope2.ImageSource;
 using UnityEngine;
 
 namespace Kaleidoscope2.Source
@@ -10,12 +8,15 @@ namespace Kaleidoscope2.Source
     public sealed class SourceModule : KaleidoscopeModuleBase, IKaleidoscopeSourceProvider
     {
         private const int FallbackTextureSize = 256;
-        private static readonly string[] ImageExtensions = { ".png", ".jpg", ".jpeg" };
+
+        [Header("Image Slideshow")]
+        [SerializeField] private float imageSwitchInterval = 30f;
+        [SerializeField] private float imageCrossfadeDuration = 2.5f;
+        [SerializeField] private bool shuffleImages = false;
+        [SerializeField] private bool loopImages = true;
 
         private Texture2D fallbackTexture;
-        private Texture2D loadedTexture;
-        private readonly List<string> folderImages = new List<string>(128);
-        private int folderImageIndex;
+        private readonly ImageSlideshowController slideshow = new ImageSlideshowController();
 
         public override string ModuleId
         {
@@ -45,13 +46,20 @@ namespace Kaleidoscope2.Source
         protected override void OnInitialized()
         {
             EnsureFallbackTexture();
+            ConfigureSlideshow();
             TrySyncFromState();
         }
 
         private void OnDestroy()
         {
-            DestroyTexture(ref loadedTexture);
+            slideshow.Dispose();
             DestroyTexture(ref fallbackTexture);
+        }
+
+        public override void Tick(float deltaTime)
+        {
+            ConfigureSlideshow();
+            slideshow.Tick(deltaTime);
         }
 
         public override bool CanHandle(KaleidoscopeCommand command)
@@ -97,21 +105,27 @@ namespace Kaleidoscope2.Source
             Texture active = GetActiveTexture();
             string textureStatus = active != null ? active.width + "x" + active.height + " texture" : "No texture";
             string sourceDetail = CurrentSourceMode == KaleidoscopeSourceMode.ImageTexture
-                ? (!string.IsNullOrWhiteSpace(State != null ? State.ImageFilePath : null) ? "file" : "folder")
+                ? slideshow.Mode + ", image " + (slideshow.CurrentImageIndex + 1) + "/" + slideshow.ImagePaths.Count
                 : "procedural";
 
-            return CreateStatus("Source: " + CurrentSourceMode + " (" + sourceDetail + "), " + textureStatus + ".");
+            return CreateStatus("Source: " + CurrentSourceMode + " (" + sourceDetail + "), " + textureStatus
+                + ", next switch in " + slideshow.NextSwitchIn.ToString("0.0") + "s, slideshow active: " + slideshow.IsActive + ".");
         }
 
-        private Texture2D GetActiveTexture()
+        private Texture GetActiveTexture()
         {
-            if (State != null && State.ActiveSourceMode == KaleidoscopeSourceMode.ImageTexture && loadedTexture != null)
+            if (State != null && State.ActiveSourceMode == KaleidoscopeSourceMode.ImageTexture && slideshow.SourceTexture != null)
             {
-                return loadedTexture;
+                return slideshow.SourceTexture;
             }
 
             EnsureFallbackTexture();
             return fallbackTexture;
+        }
+
+        private void ConfigureSlideshow()
+        {
+            slideshow.Configure(imageSwitchInterval, imageCrossfadeDuration, shuffleImages, loopImages);
         }
 
         private void TrySyncFromState()
@@ -162,49 +176,6 @@ namespace Kaleidoscope2.Source
             fallbackTexture.Apply(false, false);
         }
 
-        private void TryLoadImageFolder(string folderPath)
-        {
-            folderImages.Clear();
-            folderImageIndex = 0;
-
-            if (string.IsNullOrWhiteSpace(folderPath))
-            {
-                ReportWarning("Image folder path was empty.");
-                return;
-            }
-
-            try
-            {
-                if (!Directory.Exists(folderPath))
-                {
-                    ReportWarning("Image folder does not exist: " + folderPath);
-                    return;
-                }
-
-                string[] files = Directory.GetFiles(folderPath);
-                for (int index = 0; index < files.Length; index++)
-                {
-                    string file = files[index];
-                    if (IsSupportedImageFile(file))
-                    {
-                        folderImages.Add(file);
-                    }
-                }
-
-                if (folderImages.Count == 0)
-                {
-                    ReportWarning("No supported images found in folder: " + folderPath);
-                    return;
-                }
-
-                TryLoadImageFile(folderImages[0]);
-            }
-            catch (Exception exception)
-            {
-                ReportWarning("Failed to scan image folder: " + exception.Message);
-            }
-        }
-
         private void TryLoadImageFile(string filePath)
         {
             if (string.IsNullOrWhiteSpace(filePath))
@@ -213,74 +184,26 @@ namespace Kaleidoscope2.Source
                 return;
             }
 
-            if (!IsSupportedImageFile(filePath))
+            slideshow.SetImagePaths(new[] { filePath });
+            if (!slideshow.IsActive)
             {
-                ReportWarning("Unsupported image file type: " + filePath);
-                return;
-            }
-
-            try
-            {
-                if (!File.Exists(filePath))
-                {
-                    ReportWarning("Image file does not exist: " + filePath);
-                    return;
-                }
-
-                byte[] bytes = File.ReadAllBytes(filePath);
-                if (bytes == null || bytes.Length == 0)
-                {
-                    ReportWarning("Image file was empty: " + filePath);
-                    return;
-                }
-
-                Texture2D texture = new Texture2D(2, 2, TextureFormat.RGBA32, false)
-                {
-                    name = "Kaleidoscope2_Source_Image",
-                    wrapMode = TextureWrapMode.Repeat,
-                    filterMode = FilterMode.Bilinear
-                };
-
-                if (!texture.LoadImage(bytes, markNonReadable: false))
-                {
-                    DestroyTexture(texture);
-                    ReportWarning("Failed to decode image: " + filePath);
-                    return;
-                }
-
-                DestroyTexture(ref loadedTexture);
-                loadedTexture = texture;
-            }
-            catch (Exception exception)
-            {
-                ReportWarning("Failed to load image file: " + exception.Message);
+                ReportWarning("Failed to load image file: " + slideshow.LastMessage);
             }
         }
 
-        private static bool IsSupportedImageFile(string filePath)
+        private void TryLoadImageFolder(string folderPath)
         {
-            if (string.IsNullOrWhiteSpace(filePath))
+            if (string.IsNullOrWhiteSpace(folderPath))
             {
-                return false;
+                ReportWarning("Image folder path was empty.");
+                return;
             }
 
-            string extension = Path.GetExtension(filePath);
-            if (string.IsNullOrWhiteSpace(extension))
+            slideshow.SetImageFolder(folderPath);
+            if (!slideshow.IsActive)
             {
-                return false;
+                ReportWarning("Failed to start image slideshow: " + slideshow.LastMessage);
             }
-
-            extension = extension.ToLowerInvariant();
-
-            for (int index = 0; index < ImageExtensions.Length; index++)
-            {
-                if (extension == ImageExtensions[index])
-                {
-                    return true;
-                }
-            }
-
-            return false;
         }
 
         private static void DestroyTexture(ref Texture2D texture)

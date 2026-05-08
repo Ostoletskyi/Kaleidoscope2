@@ -230,6 +230,10 @@ namespace Kaleidoscope2.Core
                     state.SetTunnelEnabled(command.BoolValue);
                     return true;
 
+                case KaleidoscopeCommandType.SetTunnelBend:
+                    state.TunnelSettings.SetBend(command.Vector2Value);
+                    return true;
+
                 case KaleidoscopeCommandType.SetRecordingStatus:
                     state.SetRecordingStatus(command.RecordingStatusValue);
                     return true;

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using Kaleidoscope2.Core;
+using Kaleidoscope2.FileBrowser;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -41,7 +42,7 @@ namespace Kaleidoscope2.Control
         private static readonly Color MutedTextColor = new Color32(190, 205, 218, 255);
         private static readonly Color Accent = new Color32(40, 190, 255, 255);
 
-        private static readonly string[] ImageExtensions = { ".png", ".jpg", ".jpeg" };
+        private static readonly string[] ImageExtensions = RuntimeImageFolderScanner.SupportedImageExtensions;
         private static readonly string[] AudioExtensions = { ".mp3", ".wav", ".ogg", ".aiff", ".aif" };
 
         [Header("Runtime References")]
@@ -59,15 +60,22 @@ namespace Kaleidoscope2.Control
         private Text imagePathText;
         private Text audioPathText;
         private Text guidesValueText;
-        private Text forwardSpeedValueText;
+        private Text zoomValueText;
         private Text rotationSpeedValueText;
 
         private BrowserMode activeBrowserMode;
         private string browserCurrentPath;
         private RectTransform browserListContent;
+        private RectTransform browserDrivesContent;
         private Text browserPathText;
+        private Text browserStatusText;
+        private Text browserDiagnosticsText;
         private Button browserSelectFolderButton;
         private InputField browserPathInput;
+        private RuntimeFileBrowserController fileBrowserController;
+        private readonly RuntimeFileBrowserView fileBrowserView = new RuntimeFileBrowserView();
+        private readonly List<GameObject> browserDriveButtonPool = new List<GameObject>(16);
+        private bool browserDiagnosticsVisible;
 
         private Font uiFont;
         private Texture2D solidTexture;
@@ -89,6 +97,7 @@ namespace Kaleidoscope2.Control
         private void Awake()
         {
             EnsureSprites();
+            EnsureFileBrowserController();
             EnsureCanvasRoot();
             EnsureOutputSurface();
             HideLegacyUi();
@@ -203,9 +212,9 @@ namespace Kaleidoscope2.Control
                 guidesValueText.text = mirror != null && mirror.GuidesVisible ? "Вкл" : "Выкл";
             }
 
-            if (forwardSpeedValueText != null)
+            if (zoomValueText != null)
             {
-                forwardSpeedValueText.text = mirror != null ? mirror.ForwardSpeedUnits.ToString("0") : "0";
+                zoomValueText.text = mirror != null ? mirror.Zoom.ToString("0.00") : "0.00";
             }
 
             if (rotationSpeedValueText != null)
@@ -348,9 +357,9 @@ namespace Kaleidoscope2.Control
             RectTransform guidesRow = CreateRow(panel, "Линии:", out guidesValueText);
             CreateButton(guidesRow, "ToggleGuides", "Вкл/Выкл", ButtonColor, ToggleGuides);
 
-            CreateRow(panel, "Скорость вперёд:", out forwardSpeedValueText);
+            CreateRow(panel, "Приближение:", out zoomValueText);
             CreateRow(panel, "Скорость вращения:", out rotationSpeedValueText);
-            CreateButton(panel, "ResetSpeeds", "Сбросить скорости", MutedButtonColor, ResetSpeeds);
+            CreateButton(panel, "ResetMotion", "Сбросить вращение", MutedButtonColor, ResetMotion);
 
             CreateButton(panel, "Help", "Помощь", ButtonColor, OpenHelp);
             CreateButton(panel, "Close", "Закрыть панель", MutedButtonColor, () => SetMenuVisible(false, updateState: true));
@@ -386,12 +395,14 @@ namespace Kaleidoscope2.Control
                 "Колесо мыши (клик) — открыть/закрыть меню\n" +
                 "Esc — закрыть меню\n\n" +
                 "Num0 (доп. клавиатура) — линии сегментов (вкл/выкл)\n" +
-                "Стрелки: Вверх/Вниз — скорость движения вперёд, Влево/Вправо — скорость вращения\n\n" +
+                "1/2/3 — 6/12/24 зеркальных секторов\n" +
+                "W/A/S/D — смещение фокуса/центра\n" +
+                "P/; /L/' — изгиб туннеля вверх/вниз/влево/вправо (на русской раскладке: З/Ж/Д/Э)\n\n" +
                 "Режимы:\n" +
                 "2D — классический калейдоскоп (сегменты от центра).\n" +
                 "3D — туннельная перспектива на основе финальной текстуры.\n\n" +
                 "Источники:\n" +
-                "Изображение: PNG/JPG.\n" +
+                "Изображение: JPG/PNG/BMP/TGA.\n" +
                 "Музыка: MP3/WAV/OGG/AIFF (в зависимости от поддержки Unity на вашей платформе).",
                 14,
                 FontStyle.Normal,
@@ -419,7 +430,9 @@ namespace Kaleidoscope2.Control
             VerticalLayoutGroup layout = panel.gameObject.AddComponent<VerticalLayoutGroup>();
             layout.padding = new RectOffset(16, 16, 16, 16);
             layout.spacing = 10f;
+            layout.childControlWidth = true;
             layout.childControlHeight = true;
+            layout.childForceExpandWidth = true;
             layout.childForceExpandHeight = false;
 
             CreateTitle(panel, "Выбор файлов", string.Empty);
@@ -427,11 +440,16 @@ namespace Kaleidoscope2.Control
             browserPathText = CreateText(panel, "BrowserPath", "", 14, FontStyle.Bold, TextColor, TextAnchor.MiddleLeft);
             browserPathText.gameObject.AddComponent<LayoutElement>().preferredHeight = 28f;
 
+            browserStatusText = CreateText(panel, "BrowserStatus", "", 13, FontStyle.Normal, MutedTextColor, TextAnchor.MiddleLeft);
+            browserStatusText.gameObject.AddComponent<LayoutElement>().preferredHeight = 26f;
+
             // Path input (direct jump) and drive chooser.
             RectTransform jumpRow = CreateRect("JumpRow", panel);
             HorizontalLayoutGroup jumpLayout = jumpRow.gameObject.AddComponent<HorizontalLayoutGroup>();
             jumpLayout.spacing = 10f;
+            jumpLayout.childControlWidth = true;
             jumpLayout.childControlHeight = true;
+            jumpLayout.childForceExpandWidth = false;
             jumpLayout.childForceExpandHeight = false;
             jumpRow.gameObject.AddComponent<LayoutElement>().preferredHeight = 38f;
 
@@ -450,48 +468,83 @@ namespace Kaleidoscope2.Control
             });
 
             RectTransform drivesRow = CreateRect("DrivesRow", panel);
+            browserDrivesContent = drivesRow;
             HorizontalLayoutGroup drivesLayout = drivesRow.gameObject.AddComponent<HorizontalLayoutGroup>();
             drivesLayout.spacing = 8f;
+            drivesLayout.childControlWidth = true;
             drivesLayout.childControlHeight = true;
+            drivesLayout.childForceExpandWidth = false;
             drivesLayout.childForceExpandHeight = false;
             drivesRow.gameObject.AddComponent<LayoutElement>().preferredHeight = 38f;
-
-            BuildDriveButtons(drivesRow);
 
             RectTransform actions = CreateRect("Actions", panel);
             HorizontalLayoutGroup actionsLayout = actions.gameObject.AddComponent<HorizontalLayoutGroup>();
             actionsLayout.spacing = 10f;
+            actionsLayout.childControlWidth = true;
             actionsLayout.childControlHeight = true;
+            actionsLayout.childForceExpandWidth = false;
             actionsLayout.childForceExpandHeight = false;
 
             CreateButton(actions, "Up", "Вверх", ButtonColor, NavigateUp);
             browserSelectFolderButton = CreateButton(actions, "SelectFolder", "Выбрать эту папку", ButtonColor, SelectCurrentFolder);
-            CreateButton(actions, "CloseBrowser", "Закрыть", MutedButtonColor, () => SetActiveIfDifferent(browserRoot, false));
+            CreateButton(actions, "BrowserDebug", "Debug", MutedButtonColor, ToggleBrowserDiagnostics);
+            CreateButton(actions, "CloseBrowser", "Закрыть", MutedButtonColor, () =>
+            {
+                if (fileBrowserController != null)
+                {
+                    fileBrowserController.Close();
+                }
+            });
+
+            browserDiagnosticsText = CreateText(panel, "BrowserDiagnostics", "", 12, FontStyle.Normal, MutedTextColor, TextAnchor.UpperLeft);
+            browserDiagnosticsText.gameObject.AddComponent<LayoutElement>().preferredHeight = 96f;
+            browserDiagnosticsText.gameObject.SetActive(false);
 
             // List
             RectTransform listRoot = CreateRect("ListRoot", panel);
-            listRoot.gameObject.AddComponent<Image>().color = PanelStrongColor;
-            listRoot.gameObject.GetComponent<Image>().sprite = solidSprite;
+            Image listRootImage = listRoot.gameObject.AddComponent<Image>();
+            listRootImage.sprite = solidSprite;
+            listRootImage.color = new Color32(12, 20, 30, 248);
             LayoutElement listRootLayout = listRoot.gameObject.AddComponent<LayoutElement>();
+            listRootLayout.minHeight = 360f;
             listRootLayout.preferredHeight = 500f;
+            listRootLayout.flexibleWidth = 1f;
 
             ScrollRect scroll = listRoot.gameObject.AddComponent<ScrollRect>();
             scroll.horizontal = false;
+            scroll.vertical = true;
             scroll.movementType = ScrollRect.MovementType.Clamped;
+            scroll.scrollSensitivity = 30f;
+            scroll.inertia = false;
 
             RectTransform viewport = CreateRect("Viewport", listRoot);
-            viewport.gameObject.AddComponent<Image>().color = new Color(0, 0, 0, 0);
+            Image viewportImage = viewport.gameObject.AddComponent<Image>();
+            viewportImage.sprite = solidSprite;
+            viewportImage.color = new Color32(24, 36, 52, 120);
             Mask mask = viewport.gameObject.AddComponent<Mask>();
             mask.showMaskGraphic = false;
             Stretch(viewport);
             scroll.viewport = viewport;
 
             browserListContent = CreateRect("Content", viewport);
+            browserListContent.anchorMin = new Vector2(0f, 1f);
+            browserListContent.anchorMax = new Vector2(1f, 1f);
+            browserListContent.pivot = new Vector2(0.5f, 1f);
+            browserListContent.anchoredPosition = Vector2.zero;
+            browserListContent.sizeDelta = new Vector2(0f, 0f);
+
+            Image contentImage = browserListContent.gameObject.AddComponent<Image>();
+            contentImage.sprite = solidSprite;
+            contentImage.color = new Color32(40, 52, 66, 90);
+
             VerticalLayoutGroup contentLayout = browserListContent.gameObject.AddComponent<VerticalLayoutGroup>();
             contentLayout.padding = new RectOffset(10, 10, 10, 10);
             contentLayout.spacing = 6f;
+            contentLayout.childControlWidth = true;
             contentLayout.childControlHeight = true;
+            contentLayout.childForceExpandWidth = true;
             contentLayout.childForceExpandHeight = false;
+            contentLayout.childAlignment = TextAnchor.UpperLeft;
 
             ContentSizeFitter fitter = browserListContent.gameObject.AddComponent<ContentSizeFitter>();
             fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
@@ -501,33 +554,188 @@ namespace Kaleidoscope2.Control
             browserRoot.SetActive(false);
         }
 
-        private void BuildDriveButtons(RectTransform parent)
+        private void RefreshDriveButtons(RuntimeFileBrowserState browserState)
         {
-            try
+            if (browserDrivesContent == null || browserState == null)
             {
-                DriveInfo[] drives = DriveInfo.GetDrives();
-                for (int i = 0; i < drives.Length; i++)
+                return;
+            }
+
+            IReadOnlyList<RuntimeFileBrowserItem> drives = browserState.Drives;
+            int buttonIndex = 0;
+
+            for (int index = 0; index < drives.Count; index++)
+            {
+                RuntimeFileBrowserItem drive = drives[index];
+                if (drive == null)
                 {
-                    DriveInfo drive = drives[i];
-                    if (drive == null)
-                    {
-                        continue;
-                    }
+                    continue;
+                }
 
-                    string root = drive.Name;
-                    string label = root.TrimEnd('\\');
+                EnsureDriveButton(buttonIndex++, drive);
+            }
 
-                    Button button = CreateButton(parent, "Drive_" + label, label, MutedButtonColor, () =>
-                    {
-                        SetBrowserPath(root);
-                        RefreshBrowserList();
-                    });
-                    SetLayoutPreferred(button.gameObject, 72f, 40f);
+            for (int index = buttonIndex; index < browserDriveButtonPool.Count; index++)
+            {
+                if (browserDriveButtonPool[index] != null)
+                {
+                    browserDriveButtonPool[index].SetActive(false);
                 }
             }
-            catch (Exception exception)
+        }
+
+        private void EnsureDriveButton(int index, RuntimeFileBrowserItem drive)
+        {
+            while (browserDriveButtonPool.Count <= index)
             {
-                Debug.LogWarning("[Control] Drive listing failed: " + exception.Message);
+                browserDriveButtonPool.Add(null);
+            }
+
+            GameObject buttonObject = browserDriveButtonPool[index];
+            if (buttonObject == null)
+            {
+                buttonObject = CreateButton(browserDrivesContent, "Drive_" + index, drive.DisplayName, MutedButtonColor, null).gameObject;
+                browserDriveButtonPool[index] = buttonObject;
+                SetLayoutPreferred(buttonObject, 72f, 40f);
+            }
+
+            buttonObject.SetActive(true);
+            Text text = buttonObject.GetComponentInChildren<Text>();
+            if (text != null)
+            {
+                text.text = drive.DisplayName;
+            }
+
+            Button button = buttonObject.GetComponent<Button>();
+            if (button != null)
+            {
+                RuntimeFileBrowserItem capturedDrive = drive;
+                button.onClick.RemoveAllListeners();
+                button.interactable = true;
+                button.onClick.AddListener(() =>
+                {
+                    if (fileBrowserController != null)
+                    {
+                        fileBrowserController.NavigateTo(capturedDrive.FullPath);
+                    }
+                });
+            }
+        }
+
+        private void EnsureFileBrowserController()
+        {
+            if (fileBrowserController != null)
+            {
+                return;
+            }
+
+            fileBrowserController = new RuntimeFileBrowserController(new RuntimeImageFolderScanner(), new RuntimePathValidator());
+            fileBrowserController.StateChanged += ApplyFileBrowserState;
+            fileBrowserController.FolderSelected += SelectFolderFromBrowser;
+            fileBrowserController.Closed += () => SetActiveIfDifferent(browserRoot, false);
+        }
+
+        private void ApplyFileBrowserState(RuntimeFileBrowserState browserState)
+        {
+            if (browserState == null)
+            {
+                return;
+            }
+
+            SetBrowserPath(browserState.CurrentPath);
+
+            if (browserStatusText != null)
+            {
+                browserStatusText.text = string.IsNullOrWhiteSpace(browserState.Message) ? "Готово." : browserState.Message;
+                browserStatusText.color = browserState.HasError ? new Color32(255, 150, 120, 255) : MutedTextColor;
+            }
+
+            RefreshDriveButtons(browserState);
+            RefreshBrowserList();
+            RefreshBrowserDiagnostics();
+        }
+
+        private void SelectFolderFromBrowser(string folderPath)
+        {
+            if (director == null || string.IsNullOrWhiteSpace(folderPath))
+            {
+                return;
+            }
+
+            if (activeBrowserMode == BrowserMode.ImageFolder)
+            {
+                director.Dispatch(KaleidoscopeCommand.SetImageFolderPath(folderPath));
+                director.Dispatch(KaleidoscopeCommand.SetSourceMode(KaleidoscopeSourceMode.ImageTexture));
+            }
+            else if (activeBrowserMode == BrowserMode.AudioFolder)
+            {
+                director.Dispatch(KaleidoscopeCommand.SetAudioFolderPath(folderPath));
+            }
+
+            SyncUiFromState();
+            SetActiveIfDifferent(browserRoot, false);
+        }
+
+        private void ToggleBrowserDiagnostics()
+        {
+            browserDiagnosticsVisible = !browserDiagnosticsVisible;
+            if (browserDiagnosticsText != null)
+            {
+                browserDiagnosticsText.gameObject.SetActive(browserDiagnosticsVisible);
+            }
+
+            RefreshBrowserDiagnostics();
+        }
+
+        private void RefreshBrowserDiagnostics()
+        {
+            if (!browserDiagnosticsVisible || browserDiagnosticsText == null || director == null)
+            {
+                return;
+            }
+
+            RuntimeFileBrowserState browserState = fileBrowserController != null ? fileBrowserController.State : null;
+            MirrorSettings mirror = director.State != null ? director.State.MirrorSettings : null;
+            string folder = browserState != null ? browserState.CurrentPath : string.Empty;
+            int images = browserState != null ? browserState.ImageCount : 0;
+            int segments = mirror != null ? mirror.MirrorCount : 0;
+
+            browserDiagnosticsText.text =
+                "Current folder: " + folder + "\n" +
+                "Images found: " + images + "\n" +
+                "Current image index: см. Source status\n" +
+                "Next switch in: см. Source status\n" +
+                "Segment count: " + segments + "\n" +
+                "Slideshow active: " + (!string.IsNullOrWhiteSpace(director.State.ImageFolderPath)).ToString();
+        }
+
+        private string[] GetAllowedExtensionsForMode(BrowserMode mode)
+        {
+            switch (mode)
+            {
+                case BrowserMode.ImageFile:
+                case BrowserMode.ImageFolder:
+                    return ImageExtensions;
+                case BrowserMode.AudioFile:
+                case BrowserMode.AudioFolder:
+                    return AudioExtensions;
+                default:
+                    return ImageExtensions;
+            }
+        }
+
+        private string GetFileSectionTitle()
+        {
+            switch (activeBrowserMode)
+            {
+                case BrowserMode.ImageFile:
+                case BrowserMode.ImageFolder:
+                    return "Изображения:";
+                case BrowserMode.AudioFile:
+                case BrowserMode.AudioFolder:
+                    return "Аудиофайлы:";
+                default:
+                    return "Файлы:";
             }
         }
 
@@ -542,23 +750,9 @@ namespace Kaleidoscope2.Control
 
             try
             {
-                if (File.Exists(value))
+                if (fileBrowserController != null)
                 {
-                    string folder = Path.GetDirectoryName(value);
-                    if (!string.IsNullOrWhiteSpace(folder))
-                    {
-                        SetBrowserPath(folder);
-                        RefreshBrowserList();
-                    }
-
-                    return;
-                }
-
-                if (Directory.Exists(value))
-                {
-                    SetBrowserPath(value);
-                    RefreshBrowserList();
-                    return;
+                    fileBrowserController.NavigateTo(value);
                 }
             }
             catch (Exception exception)
@@ -595,15 +789,15 @@ namespace Kaleidoscope2.Control
             SyncUiFromState();
         }
 
-        private void ResetSpeeds()
+        private void ResetMotion()
         {
             if (director == null)
             {
                 return;
             }
 
-            director.Dispatch(KaleidoscopeCommand.SetMirrorForwardSpeedUnits(0f));
             director.Dispatch(KaleidoscopeCommand.SetMirrorRotationSpeedUnits(0f));
+            director.Dispatch(KaleidoscopeCommand.SetTunnelBend(Vector2.zero));
             SyncUiFromState();
         }
 
@@ -615,6 +809,7 @@ namespace Kaleidoscope2.Control
             }
 
             activeBrowserMode = mode;
+            EnsureFileBrowserController();
             SetActiveIfDifferent(browserRoot, true);
 
             // Folder select only makes sense for folder modes.
@@ -625,8 +820,11 @@ namespace Kaleidoscope2.Control
             }
 
             string startPath = GetStartPathForMode(mode);
-            SetBrowserPath(startPath);
-            RefreshBrowserList();
+            if (fileBrowserController != null)
+            {
+                fileBrowserController.SetAllowedFileExtensions(GetAllowedExtensionsForMode(mode));
+                fileBrowserController.Open(startPath);
+            }
         }
 
         private string GetStartPathForMode(BrowserMode mode)
@@ -690,7 +888,7 @@ namespace Kaleidoscope2.Control
             browserCurrentPath = path;
             if (browserPathText != null)
             {
-                browserPathText.text = path ?? string.Empty;
+                browserPathText.text = "Текущий путь: " + (path ?? string.Empty);
             }
 
             if (browserPathInput != null)
@@ -706,18 +904,9 @@ namespace Kaleidoscope2.Control
                 return;
             }
 
-            try
+            if (fileBrowserController != null)
             {
-                DirectoryInfo parent = Directory.GetParent(browserCurrentPath);
-                if (parent != null)
-                {
-                    SetBrowserPath(parent.FullName);
-                    RefreshBrowserList();
-                }
-            }
-            catch (Exception exception)
-            {
-                Debug.LogWarning("[Control] NavigateUp failed: " + exception.Message);
+                fileBrowserController.NavigateUp();
             }
         }
 
@@ -730,16 +919,18 @@ namespace Kaleidoscope2.Control
 
             if (activeBrowserMode == BrowserMode.ImageFolder)
             {
-                director.Dispatch(KaleidoscopeCommand.SetImageFolderPath(browserCurrentPath));
-                director.Dispatch(KaleidoscopeCommand.SetSourceMode(KaleidoscopeSourceMode.ImageTexture));
+                if (fileBrowserController != null)
+                {
+                    fileBrowserController.SelectCurrentFolder();
+                }
             }
             else if (activeBrowserMode == BrowserMode.AudioFolder)
             {
-                director.Dispatch(KaleidoscopeCommand.SetAudioFolderPath(browserCurrentPath));
+                if (fileBrowserController != null)
+                {
+                    fileBrowserController.SelectCurrentFolder();
+                }
             }
-
-            SyncUiFromState();
-            SetActiveIfDifferent(browserRoot, false);
         }
 
         private void RefreshBrowserList()
@@ -749,53 +940,41 @@ namespace Kaleidoscope2.Control
                 return;
             }
 
-            string path = browserCurrentPath;
-            if (string.IsNullOrWhiteSpace(path))
-            {
-                return;
-            }
-
-            if (!Directory.Exists(path))
-            {
-                Debug.LogWarning("[Control] Directory does not exist: " + path);
-                return;
-            }
-
+            RuntimeFileBrowserState state = fileBrowserController != null ? fileBrowserController.State : null;
+            IReadOnlyList<RuntimeFileBrowserItem> rows = fileBrowserView.BuildRows(state, GetFileSectionTitle());
             int rowIndex = 0;
 
-            try
+            for (int index = 0; index < rows.Count; index++)
             {
-                string[] dirs = Directory.GetDirectories(path);
-                Array.Sort(dirs, StringComparer.OrdinalIgnoreCase);
-                for (int i = 0; i < dirs.Length; i++)
+                RuntimeFileBrowserItem item = rows[index];
+
+                if (item.Type == RuntimeFileBrowserItemType.ParentDirectory)
                 {
-                    string dir = dirs[i];
-                    EnsureBrowserRow(rowIndex++, "[DIR] " + Path.GetFileName(dir), () =>
+                    EnsureBrowserRow(rowIndex++, item.DisplayName, RuntimeFileBrowserItemType.ParentDirectory, NavigateUp);
+                }
+                else if (item.Type == RuntimeFileBrowserItemType.Directory)
+                {
+                    RuntimeFileBrowserItem capturedItem = item;
+                    EnsureBrowserRow(rowIndex++, capturedItem.DisplayName, RuntimeFileBrowserItemType.Directory, () =>
                     {
-                        SetBrowserPath(dir);
-                        RefreshBrowserList();
+                        if (fileBrowserController != null)
+                        {
+                            fileBrowserController.NavigateTo(capturedItem.FullPath);
+                        }
                     });
                 }
-
-                string[] files = Directory.GetFiles(path);
-                Array.Sort(files, StringComparer.OrdinalIgnoreCase);
-                for (int i = 0; i < files.Length; i++)
+                else if (item.Type == RuntimeFileBrowserItemType.ImageFile || item.Type == RuntimeFileBrowserItemType.File)
                 {
-                    string file = files[i];
-                    if (!IsFileAllowedForMode(file))
+                    RuntimeFileBrowserItem capturedItem = item;
+                    EnsureBrowserRow(rowIndex++, capturedItem.DisplayName, item.Type, () =>
                     {
-                        continue;
-                    }
-
-                    EnsureBrowserRow(rowIndex++, Path.GetFileName(file), () =>
-                    {
-                        SelectFile(file);
+                        SelectFile(capturedItem.FullPath);
                     });
                 }
-            }
-            catch (Exception exception)
-            {
-                Debug.LogWarning("[Control] RefreshBrowserList failed: " + exception.Message);
+                else
+                {
+                    EnsureBrowserRow(rowIndex++, item.DisplayName, item.Type, null);
+                }
             }
 
             // Disable remaining pooled rows.
@@ -806,6 +985,17 @@ namespace Kaleidoscope2.Control
                     browserRowPool[i].SetActive(false);
                 }
             }
+
+            Canvas.ForceUpdateCanvases();
+            LayoutRebuilder.ForceRebuildLayoutImmediate(browserListContent);
+            RectTransform viewport = browserListContent.parent as RectTransform;
+            if (viewport != null)
+            {
+                LayoutRebuilder.ForceRebuildLayoutImmediate(viewport);
+            }
+            Canvas.ForceUpdateCanvases();
+
+            LogBrowserUiHierarchy(rowIndex);
         }
 
         private void SelectFile(string filePath)
@@ -818,11 +1008,13 @@ namespace Kaleidoscope2.Control
             switch (activeBrowserMode)
             {
                 case BrowserMode.ImageFile:
+                case BrowserMode.ImageFolder:
                     director.Dispatch(KaleidoscopeCommand.SetImageFilePath(filePath));
                     director.Dispatch(KaleidoscopeCommand.SetSourceMode(KaleidoscopeSourceMode.ImageTexture));
                     break;
 
                 case BrowserMode.AudioFile:
+                case BrowserMode.AudioFolder:
                     director.Dispatch(KaleidoscopeCommand.SetAudioFilePath(filePath));
                     break;
             }
@@ -836,8 +1028,10 @@ namespace Kaleidoscope2.Control
             switch (activeBrowserMode)
             {
                 case BrowserMode.ImageFile:
+                case BrowserMode.ImageFolder:
                     return HasExtension(filePath, ImageExtensions);
                 case BrowserMode.AudioFile:
+                case BrowserMode.AudioFolder:
                     return HasExtension(filePath, AudioExtensions);
                 default:
                     return false;
@@ -869,7 +1063,7 @@ namespace Kaleidoscope2.Control
             return false;
         }
 
-        private void EnsureBrowserRow(int index, string label, Action onClick)
+        private void EnsureBrowserRow(int index, string label, RuntimeFileBrowserItemType itemType, Action onClick)
         {
             while (browserRowPool.Count <= index)
             {
@@ -879,24 +1073,163 @@ namespace Kaleidoscope2.Control
             GameObject row = browserRowPool[index];
             if (row == null)
             {
-                row = CreateButton(browserListContent, "Row" + index, label, ButtonColor, onClick).gameObject;
+                row = CreateBrowserRow(index, itemType);
                 browserRowPool[index] = row;
             }
-            else
-            {
-                row.SetActive(true);
-                Text text = row.GetComponentInChildren<Text>();
-                if (text != null)
-                {
-                    text.text = label;
-                }
 
-                Button button = row.GetComponent<Button>();
-                if (button != null)
+            row.SetActive(true);
+            ConfigureBrowserRow(row, label, itemType, onClick);
+        }
+
+        private GameObject CreateBrowserRow(int index, RuntimeFileBrowserItemType itemType)
+        {
+            RectTransform rowRect = CreateRect("BrowserRow_" + index, browserListContent);
+            rowRect.anchorMin = new Vector2(0f, 1f);
+            rowRect.anchorMax = new Vector2(1f, 1f);
+            rowRect.pivot = new Vector2(0.5f, 1f);
+            rowRect.sizeDelta = new Vector2(0f, 40f);
+            rowRect.localScale = Vector3.one;
+
+            Image image = rowRect.gameObject.AddComponent<Image>();
+            image.sprite = solidSprite;
+            image.raycastTarget = true;
+            image.color = GetBrowserRowColor(itemType, true);
+
+            Button button = rowRect.gameObject.AddComponent<Button>();
+            button.targetGraphic = image;
+            button.transition = Selectable.Transition.ColorTint;
+
+            RectTransform textRect = CreateRect("Label", rowRect);
+            textRect.anchorMin = Vector2.zero;
+            textRect.anchorMax = Vector2.one;
+            textRect.offsetMin = new Vector2(14f, 4f);
+            textRect.offsetMax = new Vector2(-14f, -4f);
+
+            Text text = textRect.gameObject.AddComponent<Text>();
+            text.font = GetUiFont();
+            text.fontSize = itemType == RuntimeFileBrowserItemType.Header ? 15 : 14;
+            text.fontStyle = itemType == RuntimeFileBrowserItemType.Header ? FontStyle.Bold : FontStyle.Normal;
+            text.color = TextColor;
+            text.alignment = TextAnchor.MiddleLeft;
+            text.horizontalOverflow = HorizontalWrapMode.Overflow;
+            text.verticalOverflow = VerticalWrapMode.Truncate;
+            text.raycastTarget = false;
+
+            return rowRect.gameObject;
+        }
+
+        private void ConfigureBrowserRow(GameObject row, string label, RuntimeFileBrowserItemType itemType, Action onClick)
+        {
+            if (row == null)
+            {
+                return;
+            }
+
+            bool selectable = onClick != null;
+
+            LayoutElement element = row.GetComponent<LayoutElement>();
+            if (element == null)
+            {
+                element = row.AddComponent<LayoutElement>();
+            }
+
+            element.minHeight = itemType == RuntimeFileBrowserItemType.Header ? 32f : 38f;
+            element.preferredHeight = itemType == RuntimeFileBrowserItemType.Header ? 34f : 40f;
+            element.flexibleWidth = 1f;
+
+            Image image = row.GetComponent<Image>();
+            if (image != null)
+            {
+                image.color = GetBrowserRowColor(itemType, selectable);
+            }
+
+            Button button = row.GetComponent<Button>();
+            if (button != null)
+            {
+                button.onClick.RemoveAllListeners();
+                button.interactable = selectable;
+                if (onClick != null)
                 {
-                    button.onClick.RemoveAllListeners();
                     button.onClick.AddListener(() => onClick());
                 }
+            }
+
+            Text text = row.GetComponentInChildren<Text>();
+            if (text != null)
+            {
+                text.text = label;
+                text.fontSize = itemType == RuntimeFileBrowserItemType.Header ? 15 : 14;
+                text.fontStyle = itemType == RuntimeFileBrowserItemType.Header ? FontStyle.Bold : FontStyle.Normal;
+                text.color = itemType == RuntimeFileBrowserItemType.Message ? new Color32(255, 220, 150, 255) : TextColor;
+                text.alignment = TextAnchor.MiddleLeft;
+            }
+        }
+
+        private Color GetBrowserRowColor(RuntimeFileBrowserItemType itemType, bool selectable)
+        {
+            if (itemType == RuntimeFileBrowserItemType.Header)
+            {
+                return new Color32(18, 28, 38, 255);
+            }
+
+            if (itemType == RuntimeFileBrowserItemType.Message)
+            {
+                return new Color32(48, 36, 24, 245);
+            }
+
+            if (itemType == RuntimeFileBrowserItemType.Directory)
+            {
+                return new Color32(44, 76, 105, 255);
+            }
+
+            if (itemType == RuntimeFileBrowserItemType.ImageFile || itemType == RuntimeFileBrowserItemType.File)
+            {
+                return new Color32(38, 58, 68, 255);
+            }
+
+            return selectable ? ButtonColor : new Color32(24, 32, 42, 230);
+        }
+
+        private void LogBrowserUiHierarchy(int activeRowCount)
+        {
+            if (browserListContent == null)
+            {
+                Debug.LogWarning("[FileBrowserUI] content is null.");
+                return;
+            }
+
+            Rect rect = browserListContent.rect;
+            RectTransform viewport = browserListContent.parent as RectTransform;
+            Debug.Log("[FileBrowserUI] content.activeInHierarchy=" + browserListContent.gameObject.activeInHierarchy
+                + " content.rect.width=" + rect.width.ToString("0.0")
+                + " content.rect.height=" + rect.height.ToString("0.0")
+                + " viewport.activeInHierarchy=" + (viewport != null ? viewport.gameObject.activeInHierarchy.ToString() : "null")
+                + " viewport.rect.width=" + (viewport != null ? viewport.rect.width.ToString("0.0") : "null")
+                + " viewport.rect.height=" + (viewport != null ? viewport.rect.height.ToString("0.0") : "null")
+                + " activeRows=" + activeRowCount);
+
+            for (int index = 0; index < activeRowCount && index < browserRowPool.Count; index++)
+            {
+                GameObject row = browserRowPool[index];
+                if (row == null)
+                {
+                    Debug.LogWarning("[FileBrowserUI] row " + index + " is null.");
+                    continue;
+                }
+
+                RectTransform rowRect = row.transform as RectTransform;
+                Text text = row.GetComponentInChildren<Text>();
+                float height = rowRect != null ? rowRect.rect.height : 0f;
+                string parentName = rowRect != null && rowRect.parent != null ? rowRect.parent.name : "none";
+                int fontSize = text != null ? text.fontSize : 0;
+                string color = text != null ? text.color.ToString() : "none";
+                Debug.Log("[FileBrowserUI] row " + index
+                    + " active=" + row.activeInHierarchy
+                    + " height=" + height.ToString("0.0")
+                    + " parent=" + parentName
+                    + " fontSize=" + fontSize
+                    + " textColor=" + color
+                    + " label=" + (text != null ? text.text : "none"));
             }
         }
 
@@ -975,7 +1308,11 @@ namespace Kaleidoscope2.Control
             Button button = rect.gameObject.AddComponent<Button>();
             button.targetGraphic = image;
             button.transition = Selectable.Transition.ColorTint;
-            button.onClick.AddListener(() => onClick());
+            button.interactable = onClick != null;
+            if (onClick != null)
+            {
+                button.onClick.AddListener(() => onClick());
+            }
 
             CreateText(rect, "Label", label, 14, FontStyle.Bold, TextColor, TextAnchor.MiddleCenter);
 
