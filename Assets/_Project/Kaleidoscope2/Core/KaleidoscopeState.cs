@@ -45,6 +45,11 @@ namespace Kaleidoscope2.Core
         [SerializeField] private KaleidoscopeVisualMode activeVisualMode = KaleidoscopeVisualMode.Classic;
         [SerializeField] private MirrorSettings mirrorSettings = new MirrorSettings();
         [SerializeField] private CameraSettings cameraSettings = new CameraSettings();
+        [SerializeField] private string imageFilePath = string.Empty;
+        [SerializeField] private string imageFolderPath = string.Empty;
+        [SerializeField] private string audioFilePath = string.Empty;
+        [SerializeField] private string audioFolderPath = string.Empty;
+        [SerializeField] private bool controlMenuVisible;
         [SerializeField] private string activePreset = "None";
         [SerializeField] private bool tunnelEnabled;
         [SerializeField] private KaleidoscopeRecordingStatus recordingStatus = KaleidoscopeRecordingStatus.Idle;
@@ -69,6 +74,31 @@ namespace Kaleidoscope2.Core
         public CameraSettings CameraSettings
         {
             get { return cameraSettings; }
+        }
+
+        public string ImageFilePath
+        {
+            get { return imageFilePath; }
+        }
+
+        public string ImageFolderPath
+        {
+            get { return imageFolderPath; }
+        }
+
+        public string AudioFilePath
+        {
+            get { return audioFilePath; }
+        }
+
+        public string AudioFolderPath
+        {
+            get { return audioFolderPath; }
+        }
+
+        public bool ControlMenuVisible
+        {
+            get { return controlMenuVisible; }
         }
 
         public string ActivePreset
@@ -146,6 +176,39 @@ namespace Kaleidoscope2.Core
             qualityLevel = level;
         }
 
+        public void SetImageFilePath(string path)
+        {
+            imageFilePath = path ?? string.Empty;
+            if (!string.IsNullOrWhiteSpace(imageFilePath))
+            {
+                activeSourceMode = KaleidoscopeSourceMode.ImageTexture;
+            }
+        }
+
+        public void SetImageFolderPath(string path)
+        {
+            imageFolderPath = path ?? string.Empty;
+            if (!string.IsNullOrWhiteSpace(imageFolderPath))
+            {
+                activeSourceMode = KaleidoscopeSourceMode.ImageTexture;
+            }
+        }
+
+        public void SetAudioFilePath(string path)
+        {
+            audioFilePath = path ?? string.Empty;
+        }
+
+        public void SetAudioFolderPath(string path)
+        {
+            audioFolderPath = path ?? string.Empty;
+        }
+
+        public void SetControlMenuVisible(bool visible)
+        {
+            controlMenuVisible = visible;
+        }
+
         public void SetFramesPerSecond(float framesPerSecond)
         {
             diagnostics.SetFramesPerSecond(framesPerSecond);
@@ -159,16 +222,19 @@ namespace Kaleidoscope2.Core
         public void ReportWarning(string warning)
         {
             diagnostics.ReportWarning(warning);
+            Debug.LogWarning(warning);
         }
 
         public void ReportError(string error)
         {
             diagnostics.ReportError(error);
+            Debug.LogError(error);
         }
 
         public void ReportMissingReference(string referenceName)
         {
             diagnostics.ReportMissingReference(referenceName);
+            Debug.LogWarning("[MissingReference] " + referenceName);
         }
 
         public void ClearWarnings()
@@ -279,7 +345,7 @@ namespace Kaleidoscope2.Core
     public sealed class DiagnosticsState
     {
         [SerializeField] private float framesPerSecond;
-        [SerializeField] private bool hudVisible = true;
+        [SerializeField] private bool hudVisible;
         [SerializeField] private List<KaleidoscopeModuleStatus> moduleStatuses = new List<KaleidoscopeModuleStatus>();
         [SerializeField] private List<string> warnings = new List<string>();
         [SerializeField] private List<string> errors = new List<string>();

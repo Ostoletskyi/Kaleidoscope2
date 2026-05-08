@@ -19,7 +19,13 @@ namespace Kaleidoscope2.Core
         ValidateSystem = 11,
         ClearDiagnostics = 12,
         SetMirrorRotationSpeed = 13,
-        SetDiagnosticsVisible = 14
+        SetDiagnosticsVisible = 14,
+        SetControlMenuVisible = 15,
+        ToggleControlMenu = 16,
+        SetImageFilePath = 17,
+        SetImageFolderPath = 18,
+        SetAudioFilePath = 19,
+        SetAudioFolderPath = 20
     }
 
     [Serializable]
@@ -194,6 +200,51 @@ namespace Kaleidoscope2.Core
             return new KaleidoscopeCommand(KaleidoscopeCommandType.SetDiagnosticsVisible)
             {
                 boolValue = visible
+            };
+        }
+
+        public static KaleidoscopeCommand SetControlMenuVisible(bool visible)
+        {
+            return new KaleidoscopeCommand(KaleidoscopeCommandType.SetControlMenuVisible)
+            {
+                boolValue = visible
+            };
+        }
+
+        public static KaleidoscopeCommand ToggleControlMenu()
+        {
+            return new KaleidoscopeCommand(KaleidoscopeCommandType.ToggleControlMenu);
+        }
+
+        public static KaleidoscopeCommand SetImageFilePath(string path)
+        {
+            return new KaleidoscopeCommand(KaleidoscopeCommandType.SetImageFilePath)
+            {
+                stringValue = path
+            };
+        }
+
+        public static KaleidoscopeCommand SetImageFolderPath(string path)
+        {
+            return new KaleidoscopeCommand(KaleidoscopeCommandType.SetImageFolderPath)
+            {
+                stringValue = path
+            };
+        }
+
+        public static KaleidoscopeCommand SetAudioFilePath(string path)
+        {
+            return new KaleidoscopeCommand(KaleidoscopeCommandType.SetAudioFilePath)
+            {
+                stringValue = path
+            };
+        }
+
+        public static KaleidoscopeCommand SetAudioFolderPath(string path)
+        {
+            return new KaleidoscopeCommand(KaleidoscopeCommandType.SetAudioFolderPath)
+            {
+                stringValue = path
             };
         }
 

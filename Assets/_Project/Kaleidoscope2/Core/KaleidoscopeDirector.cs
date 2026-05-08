@@ -13,7 +13,7 @@ namespace Kaleidoscope2.Core
         private readonly List<IKaleidoscopeModule> modules = new List<IKaleidoscopeModule>();
         private readonly List<KaleidoscopeModuleStatus> moduleStatuses = new List<KaleidoscopeModuleStatus>();
         private IKaleidoscopeSourceProvider sourceProvider;
-        private IKaleidoscopeTextureProcessor textureProcessor;
+        private readonly List<IKaleidoscopeTextureProcessor> textureProcessors = new List<IKaleidoscopeTextureProcessor>();
         private Texture finalOutputTexture;
 
         public event Action<KaleidoscopeCommand> CommandDispatched;
@@ -40,6 +40,8 @@ namespace Kaleidoscope2.Core
         private void Awake()
         {
             EnsureState();
+            // Requirement: the render output should be clean (no on-screen diagnostics by default).
+            state.SetDiagnosticsVisible(false);
         }
 
         private void Update()
@@ -91,7 +93,7 @@ namespace Kaleidoscope2.Core
         {
             modules.Clear();
             sourceProvider = null;
-            textureProcessor = null;
+            textureProcessors.Clear();
             finalOutputTexture = null;
             RefreshModuleStatuses();
         }
@@ -237,6 +239,30 @@ namespace Kaleidoscope2.Core
                 case KaleidoscopeCommandType.SetDiagnosticsVisible:
                     state.SetDiagnosticsVisible(command.BoolValue);
                     return true;
+
+                case KaleidoscopeCommandType.SetControlMenuVisible:
+                    state.SetControlMenuVisible(command.BoolValue);
+                    return true;
+
+                case KaleidoscopeCommandType.ToggleControlMenu:
+                    state.SetControlMenuVisible(!state.ControlMenuVisible);
+                    return true;
+
+                case KaleidoscopeCommandType.SetImageFilePath:
+                    state.SetImageFilePath(command.StringValue);
+                    return true;
+
+                case KaleidoscopeCommandType.SetImageFolderPath:
+                    state.SetImageFolderPath(command.StringValue);
+                    return true;
+
+                case KaleidoscopeCommandType.SetAudioFilePath:
+                    state.SetAudioFilePath(command.StringValue);
+                    return true;
+
+                case KaleidoscopeCommandType.SetAudioFolderPath:
+                    state.SetAudioFolderPath(command.StringValue);
+                    return true;
             }
 
             return false;
@@ -310,14 +336,15 @@ namespace Kaleidoscope2.Core
             IKaleidoscopeTextureProcessor processor = module as IKaleidoscopeTextureProcessor;
             if (processor != null)
             {
-                if (textureProcessor != null && !ReferenceEquals(textureProcessor, processor))
+                for (int index = 0; index < textureProcessors.Count; index++)
                 {
-                    state.ReportWarning("[Director] Multiple texture processors registered. Keeping the first processor.");
+                    if (ReferenceEquals(textureProcessors[index], processor))
+                    {
+                        return;
+                    }
                 }
-                else
-                {
-                    textureProcessor = processor;
-                }
+
+                textureProcessors.Add(processor);
             }
         }
 
@@ -325,9 +352,22 @@ namespace Kaleidoscope2.Core
         {
             Texture sourceTexture = sourceProvider != null ? sourceProvider.SourceTexture : null;
 
-            if (textureProcessor != null)
+            if (textureProcessors.Count > 0)
             {
-                finalOutputTexture = textureProcessor.Process(sourceTexture, state);
+                Texture processed = sourceTexture;
+
+                for (int index = 0; index < textureProcessors.Count; index++)
+                {
+                    IKaleidoscopeTextureProcessor processor = textureProcessors[index];
+                    if (processor == null)
+                    {
+                        continue;
+                    }
+
+                    processed = processor.Process(processed, state);
+                }
+
+                finalOutputTexture = processed;
                 return;
             }
 
