@@ -30,7 +30,10 @@ namespace Kaleidoscope2.Core
         SetMirrorGuidesVisible = 22,
         SetMirrorRotationSpeedUnits = 23,
         SetMirrorForwardSpeedUnits = 24,
-        SetTunnelBend = 25
+        SetTunnelBend = 25,
+        SetTunnelHoseOpeningUnits = 26,
+        SetTunnelHoseWallCurvatureUnits = 27,
+        ResetTunnelHoseProfile = 28
     }
 
     [Serializable]
@@ -288,6 +291,27 @@ namespace Kaleidoscope2.Core
             {
                 vector2Value = bend
             };
+        }
+
+        public static KaleidoscopeCommand SetTunnelHoseOpeningUnits(float openingUnits)
+        {
+            return new KaleidoscopeCommand(KaleidoscopeCommandType.SetTunnelHoseOpeningUnits)
+            {
+                floatValue = openingUnits
+            };
+        }
+
+        public static KaleidoscopeCommand SetTunnelHoseWallCurvatureUnits(float curvatureUnits)
+        {
+            return new KaleidoscopeCommand(KaleidoscopeCommandType.SetTunnelHoseWallCurvatureUnits)
+            {
+                floatValue = curvatureUnits
+            };
+        }
+
+        public static KaleidoscopeCommand ResetTunnelHoseProfile()
+        {
+            return new KaleidoscopeCommand(KaleidoscopeCommandType.ResetTunnelHoseProfile);
         }
 
         public override string ToString()

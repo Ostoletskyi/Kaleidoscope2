@@ -5,6 +5,19 @@ namespace Kaleidoscope2.Tunnel
 {
     public sealed class TunnelBendController
     {
+        public void Reset(KaleidoscopeState state)
+        {
+            if (state == null)
+            {
+                return;
+            }
+
+            if (state.TunnelBendState != null)
+            {
+                state.TunnelBendState.Reset();
+            }
+        }
+
         public void Tick(KaleidoscopeState state, Vector2 input, float deltaTime)
         {
             if (state == null)

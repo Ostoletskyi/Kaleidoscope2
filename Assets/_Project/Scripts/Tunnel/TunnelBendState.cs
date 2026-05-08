@@ -1,7 +1,7 @@
 using System;
 using UnityEngine;
 
-namespace Kaleidoscope2.Tunnel
+namespace Kaleidoscope2.Core
 {
     [Serializable]
     public sealed class TunnelBendState

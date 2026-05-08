@@ -62,6 +62,8 @@ namespace Kaleidoscope2.Control
         private Text guidesValueText;
         private Text zoomValueText;
         private Text rotationSpeedValueText;
+        private Text hoseOpeningValueText;
+        private Text hoseWallCurvatureValueText;
 
         private BrowserMode activeBrowserMode;
         private string browserCurrentPath;
@@ -201,10 +203,11 @@ namespace Kaleidoscope2.Control
 
             KaleidoscopeState state = director.State;
             MirrorSettings mirror = state != null ? state.MirrorSettings : null;
+            TunnelSettings tunnel = state != null ? state.TunnelSettings : null;
 
             if (modeValueText != null)
             {
-                modeValueText.text = state.TunnelEnabled ? "3D (Tunnel)" : "2D";
+                modeValueText.text = GetModeLabel(state.ActiveVisualMode);
             }
 
             if (guidesValueText != null)
@@ -220,6 +223,16 @@ namespace Kaleidoscope2.Control
             if (rotationSpeedValueText != null)
             {
                 rotationSpeedValueText.text = mirror != null ? mirror.RotationSpeed.ToString("0") : "0";
+            }
+
+            if (hoseOpeningValueText != null)
+            {
+                hoseOpeningValueText.text = tunnel != null ? tunnel.HoseOpeningUnits.ToString("0") : "0";
+            }
+
+            if (hoseWallCurvatureValueText != null)
+            {
+                hoseWallCurvatureValueText.text = tunnel != null ? tunnel.HoseWallCurvatureUnits.ToString("0") : "0";
             }
 
             if (imagePathText != null)
@@ -322,7 +335,7 @@ namespace Kaleidoscope2.Control
             scrim.color = ScrimColor;
             scrim.raycastTarget = true;
 
-            RectTransform panel = CreatePanel(rootRect, "MenuPanel", new Vector2(620f, 680f));
+            RectTransform panel = CreatePanel(rootRect, "MenuPanel", new Vector2(620f, 880f));
             VerticalLayoutGroup layout = panel.gameObject.AddComponent<VerticalLayoutGroup>();
             layout.padding = new RectOffset(18, 18, 18, 18);
             layout.spacing = 10f;
@@ -352,14 +365,17 @@ namespace Kaleidoscope2.Control
             });
 
             RectTransform modeRow = CreateRow(panel, "Режим:", out modeValueText);
-            CreateButton(modeRow, "ToggleMode", "2D / 3D", ButtonColor, ToggleMode);
+            CreateButton(modeRow, "ToggleMode", "2D / 3D / 4D", ButtonColor, ToggleMode);
+
+            CreateRow(panel, "4D Г:", out hoseOpeningValueText);
+            CreateRow(panel, "4D Щ:", out hoseWallCurvatureValueText);
 
             RectTransform guidesRow = CreateRow(panel, "Линии:", out guidesValueText);
             CreateButton(guidesRow, "ToggleGuides", "Вкл/Выкл", ButtonColor, ToggleGuides);
 
             CreateRow(panel, "Приближение:", out zoomValueText);
             CreateRow(panel, "Скорость вращения:", out rotationSpeedValueText);
-            CreateButton(panel, "ResetMotion", "Сбросить вращение", MutedButtonColor, ResetMotion);
+            CreateButton(panel, "ResetMotion", "Сбросить движение", MutedButtonColor, ResetMotion);
 
             CreateButton(panel, "Help", "Помощь", ButtonColor, OpenHelp);
             CreateButton(panel, "Close", "Закрыть панель", MutedButtonColor, () => SetMenuVisible(false, updateState: true));
@@ -395,12 +411,17 @@ namespace Kaleidoscope2.Control
                 "Колесо мыши (клик) — открыть/закрыть меню\n" +
                 "Esc — закрыть меню\n\n" +
                 "Num0 (доп. клавиатура) — линии сегментов (вкл/выкл)\n" +
+                "Num5 (доп. клавиатура) — сброс движения и 4D-профиля\n" +
+                "NumEnter (боковой Enter) — переключение 2D / 3D / 4D\n" +
                 "1/2/3 — 6/12/24 зеркальных секторов\n" +
-                "W/A/S/D — смещение фокуса/центра\n" +
-                "P/; /L/' — изгиб туннеля вверх/вниз/влево/вправо (на русской раскладке: З/Ж/Д/Э)\n\n" +
+                "W/A/S/D — искажение 3D-туннеля\n" +
+                "I/K/J/L — изгиб 4D-шланга (на русской раскладке: Ш/Л/О/Д)\n\n" +
+                "U/Y (рус. Г/Н) — ширина воронки 4D: -500..+500\n" +
+                "O/P (рус. Щ/З) — кривизна стенок 4D: -500..+500\n\n" +
                 "Режимы:\n" +
                 "2D — классический калейдоскоп (сегменты от центра).\n" +
-                "3D — туннельная перспектива на основе финальной текстуры.\n\n" +
+                "3D — старое туннельное искажение с копиями калейдоскопа по бокам.\n" +
+                "4D — воронка с независимой шириной Г и профилем стенок Щ.\n\n" +
                 "Источники:\n" +
                 "Изображение: JPG/PNG/BMP/TGA.\n" +
                 "Музыка: MP3/WAV/OGG/AIFF (в зависимости от поддержки Unity на вашей платформе).",
@@ -408,7 +429,7 @@ namespace Kaleidoscope2.Control
                 FontStyle.Normal,
                 MutedTextColor,
                 TextAnchor.UpperLeft);
-            body.gameObject.AddComponent<LayoutElement>().preferredHeight = 420f;
+            body.gameObject.AddComponent<LayoutElement>().preferredHeight = 480f;
 
             CreateButton(panel, "HelpClose", "Назад", ButtonColor, () => SetActiveIfDifferent(helpRoot, false));
             helpRoot.SetActive(false);
@@ -647,7 +668,7 @@ namespace Kaleidoscope2.Control
             if (browserStatusText != null)
             {
                 browserStatusText.text = string.IsNullOrWhiteSpace(browserState.Message) ? "Готово." : browserState.Message;
-                browserStatusText.color = browserState.HasError ? new Color32(255, 150, 120, 255) : MutedTextColor;
+                browserStatusText.color = browserState.HasError ? (Color)new Color32(255, 150, 120, 255) : MutedTextColor;
             }
 
             RefreshDriveButtons(browserState);
@@ -773,9 +794,28 @@ namespace Kaleidoscope2.Control
                 return;
             }
 
-            bool nextTunnelEnabled = !director.State.TunnelEnabled;
-            director.Dispatch(KaleidoscopeCommand.SetTunnelEnabled(nextTunnelEnabled));
+            KaleidoscopeVisualMode current = director.State.ActiveVisualMode;
+            KaleidoscopeVisualMode next = current == KaleidoscopeVisualMode.Classic
+                ? KaleidoscopeVisualMode.Tunnel
+                : current == KaleidoscopeVisualMode.Tunnel
+                    ? KaleidoscopeVisualMode.Hose
+                    : KaleidoscopeVisualMode.Classic;
+
+            director.Dispatch(KaleidoscopeCommand.SetVisualMode(next));
             SyncUiFromState();
+        }
+
+        private static string GetModeLabel(KaleidoscopeVisualMode mode)
+        {
+            switch (mode)
+            {
+                case KaleidoscopeVisualMode.Tunnel:
+                    return "3D";
+                case KaleidoscopeVisualMode.Hose:
+                    return "4D";
+                default:
+                    return "2D";
+            }
         }
 
         private void ToggleGuides()
@@ -798,6 +838,7 @@ namespace Kaleidoscope2.Control
 
             director.Dispatch(KaleidoscopeCommand.SetMirrorRotationSpeedUnits(0f));
             director.Dispatch(KaleidoscopeCommand.SetTunnelBend(Vector2.zero));
+            director.Dispatch(KaleidoscopeCommand.ResetTunnelHoseProfile());
             SyncUiFromState();
         }
 
@@ -1160,7 +1201,7 @@ namespace Kaleidoscope2.Control
                 text.text = label;
                 text.fontSize = itemType == RuntimeFileBrowserItemType.Header ? 15 : 14;
                 text.fontStyle = itemType == RuntimeFileBrowserItemType.Header ? FontStyle.Bold : FontStyle.Normal;
-                text.color = itemType == RuntimeFileBrowserItemType.Message ? new Color32(255, 220, 150, 255) : TextColor;
+                text.color = itemType == RuntimeFileBrowserItemType.Message ? (Color)new Color32(255, 220, 150, 255) : TextColor;
                 text.alignment = TextAnchor.MiddleLeft;
             }
         }
@@ -1187,7 +1228,7 @@ namespace Kaleidoscope2.Control
                 return new Color32(38, 58, 68, 255);
             }
 
-            return selectable ? ButtonColor : new Color32(24, 32, 42, 230);
+            return selectable ? ButtonColor : (Color)new Color32(24, 32, 42, 230);
         }
 
         private void LogBrowserUiHierarchy(int activeRowCount)

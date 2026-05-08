@@ -5194,15 +5194,15 @@ MonoBehaviour:
   rotationLeftKey: 276
   rotationRightKey: 275
   resetSpeedsKey: 261
-  centerStepPerSecond: 1.25
-  centerUpKey: 119
-  centerLeftKey: 97
-  centerDownKey: 115
-  centerRightKey: 100
-  tunnelBendUpKey: 112
-  tunnelBendDownKey: 59
-  tunnelBendLeftKey: 108
-  tunnelBendRightKey: 39
+  bendStepPerSecond: 1.25
+  tunnelBendUpKey: 119
+  tunnelBendLeftKey: 97
+  tunnelBendDownKey: 115
+  tunnelBendRightKey: 100
+  hoseBendUpKey: 105
+  hoseBendDownKey: 107
+  hoseBendLeftKey: 106
+  hoseBendRightKey: 108
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

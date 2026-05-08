@@ -28,22 +28,30 @@ namespace Kaleidoscope2.InputSystem
         [SerializeField] private KeyCode rotationLeftKey = KeyCode.LeftArrow;
         [SerializeField] private KeyCode rotationRightKey = KeyCode.RightArrow;
         [SerializeField] private KeyCode resetSpeedsKey = KeyCode.Keypad5;
+        [SerializeField] private KeyCode cycleVisualModeKey = KeyCode.KeypadEnter;
         [SerializeField] private KeyCode sixSegmentsKey = KeyCode.Alpha1;
         [SerializeField] private KeyCode twelveSegmentsKey = KeyCode.Alpha2;
         [SerializeField] private KeyCode twentyFourSegmentsKey = KeyCode.Alpha3;
 
-        [Header("Center Focus (WASD / Russian layout ф ц ы в)")]
-        [SerializeField] private float centerStepPerSecond = 1.25f;
-        [SerializeField] private KeyCode centerUpKey = KeyCode.W;
-        [SerializeField] private KeyCode centerLeftKey = KeyCode.A;
-        [SerializeField] private KeyCode centerDownKey = KeyCode.S;
-        [SerializeField] private KeyCode centerRightKey = KeyCode.D;
+        [Header("3D Tunnel Distortion (WASD / Russian layout ц ф ы в)")]
+        [SerializeField] private float bendStepPerSecond = 1.25f;
+        [SerializeField] private KeyCode tunnelBendUpKey = KeyCode.W;
+        [SerializeField] private KeyCode tunnelBendLeftKey = KeyCode.A;
+        [SerializeField] private KeyCode tunnelBendDownKey = KeyCode.S;
+        [SerializeField] private KeyCode tunnelBendRightKey = KeyCode.D;
 
-        [Header("Tunnel Bend (P / ; / L / ')")]
-        [SerializeField] private KeyCode tunnelBendUpKey = KeyCode.P;
-        [SerializeField] private KeyCode tunnelBendDownKey = KeyCode.Semicolon;
-        [SerializeField] private KeyCode tunnelBendLeftKey = KeyCode.L;
-        [SerializeField] private KeyCode tunnelBendRightKey = KeyCode.Quote;
+        [Header("4D Hose Bend (Russian layout ш л о д)")]
+        [SerializeField] private KeyCode hoseBendUpKey = KeyCode.I;
+        [SerializeField] private KeyCode hoseBendDownKey = KeyCode.K;
+        [SerializeField] private KeyCode hoseBendLeftKey = KeyCode.J;
+        [SerializeField] private KeyCode hoseBendRightKey = KeyCode.L;
+
+        [Header("4D Hose Profile (Russian layout г/н and щ/з)")]
+        [SerializeField] private float hoseProfileUnitsStepPerSecond = 1000f;
+        [SerializeField] private KeyCode hoseOpeningKey = KeyCode.U;
+        [SerializeField] private KeyCode hoseOpeningDecreaseKey = KeyCode.Y;
+        [SerializeField] private KeyCode hoseWallCurvatureKey = KeyCode.O;
+        [SerializeField] private KeyCode hoseWallCurvatureDecreaseKey = KeyCode.P;
 
         private readonly TunnelBendController tunnelBendController = new TunnelBendController();
 
@@ -82,6 +90,11 @@ namespace Kaleidoscope2.InputSystem
                 director.Dispatch(KaleidoscopeCommand.ToggleMirrorGuides());
             }
 
+            if (UnityEngine.Input.GetKeyDown(cycleVisualModeKey))
+            {
+                CycleVisualMode();
+            }
+
             // When the menu is open, avoid stealing navigation keys from UI.
             if (director.State.ControlMenuVisible)
             {
@@ -109,13 +122,18 @@ namespace Kaleidoscope2.InputSystem
 
             float rotation = mirror.RotationSpeed;
             float zoom = mirror.Zoom;
-            Vector2 centerOffset = mirror.CenterOffset;
-            Vector2 tunnelInput = Vector2.zero;
+            KaleidoscopeVisualMode visualMode = director.State.ActiveVisualMode;
+            TunnelSettings tunnelSettings = director.State.TunnelSettings;
+            Vector2 tunnelBend = tunnelSettings != null ? tunnelSettings.Bend : Vector2.zero;
+            float hoseOpeningUnits = tunnelSettings != null ? tunnelSettings.HoseOpeningUnits : 0f;
+            float hoseWallCurvatureUnits = tunnelSettings != null ? tunnelSettings.HoseWallCurvatureUnits : 0f;
+            Vector2 hoseInput = Vector2.zero;
 
             // Hold keys for continuous change.
             float perSecond = Mathf.Max(0f, unitsStepPerSecond) * deltaTime;
             float zoomDelta = Mathf.Max(0f, zoomStepPerSecond) * deltaTime;
-            float centerDelta = Mathf.Max(0f, centerStepPerSecond) * deltaTime;
+            float bendDelta = Mathf.Max(0f, bendStepPerSecond) * deltaTime;
+            float hoseProfileDelta = Mathf.Max(1000f, hoseProfileUnitsStepPerSecond) * deltaTime;
 
             if (UnityEngine.Input.GetKey(zoomInKey))
             {
@@ -134,52 +152,78 @@ namespace Kaleidoscope2.InputSystem
                 rotation += perSecond;
             }
 
-            if (UnityEngine.Input.GetKey(centerUpKey))
-            {
-                centerOffset.y += centerDelta;
-            }
-            if (UnityEngine.Input.GetKey(centerDownKey))
-            {
-                centerOffset.y -= centerDelta;
-            }
-            if (UnityEngine.Input.GetKey(centerLeftKey))
-            {
-                centerOffset.x -= centerDelta;
-            }
-            if (UnityEngine.Input.GetKey(centerRightKey))
-            {
-                centerOffset.x += centerDelta;
-            }
-
-            centerOffset = new Vector2(Mathf.Clamp(centerOffset.x, -1f, 1f), Mathf.Clamp(centerOffset.y, -1f, 1f));
-
-            if (director.State.TunnelEnabled)
+            if (visualMode == KaleidoscopeVisualMode.Tunnel)
             {
                 if (UnityEngine.Input.GetKey(tunnelBendUpKey))
                 {
-                    tunnelInput.y += 1f;
+                    tunnelBend.y += bendDelta;
                 }
                 if (UnityEngine.Input.GetKey(tunnelBendDownKey))
                 {
-                    tunnelInput.y -= 1f;
+                    tunnelBend.y -= bendDelta;
                 }
                 if (UnityEngine.Input.GetKey(tunnelBendLeftKey))
                 {
-                    tunnelInput.x -= 1f;
+                    tunnelBend.x -= bendDelta;
                 }
                 if (UnityEngine.Input.GetKey(tunnelBendRightKey))
                 {
-                    tunnelInput.x += 1f;
+                    tunnelBend.x += bendDelta;
+                }
+            }
+
+            if (visualMode == KaleidoscopeVisualMode.Hose)
+            {
+                if (UnityEngine.Input.GetKey(hoseBendUpKey))
+                {
+                    hoseInput.y += 1f;
+                }
+                if (UnityEngine.Input.GetKey(hoseBendDownKey))
+                {
+                    hoseInput.y -= 1f;
+                }
+                if (UnityEngine.Input.GetKey(hoseBendLeftKey))
+                {
+                    hoseInput.x -= 1f;
+                }
+                if (UnityEngine.Input.GetKey(hoseBendRightKey))
+                {
+                    hoseInput.x += 1f;
+                }
+
+                if (UnityEngine.Input.GetKey(hoseOpeningKey))
+                {
+                    hoseOpeningUnits += hoseProfileDelta;
+                }
+                if (UnityEngine.Input.GetKey(hoseOpeningDecreaseKey))
+                {
+                    hoseOpeningUnits -= hoseProfileDelta;
+                }
+                if (UnityEngine.Input.GetKey(hoseWallCurvatureKey))
+                {
+                    hoseWallCurvatureUnits += hoseProfileDelta;
+                }
+                if (UnityEngine.Input.GetKey(hoseWallCurvatureDecreaseKey))
+                {
+                    hoseWallCurvatureUnits -= hoseProfileDelta;
                 }
             }
 
             if (UnityEngine.Input.GetKeyDown(resetSpeedsKey))
             {
                 rotation = 0f;
+                tunnelBend = Vector2.zero;
+                hoseOpeningUnits = 0f;
+                hoseWallCurvatureUnits = 0f;
+                tunnelBendController.Reset(director.State);
+                director.Dispatch(KaleidoscopeCommand.ResetTunnelHoseProfile());
             }
 
-            rotation = Mathf.Clamp(rotation, -500f, 500f);
+            rotation = Mathf.Clamp(rotation, MirrorSettings.RotationSpeedMinUnits, MirrorSettings.RotationSpeedMaxUnits);
             zoom = Mathf.Clamp(zoom, 0.1f, 8f);
+            tunnelBend = new Vector2(Mathf.Clamp(tunnelBend.x, -1f, 1f), Mathf.Clamp(tunnelBend.y, -1f, 1f));
+            hoseOpeningUnits = Mathf.Clamp(hoseOpeningUnits, TunnelSettings.HoseProfileMinUnits, TunnelSettings.HoseProfileMaxUnits);
+            hoseWallCurvatureUnits = Mathf.Clamp(hoseWallCurvatureUnits, TunnelSettings.HoseProfileMinUnits, TunnelSettings.HoseProfileMaxUnits);
 
             if (!Mathf.Approximately(zoom, mirror.Zoom))
             {
@@ -191,14 +235,24 @@ namespace Kaleidoscope2.InputSystem
                 director.Dispatch(KaleidoscopeCommand.SetMirrorRotationSpeedUnits(rotation));
             }
 
-            if (centerOffset != mirror.CenterOffset)
+            if (tunnelSettings != null && tunnelBend != tunnelSettings.Bend)
             {
-                director.Dispatch(KaleidoscopeCommand.SetMirrorCenterOffset(centerOffset));
+                director.Dispatch(KaleidoscopeCommand.SetTunnelBend(tunnelBend));
             }
 
-            if (director.State.TunnelEnabled)
+            if (tunnelSettings != null && !Mathf.Approximately(hoseOpeningUnits, tunnelSettings.HoseOpeningUnits))
             {
-                tunnelBendController.Tick(director.State, tunnelInput, deltaTime);
+                director.Dispatch(KaleidoscopeCommand.SetTunnelHoseOpeningUnits(hoseOpeningUnits));
+            }
+
+            if (tunnelSettings != null && !Mathf.Approximately(hoseWallCurvatureUnits, tunnelSettings.HoseWallCurvatureUnits))
+            {
+                director.Dispatch(KaleidoscopeCommand.SetTunnelHoseWallCurvatureUnits(hoseWallCurvatureUnits));
+            }
+
+            if (visualMode == KaleidoscopeVisualMode.Hose)
+            {
+                tunnelBendController.Tick(director.State, hoseInput, deltaTime);
             }
         }
 
@@ -215,9 +269,24 @@ namespace Kaleidoscope2.InputSystem
                 return CreateStatus("Waiting for state.");
             }
 
-            Vector2 center = mirror.CenterOffset;
-            Vector2 bend = director.State.TunnelBendState != null ? director.State.TunnelBendState.BendOffset : Vector2.zero;
-            return CreateStatus("Zoom " + mirror.Zoom.ToString("0.00") + ", Rotation " + mirror.RotationSpeed.ToString("0") + ", Center " + center.ToString("0.00") + ", Tunnel bend " + bend.ToString("0.00") + ".");
+            Vector2 bend = director.State.TunnelSettings != null ? director.State.TunnelSettings.Bend : Vector2.zero;
+            Vector2 hoseBend = director.State.TunnelBendState != null ? director.State.TunnelBendState.BendOffset : Vector2.zero;
+            TunnelSettings tunnelSettings = director.State.TunnelSettings;
+            float opening = tunnelSettings != null ? tunnelSettings.HoseOpeningUnits : 0f;
+            float curvature = tunnelSettings != null ? tunnelSettings.HoseWallCurvatureUnits : 0f;
+            return CreateStatus("Zoom " + mirror.Zoom.ToString("0.00") + ", Rotation " + mirror.RotationSpeed.ToString("0") + ", 3D bend " + bend.ToString("0.00") + ", 4D hose " + hoseBend.ToString("0.00") + ", G " + opening.ToString("0") + ", Shch " + curvature.ToString("0") + ".");
+        }
+
+        private void CycleVisualMode()
+        {
+            KaleidoscopeVisualMode current = director.State.ActiveVisualMode;
+            KaleidoscopeVisualMode next = current == KaleidoscopeVisualMode.Classic
+                ? KaleidoscopeVisualMode.Tunnel
+                : current == KaleidoscopeVisualMode.Tunnel
+                    ? KaleidoscopeVisualMode.Hose
+                    : KaleidoscopeVisualMode.Classic;
+
+            director.Dispatch(KaleidoscopeCommand.SetVisualMode(next));
         }
     }
 }

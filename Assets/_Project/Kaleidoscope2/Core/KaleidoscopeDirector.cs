@@ -234,6 +234,18 @@ namespace Kaleidoscope2.Core
                     state.TunnelSettings.SetBend(command.Vector2Value);
                     return true;
 
+                case KaleidoscopeCommandType.SetTunnelHoseOpeningUnits:
+                    state.TunnelSettings.SetHoseOpeningUnits(command.FloatValue);
+                    return true;
+
+                case KaleidoscopeCommandType.SetTunnelHoseWallCurvatureUnits:
+                    state.TunnelSettings.SetHoseWallCurvatureUnits(command.FloatValue);
+                    return true;
+
+                case KaleidoscopeCommandType.ResetTunnelHoseProfile:
+                    state.TunnelSettings.ResetHoseProfile();
+                    return true;
+
                 case KaleidoscopeCommandType.SetRecordingStatus:
                     state.SetRecordingStatus(command.RecordingStatusValue);
                     return true;

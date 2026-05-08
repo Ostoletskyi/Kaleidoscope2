@@ -9,12 +9,15 @@ namespace Kaleidoscope2.Tunnel
         public static readonly int CenterDarken = Shader.PropertyToID("_CenterDarken");
         public static readonly int Scroll = Shader.PropertyToID("_Scroll");
         public static readonly int Bend = Shader.PropertyToID("_Bend");
+        public static readonly int TunnelHoseEnabled = Shader.PropertyToID("_TunnelHoseEnabled");
         public static readonly int TunnelBendOffset = Shader.PropertyToID("_TunnelBendOffset");
         public static readonly int TunnelFoldStrength = Shader.PropertyToID("_TunnelFoldStrength");
         public static readonly int TunnelFoldShadowStrength = Shader.PropertyToID("_TunnelFoldShadowStrength");
         public static readonly int TunnelDarknessDepth = Shader.PropertyToID("_TunnelDarknessDepth");
         public static readonly int TunnelEndLightVisibility = Shader.PropertyToID("_TunnelEndLightVisibility");
         public static readonly int TunnelDepthFade = Shader.PropertyToID("_TunnelDepthFade");
+        public static readonly int TunnelHoseOpening = Shader.PropertyToID("_TunnelHoseOpening");
+        public static readonly int TunnelWallCurvature = Shader.PropertyToID("_TunnelWallCurvature");
     }
 
     [DisallowMultipleComponent]
@@ -72,9 +75,13 @@ namespace Kaleidoscope2.Tunnel
             }
 
             Vector2 bend = runtimeState.TunnelSettings != null ? runtimeState.TunnelSettings.Bend : Vector2.zero;
+            TunnelSettings tunnelSettings = runtimeState.TunnelSettings;
             TunnelBendSettings bendSettings = runtimeState.TunnelBendSettings;
             TunnelBendState bendState = runtimeState.TunnelBendState;
-            Vector2 hoseBend = bendState != null ? bendState.BendOffset : Vector2.zero;
+            bool hoseMode = runtimeState.ActiveVisualMode == KaleidoscopeVisualMode.Hose;
+            Vector2 hoseBend = hoseMode && bendState != null ? bendState.BendOffset : Vector2.zero;
+            float hoseOpening = hoseMode && tunnelSettings != null ? tunnelSettings.HoseOpeningNormalized : 0f;
+            float wallCurvature = hoseMode && tunnelSettings != null ? tunnelSettings.HoseWallCurvatureNormalized : 0f;
             float bendMagnitude = Mathf.Clamp01(hoseBend.magnitude);
             float foldStrength = bendSettings != null ? bendSettings.FoldStrength * bendMagnitude : bendMagnitude;
             float foldShadowStrength = bendSettings != null ? bendSettings.FoldShadowStrength * bendMagnitude : bendMagnitude;
@@ -88,12 +95,15 @@ namespace Kaleidoscope2.Tunnel
             material.SetFloat(TunnelShaderIds.CenterDarken, centerDarken);
             material.SetFloat(TunnelShaderIds.Scroll, Time.unscaledTime * scrollSpeed);
             material.SetVector(TunnelShaderIds.Bend, bend);
+            material.SetFloat(TunnelShaderIds.TunnelHoseEnabled, hoseMode ? 1f : 0f);
             material.SetVector(TunnelShaderIds.TunnelBendOffset, hoseBend);
             material.SetFloat(TunnelShaderIds.TunnelFoldStrength, foldStrength);
             material.SetFloat(TunnelShaderIds.TunnelFoldShadowStrength, foldShadowStrength);
             material.SetFloat(TunnelShaderIds.TunnelDarknessDepth, darknessDepth);
             material.SetFloat(TunnelShaderIds.TunnelEndLightVisibility, endLightVisibility);
             material.SetFloat(TunnelShaderIds.TunnelDepthFade, depthFade);
+            material.SetFloat(TunnelShaderIds.TunnelHoseOpening, hoseOpening);
+            material.SetFloat(TunnelShaderIds.TunnelWallCurvature, wallCurvature);
 
             Graphics.Blit(sourceTexture, outputTexture, material);
             return outputTexture;
@@ -109,7 +119,10 @@ namespace Kaleidoscope2.Tunnel
             bool enabled = State != null && State.TunnelEnabled;
             Vector2 bend = State != null && State.TunnelSettings != null ? State.TunnelSettings.Bend : Vector2.zero;
             Vector2 hoseBend = State != null && State.TunnelBendState != null ? State.TunnelBendState.BendOffset : Vector2.zero;
-            return CreateStatus(enabled ? "Tunnel enabled. Legacy bend " + bend.ToString("0.00") + ", hose bend " + hoseBend.ToString("0.00") + "." : "Tunnel disabled");
+            float opening = State != null && State.TunnelSettings != null ? State.TunnelSettings.HoseOpeningUnits : 0f;
+            float curvature = State != null && State.TunnelSettings != null ? State.TunnelSettings.HoseWallCurvatureUnits : 0f;
+            string mode = State != null && State.ActiveVisualMode == KaleidoscopeVisualMode.Hose ? "4D Hose" : "3D Tunnel";
+            return CreateStatus(enabled ? mode + ". 3D bend " + bend.ToString("0.00") + ", hose bend " + hoseBend.ToString("0.00") + ", G " + opening.ToString("0") + ", Shch " + curvature.ToString("0") + "." : "Tunnel disabled");
         }
 
         private void OnDestroy()

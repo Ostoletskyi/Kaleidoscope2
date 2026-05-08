@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using Kaleidoscope2.Tunnel;
 using UnityEngine;
 
 namespace Kaleidoscope2.Core
@@ -18,7 +17,8 @@ namespace Kaleidoscope2.Core
     public enum KaleidoscopeVisualMode
     {
         Classic = 0,
-        Tunnel = 1
+        Tunnel = 1,
+        Hose = 2
     }
 
     public enum KaleidoscopeRecordingStatus
@@ -130,6 +130,11 @@ namespace Kaleidoscope2.Core
             get { return tunnelEnabled; }
         }
 
+        public bool HoseModeEnabled
+        {
+            get { return activeVisualMode == KaleidoscopeVisualMode.Hose; }
+        }
+
         public KaleidoscopeRecordingStatus RecordingStatus
         {
             get { return recordingStatus; }
@@ -186,7 +191,7 @@ namespace Kaleidoscope2.Core
         public void SetVisualMode(KaleidoscopeVisualMode visualMode)
         {
             activeVisualMode = visualMode;
-            tunnelEnabled = visualMode == KaleidoscopeVisualMode.Tunnel;
+            tunnelEnabled = visualMode != KaleidoscopeVisualMode.Classic;
         }
 
         public void SetTunnelEnabled(bool enabled)
@@ -297,6 +302,9 @@ namespace Kaleidoscope2.Core
     [Serializable]
     public sealed class MirrorSettings
     {
+        public const float RotationSpeedMinUnits = -5000f;
+        public const float RotationSpeedMaxUnits = 5000f;
+
         [SerializeField] private int mirrorCount = 6;
         [SerializeField] private float rotation;
         [SerializeField] private float rotationSpeedUnits;
@@ -352,12 +360,12 @@ namespace Kaleidoscope2.Core
 
         public void SetRotationSpeed(float value)
         {
-            rotationSpeedUnits = Mathf.Clamp(value, -500f, 500f);
+            rotationSpeedUnits = Mathf.Clamp(value, RotationSpeedMinUnits, RotationSpeedMaxUnits);
         }
 
         public void SetForwardSpeedUnits(float value)
         {
-            forwardSpeedUnits = Mathf.Clamp(value, -500f, 500f);
+            forwardSpeedUnits = Mathf.Clamp(value, RotationSpeedMinUnits, RotationSpeedMaxUnits);
         }
 
         public void SetGuidesVisible(bool visible)
@@ -402,11 +410,36 @@ namespace Kaleidoscope2.Core
     [Serializable]
     public sealed class TunnelSettings
     {
+        public const float HoseProfileMinUnits = -500f;
+        public const float HoseProfileMaxUnits = 500f;
+
         [SerializeField] private Vector2 bend = Vector2.zero;
+        [SerializeField] private float hoseOpeningUnits;
+        [SerializeField] private float hoseWallCurvatureUnits;
 
         public Vector2 Bend
         {
             get { return bend; }
+        }
+
+        public float HoseOpeningUnits
+        {
+            get { return hoseOpeningUnits; }
+        }
+
+        public float HoseWallCurvatureUnits
+        {
+            get { return hoseWallCurvatureUnits; }
+        }
+
+        public float HoseOpeningNormalized
+        {
+            get { return Mathf.InverseLerp(HoseProfileMinUnits, HoseProfileMaxUnits, hoseOpeningUnits) * 2f - 1f; }
+        }
+
+        public float HoseWallCurvatureNormalized
+        {
+            get { return Mathf.InverseLerp(HoseProfileMinUnits, HoseProfileMaxUnits, hoseWallCurvatureUnits) * 2f - 1f; }
         }
 
         public void SetBend(Vector2 value)
@@ -414,6 +447,22 @@ namespace Kaleidoscope2.Core
             bend = new Vector2(
                 Mathf.Clamp(value.x, -1f, 1f),
                 Mathf.Clamp(value.y, -1f, 1f));
+        }
+
+        public void SetHoseOpeningUnits(float value)
+        {
+            hoseOpeningUnits = Mathf.Clamp(value, HoseProfileMinUnits, HoseProfileMaxUnits);
+        }
+
+        public void SetHoseWallCurvatureUnits(float value)
+        {
+            hoseWallCurvatureUnits = Mathf.Clamp(value, HoseProfileMinUnits, HoseProfileMaxUnits);
+        }
+
+        public void ResetHoseProfile()
+        {
+            hoseOpeningUnits = 0f;
+            hoseWallCurvatureUnits = 0f;
         }
     }
 
