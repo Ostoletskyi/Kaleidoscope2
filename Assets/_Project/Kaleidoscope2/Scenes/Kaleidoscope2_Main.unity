@@ -1562,7 +1562,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   director: {fileID: 2063111828}
-  showHud: 1
+  showHud: 0
   screenOffset: {x: 16, y: 16}
   width: 420
 --- !u!114 &668585100

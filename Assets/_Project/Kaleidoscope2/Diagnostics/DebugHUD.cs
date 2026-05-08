@@ -17,6 +17,12 @@ namespace Kaleidoscope2.Diagnostics
 
         private void OnEnable()
         {
+            labelStyle = null;
+            titleStyle = null;
+        }
+
+        private void EnsureStyles()
+        {
             labelStyle = new GUIStyle(GUI.skin.label)
             {
                 wordWrap = true
@@ -42,7 +48,7 @@ namespace Kaleidoscope2.Diagnostics
 
             if (labelStyle == null || titleStyle == null)
             {
-                OnEnable();
+                EnsureStyles();
             }
 
             GUILayout.BeginArea(new Rect(screenOffset.x, screenOffset.y, width, Screen.height - screenOffset.y * 2f), GUI.skin.box);

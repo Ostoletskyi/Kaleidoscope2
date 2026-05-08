@@ -36,7 +36,13 @@ KaleidoscopeBootstrapRoot
 └── RuntimeMenuController
 ```
 
-The runtime menu uses a Canvas under `RuntimeMenuController`. The diagnostics HUD is owned by `DiagnosticsModule`.
+The runtime menu uses a Canvas under `RuntimeMenuController`. It builds three presentation surfaces:
+
+- `MainControlPanel`: always-visible runtime controls.
+- `DiagnosticsOverlay`: a separate read-only diagnostics panel toggled by middle mouse click.
+- `HotkeysHelpPanel`: a separate help overlay toggled by `F1`.
+
+`DiagnosticsModule` owns the diagnostic data, while the visible panels only read `KaleidoscopeState` and route mutations through `KaleidoscopeDirector`. The legacy `DebugHUD` component remains disabled in this scene to avoid duplicate overlays.
 
 ## Control Rules
 
@@ -44,6 +50,9 @@ The runtime menu uses a Canvas under `RuntimeMenuController`. The diagnostics HU
 - Runtime UI reads `KaleidoscopeState` for labels and control values.
 - Runtime UI reads `KaleidoscopeDirector.FinalOutputTexture` for display.
 - Runtime UI does not mutate shader, camera, tunnel, recording, physics, source, or mirror internals.
+- Middle mouse click toggles diagnostics visibility through `SetDiagnosticsVisible`.
+- `F1` toggles the hotkeys reference panel locally; it does not change production module state.
+- `Esc` hides an open overlay without changing module internals.
 
 ## Visible Output
 
