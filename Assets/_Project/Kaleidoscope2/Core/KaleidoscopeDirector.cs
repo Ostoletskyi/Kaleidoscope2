@@ -9,6 +9,7 @@ namespace Kaleidoscope2.Core
     {
         [SerializeField] private KaleidoscopeState state = new KaleidoscopeState();
         [SerializeField] private bool tickModules = true;
+        [SerializeField] private bool keepRunningInBackground = true;
 
         private readonly List<IKaleidoscopeModule> modules = new List<IKaleidoscopeModule>();
         private readonly List<KaleidoscopeModuleStatus> moduleStatuses = new List<KaleidoscopeModuleStatus>();
@@ -40,6 +41,11 @@ namespace Kaleidoscope2.Core
         private void Awake()
         {
             EnsureState();
+            if (keepRunningInBackground)
+            {
+                Application.runInBackground = true;
+            }
+
             // Requirement: the render output should be clean (no on-screen diagnostics by default).
             state.SetDiagnosticsVisible(false);
         }
@@ -244,6 +250,54 @@ namespace Kaleidoscope2.Core
 
                 case KaleidoscopeCommandType.ResetTunnelHoseProfile:
                     state.TunnelSettings.ResetHoseProfile();
+                    return true;
+
+                case KaleidoscopeCommandType.ToggleTunnelHoseChromaticAberration:
+                    state.TunnelSettings.ToggleHoseChromaticAberration();
+                    return true;
+
+                case KaleidoscopeCommandType.SetTunnelHoseChromaticAberration:
+                    state.TunnelSettings.SetHoseChromaticAberrationEnabled(command.BoolValue);
+                    return true;
+
+                case KaleidoscopeCommandType.SetFiveDFlightSpeedUnits:
+                    state.FiveDSettings.SetFlightSpeedUnits(command.FloatValue);
+                    return true;
+
+                case KaleidoscopeCommandType.SetSevenDStrategy:
+                    state.SevenDSettings.SetStrategyIndex(command.IntValue);
+                    return true;
+
+                case KaleidoscopeCommandType.CycleSevenDStrategy:
+                    state.SevenDSettings.CycleStrategy(command.IntValue);
+                    return true;
+
+                case KaleidoscopeCommandType.SetVisualMotionFlightSpeedUnits:
+                    {
+                        VisualMotionSettings motionSettings = state.GetVisualMotionSettings(command.VisualModeValue);
+                        if (motionSettings != null)
+                        {
+                            motionSettings.SetFlightSpeedUnits(command.FloatValue);
+                            return true;
+                        }
+
+                        return false;
+                    }
+
+                case KaleidoscopeCommandType.SetVisualMotionImageOffset:
+                    {
+                        VisualMotionSettings motionSettings = state.GetVisualMotionSettings(command.VisualModeValue);
+                        if (motionSettings != null)
+                        {
+                            motionSettings.SetImageOffset(command.Vector2Value);
+                            return true;
+                        }
+
+                        return false;
+                    }
+
+                case KaleidoscopeCommandType.ResetVisualMotion:
+                    state.ResetVisualMotion(command.VisualModeValue);
                     return true;
 
                 case KaleidoscopeCommandType.SetRecordingStatus:

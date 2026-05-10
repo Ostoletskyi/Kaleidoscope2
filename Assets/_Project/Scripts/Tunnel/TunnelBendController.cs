@@ -57,7 +57,7 @@ namespace Kaleidoscope2.Tunnel
                 target,
                 ref velocity,
                 smoothTime,
-                Mathf.Max(0.01f, settings.BendLimit * 8f),
+                Mathf.Max(0.01f, settings.BendSpeed * 2f, settings.BendLimit * 8f),
                 deltaTime);
 
             next = Vector2.ClampMagnitude(next, settings.BendLimit);

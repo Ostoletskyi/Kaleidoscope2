@@ -16,7 +16,11 @@ namespace Kaleidoscope2.Core
         Tunnel = 8,
         Recording = 9,
         Presets = 10,
-        Diagnostics = 11
+        Diagnostics = 11,
+        DepthWarp = 12,
+        OpticalLook = 13,
+        VolumetricIllusion = 14,
+        SevenD = 15
     }
 
     [Serializable]

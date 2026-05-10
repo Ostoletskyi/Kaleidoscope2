@@ -18,7 +18,19 @@ namespace Kaleidoscope2.Core
     {
         Classic = 0,
         Tunnel = 1,
-        Hose = 2
+        Hose = 2,
+        FiveD = 3,
+        SixD = 4,
+        SevenD = 5
+    }
+
+    public enum SevenDVisualizationStrategy
+    {
+        Romanesco = 0,
+        Snowflake = 1,
+        StructuralColor = 2,
+        Murmuration = 3,
+        Sunflower = 4
     }
 
     public enum KaleidoscopeRecordingStatus
@@ -47,6 +59,14 @@ namespace Kaleidoscope2.Core
         [SerializeField] private MirrorSettings mirrorSettings = new MirrorSettings();
         [SerializeField] private CameraSettings cameraSettings = new CameraSettings();
         [SerializeField] private TunnelSettings tunnelSettings = new TunnelSettings();
+        [SerializeField] private FiveDSettings fiveDSettings = new FiveDSettings();
+        [SerializeField] private SixDSettings sixDSettings = new SixDSettings();
+        [SerializeField] private SevenDSettings sevenDSettings = new SevenDSettings();
+        [SerializeField] private VisualMotionSettings classicMotionSettings = new VisualMotionSettings();
+        [SerializeField] private VisualMotionSettings tunnelMotionSettings = new VisualMotionSettings();
+        [SerializeField] private VisualMotionSettings hoseMotionSettings = new VisualMotionSettings();
+        [SerializeField] private VisualMotionSettings sixDMotionSettings = new VisualMotionSettings();
+        [SerializeField] private VisualMotionSettings sevenDMotionSettings = new VisualMotionSettings();
         [SerializeField] private TunnelBendSettings tunnelBendSettings = new TunnelBendSettings();
         [SerializeField] private TunnelBendState tunnelBendState = new TunnelBendState();
         [SerializeField] private string imageFilePath = string.Empty;
@@ -83,6 +103,46 @@ namespace Kaleidoscope2.Core
         public TunnelSettings TunnelSettings
         {
             get { return tunnelSettings; }
+        }
+
+        public FiveDSettings FiveDSettings
+        {
+            get { return fiveDSettings; }
+        }
+
+        public SixDSettings SixDSettings
+        {
+            get { return sixDSettings; }
+        }
+
+        public SevenDSettings SevenDSettings
+        {
+            get { return sevenDSettings; }
+        }
+
+        public VisualMotionSettings ClassicMotionSettings
+        {
+            get { return classicMotionSettings; }
+        }
+
+        public VisualMotionSettings TunnelMotionSettings
+        {
+            get { return tunnelMotionSettings; }
+        }
+
+        public VisualMotionSettings HoseMotionSettings
+        {
+            get { return hoseMotionSettings; }
+        }
+
+        public VisualMotionSettings SixDMotionSettings
+        {
+            get { return sixDMotionSettings; }
+        }
+
+        public VisualMotionSettings SevenDMotionSettings
+        {
+            get { return sevenDMotionSettings; }
         }
 
         public TunnelBendSettings TunnelBendSettings
@@ -135,6 +195,21 @@ namespace Kaleidoscope2.Core
             get { return activeVisualMode == KaleidoscopeVisualMode.Hose; }
         }
 
+        public bool FiveDModeEnabled
+        {
+            get { return activeVisualMode == KaleidoscopeVisualMode.FiveD; }
+        }
+
+        public bool SixDModeEnabled
+        {
+            get { return activeVisualMode == KaleidoscopeVisualMode.SixD; }
+        }
+
+        public bool SevenDModeEnabled
+        {
+            get { return activeVisualMode == KaleidoscopeVisualMode.SevenD; }
+        }
+
         public KaleidoscopeRecordingStatus RecordingStatus
         {
             get { return recordingStatus; }
@@ -167,6 +242,46 @@ namespace Kaleidoscope2.Core
                 tunnelSettings = new TunnelSettings();
             }
 
+            if (fiveDSettings == null)
+            {
+                fiveDSettings = new FiveDSettings();
+            }
+
+            if (sixDSettings == null)
+            {
+                sixDSettings = new SixDSettings();
+            }
+
+            if (sevenDSettings == null)
+            {
+                sevenDSettings = new SevenDSettings();
+            }
+
+            if (classicMotionSettings == null)
+            {
+                classicMotionSettings = new VisualMotionSettings();
+            }
+
+            if (tunnelMotionSettings == null)
+            {
+                tunnelMotionSettings = new VisualMotionSettings();
+            }
+
+            if (hoseMotionSettings == null)
+            {
+                hoseMotionSettings = new VisualMotionSettings();
+            }
+
+            if (sixDMotionSettings == null)
+            {
+                sixDMotionSettings = new VisualMotionSettings();
+            }
+
+            if (sevenDMotionSettings == null)
+            {
+                sevenDMotionSettings = new VisualMotionSettings();
+            }
+
             if (tunnelBendSettings == null)
             {
                 tunnelBendSettings = new TunnelBendSettings();
@@ -191,7 +306,9 @@ namespace Kaleidoscope2.Core
         public void SetVisualMode(KaleidoscopeVisualMode visualMode)
         {
             activeVisualMode = visualMode;
-            tunnelEnabled = visualMode != KaleidoscopeVisualMode.Classic;
+            tunnelEnabled = visualMode == KaleidoscopeVisualMode.Tunnel
+                || visualMode == KaleidoscopeVisualMode.Hose
+                || visualMode == KaleidoscopeVisualMode.FiveD;
         }
 
         public void SetTunnelEnabled(bool enabled)
@@ -297,11 +414,41 @@ namespace Kaleidoscope2.Core
         {
             diagnostics.SetHudVisible(visible);
         }
+
+        public VisualMotionSettings GetVisualMotionSettings(KaleidoscopeVisualMode visualMode)
+        {
+            switch (visualMode)
+            {
+                case KaleidoscopeVisualMode.Tunnel:
+                    return tunnelMotionSettings;
+                case KaleidoscopeVisualMode.Hose:
+                    return hoseMotionSettings;
+                case KaleidoscopeVisualMode.SixD:
+                    return sixDMotionSettings;
+                case KaleidoscopeVisualMode.SevenD:
+                    return sevenDMotionSettings;
+                case KaleidoscopeVisualMode.Classic:
+                    return classicMotionSettings;
+                default:
+                    return null;
+            }
+        }
+
+        public void ResetVisualMotion(KaleidoscopeVisualMode visualMode)
+        {
+            VisualMotionSettings settings = GetVisualMotionSettings(visualMode);
+            if (settings != null)
+            {
+                settings.Reset();
+            }
+        }
     }
 
     [Serializable]
     public sealed class MirrorSettings
     {
+        public const int MirrorCountMin = 1;
+        public const int MirrorCountMax = 1536;
         public const float RotationSpeedMinUnits = -5000f;
         public const float RotationSpeedMaxUnits = 5000f;
 
@@ -350,7 +497,7 @@ namespace Kaleidoscope2.Core
 
         public void SetMirrorCount(int count)
         {
-            mirrorCount = Mathf.Clamp(count, 1, 64);
+            mirrorCount = Mathf.Clamp(count, MirrorCountMin, MirrorCountMax);
         }
 
         public void SetRotation(float value)
@@ -416,6 +563,7 @@ namespace Kaleidoscope2.Core
         [SerializeField] private Vector2 bend = Vector2.zero;
         [SerializeField] private float hoseOpeningUnits;
         [SerializeField] private float hoseWallCurvatureUnits;
+        [SerializeField] private bool hoseChromaticAberrationEnabled;
 
         public Vector2 Bend
         {
@@ -430,6 +578,11 @@ namespace Kaleidoscope2.Core
         public float HoseWallCurvatureUnits
         {
             get { return hoseWallCurvatureUnits; }
+        }
+
+        public bool HoseChromaticAberrationEnabled
+        {
+            get { return hoseChromaticAberrationEnabled; }
         }
 
         public float HoseOpeningNormalized
@@ -459,10 +612,285 @@ namespace Kaleidoscope2.Core
             hoseWallCurvatureUnits = Mathf.Clamp(value, HoseProfileMinUnits, HoseProfileMaxUnits);
         }
 
+        public void SetHoseChromaticAberrationEnabled(bool enabled)
+        {
+            hoseChromaticAberrationEnabled = enabled;
+        }
+
+        public void ToggleHoseChromaticAberration()
+        {
+            hoseChromaticAberrationEnabled = !hoseChromaticAberrationEnabled;
+        }
+
         public void ResetHoseProfile()
         {
             hoseOpeningUnits = 0f;
             hoseWallCurvatureUnits = 0f;
+        }
+    }
+
+    [Serializable]
+    public sealed class FiveDSettings
+    {
+        public const float FlightSpeedMinUnits = -5000f;
+        public const float FlightSpeedMaxUnits = 5000f;
+
+        [SerializeField] private float flightSpeedUnits = 650f;
+        [SerializeField] private float imageSwitchInterval = 20f;
+
+        public float FlightSpeedUnits
+        {
+            get { return flightSpeedUnits; }
+        }
+
+        public float ImageSwitchInterval
+        {
+            get { return Mathf.Max(0.1f, imageSwitchInterval); }
+        }
+
+        public void SetFlightSpeedUnits(float value)
+        {
+            flightSpeedUnits = Mathf.Clamp(value, FlightSpeedMinUnits, FlightSpeedMaxUnits);
+        }
+    }
+
+    [Serializable]
+    public sealed class VisualMotionSettings
+    {
+        public const float FlightSpeedMinUnits = -5000f;
+        public const float FlightSpeedMaxUnits = 5000f;
+        public const float ImageOffsetMin = -4f;
+        public const float ImageOffsetMax = 4f;
+
+        [SerializeField] private float flightSpeedUnits;
+        [SerializeField] private Vector2 imageOffset = Vector2.zero;
+
+        public float FlightSpeedUnits
+        {
+            get { return Mathf.Clamp(flightSpeedUnits, FlightSpeedMinUnits, FlightSpeedMaxUnits); }
+        }
+
+        public Vector2 ImageOffset
+        {
+            get { return imageOffset; }
+        }
+
+        public void SetFlightSpeedUnits(float value)
+        {
+            flightSpeedUnits = Mathf.Clamp(value, FlightSpeedMinUnits, FlightSpeedMaxUnits);
+        }
+
+        public void SetImageOffset(Vector2 value)
+        {
+            imageOffset = new Vector2(
+                Mathf.Clamp(value.x, ImageOffsetMin, ImageOffsetMax),
+                Mathf.Clamp(value.y, ImageOffsetMin, ImageOffsetMax));
+        }
+
+        public void Reset()
+        {
+            flightSpeedUnits = 0f;
+            imageOffset = Vector2.zero;
+        }
+    }
+
+    [Serializable]
+    public sealed class SixDSettings
+    {
+        [SerializeField] private bool depthWarpEnabled = true;
+        [SerializeField] private bool opticalLookEnabled = true;
+        [SerializeField] private bool volumetricIllusionEnabled = true;
+        [SerializeField, Range(0f, 2f)] private float depthStrength = 0.82f;
+        [SerializeField, Range(0f, 0.12f)] private float parallaxScale = 0.035f;
+        [SerializeField, Range(0f, 1f)] private float focusStrength = 0.38f;
+        [SerializeField, Range(0.4f, 4f)] private float focusFalloff = 1.75f;
+        [SerializeField, Range(0f, 1.5f)] private float opticalCompression = 0.52f;
+        [SerializeField, Range(0f, 1.5f)] private float centerPull = 0.74f;
+        [SerializeField, Range(0f, 1f)] private float volumetricDensity = 0.42f;
+        [SerializeField, Range(0f, 1f)] private float hazeStrength = 0.36f;
+        [SerializeField, Range(0f, 0.03f)] private float chromaticAmount = 0.0065f;
+        [SerializeField, Range(0f, 1f)] private float distortionStrength = 0.34f;
+        [SerializeField, Range(0f, 1f)] private float motionBreathing = 0.32f;
+
+        public bool DepthWarpEnabled
+        {
+            get { return depthWarpEnabled; }
+        }
+
+        public bool OpticalLookEnabled
+        {
+            get { return opticalLookEnabled; }
+        }
+
+        public bool VolumetricIllusionEnabled
+        {
+            get { return volumetricIllusionEnabled; }
+        }
+
+        public float DepthStrength
+        {
+            get { return Mathf.Clamp(depthStrength, 0f, 2f); }
+        }
+
+        public float ParallaxScale
+        {
+            get { return Mathf.Clamp(parallaxScale, 0f, 0.12f); }
+        }
+
+        public float FocusStrength
+        {
+            get { return Mathf.Clamp01(focusStrength); }
+        }
+
+        public float FocusFalloff
+        {
+            get { return Mathf.Clamp(focusFalloff, 0.4f, 4f); }
+        }
+
+        public float OpticalCompression
+        {
+            get { return Mathf.Clamp(opticalCompression, 0f, 1.5f); }
+        }
+
+        public float CenterPull
+        {
+            get { return Mathf.Clamp(centerPull, 0f, 1.5f); }
+        }
+
+        public float VolumetricDensity
+        {
+            get { return Mathf.Clamp01(volumetricDensity); }
+        }
+
+        public float HazeStrength
+        {
+            get { return Mathf.Clamp01(hazeStrength); }
+        }
+
+        public float ChromaticAmount
+        {
+            get { return Mathf.Clamp(chromaticAmount, 0f, 0.03f); }
+        }
+
+        public float DistortionStrength
+        {
+            get { return Mathf.Clamp01(distortionStrength); }
+        }
+
+        public float MotionBreathing
+        {
+            get { return Mathf.Clamp01(motionBreathing); }
+        }
+
+        public void SetDepthWarpEnabled(bool enabled)
+        {
+            depthWarpEnabled = enabled;
+        }
+
+        public void SetOpticalLookEnabled(bool enabled)
+        {
+            opticalLookEnabled = enabled;
+        }
+
+        public void SetVolumetricIllusionEnabled(bool enabled)
+        {
+            volumetricIllusionEnabled = enabled;
+        }
+    }
+
+    [Serializable]
+    public sealed class SevenDSettings
+    {
+        public const int StrategyCount = 5;
+
+        [SerializeField] private SevenDVisualizationStrategy strategy = SevenDVisualizationStrategy.Romanesco;
+        [SerializeField, Range(0f, 1f)] private float effectStrength = 0.92f;
+        [SerializeField, Range(0.2f, 3f)] private float patternScale = 1.15f;
+        [SerializeField, Range(0f, 3f)] private float motionSpeed = 0.7f;
+        [SerializeField, Range(0f, 1f)] private float sourceBlend = 0.22f;
+
+        public SevenDVisualizationStrategy Strategy
+        {
+            get { return strategy; }
+        }
+
+        public int StrategyIndex
+        {
+            get { return Mathf.Clamp((int)strategy, 0, StrategyCount - 1); }
+        }
+
+        public float EffectStrength
+        {
+            get { return Mathf.Clamp01(effectStrength); }
+        }
+
+        public float PatternScale
+        {
+            get { return Mathf.Clamp(patternScale, 0.2f, 3f); }
+        }
+
+        public float MotionSpeed
+        {
+            get { return Mathf.Clamp(motionSpeed, 0f, 3f); }
+        }
+
+        public float SourceBlend
+        {
+            get { return Mathf.Clamp01(sourceBlend); }
+        }
+
+        public string StrategyLabel
+        {
+            get { return GetStrategyLabel(strategy); }
+        }
+
+        public void SetStrategy(SevenDVisualizationStrategy value)
+        {
+            strategy = value;
+        }
+
+        public void SetStrategyIndex(int index)
+        {
+            int wrapped = WrapIndex(index);
+            strategy = (SevenDVisualizationStrategy)wrapped;
+        }
+
+        public void CycleStrategy(int direction)
+        {
+            if (direction == 0)
+            {
+                return;
+            }
+
+            SetStrategyIndex(StrategyIndex + (direction > 0 ? 1 : -1));
+        }
+
+        public static string GetStrategyLabel(SevenDVisualizationStrategy value)
+        {
+            switch (value)
+            {
+                case SevenDVisualizationStrategy.Snowflake:
+                    return "Snowflakes";
+                case SevenDVisualizationStrategy.StructuralColor:
+                    return "Structural Color";
+                case SevenDVisualizationStrategy.Murmuration:
+                    return "Murmuration";
+                case SevenDVisualizationStrategy.Sunflower:
+                    return "Sunflower";
+                default:
+                    return "Romanesco";
+            }
+        }
+
+        private static int WrapIndex(int index)
+        {
+            int value = index % StrategyCount;
+            if (value < 0)
+            {
+                value += StrategyCount;
+            }
+
+            return value;
         }
     }
 

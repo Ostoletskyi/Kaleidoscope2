@@ -7,6 +7,7 @@ Shader "Kaleidoscope2/Mirror"
         _Rotation ("Rotation (rad)", Float) = 0
         _Zoom ("Zoom", Float) = 1
         _CenterOffset ("Center Offset", Vector) = (0, 0, 0, 0)
+        _MotionOffset ("Motion Offset", Vector) = (0, 0, 0, 0)
         _Scroll ("Forward Scroll", Float) = 0
         _GuidesVisible ("Guides Visible", Float) = 0
         _GuideStrength ("Guide Strength", Range(0,1)) = 0.65
@@ -32,6 +33,7 @@ Shader "Kaleidoscope2/Mirror"
             float _Rotation;
             float _Zoom;
             float4 _CenterOffset;
+            float4 _MotionOffset;
             float _Scroll;
             float _GuidesVisible;
             float _GuideStrength;
@@ -81,26 +83,37 @@ Shader "Kaleidoscope2/Mirror"
                 float2 dir = float2(cos(angle), sin(angle));
                 // "Forward" illusion: scroll along radius.
                 float rr = r + _Scroll;
-                float2 sampleUV = (dir * rr) + 0.5;
+                float2 sampleUV = (dir * rr) + 0.5 + _MotionOffset.xy;
 
-                fixed4 col = tex2D(_MainTex, sampleUV);
-
-                // Segment guides (toggle with numpad 0 via module state).
+                float guideLine = 0.0;
+                float guideShadow = 0.0;
                 if (_GuidesVisible > 0.5)
                 {
-                    // Compute distance to segment boundary using the non-mirrored angle.
                     float rawAngle = atan2(p.y, p.x) + _Rotation;
                     float a = rawAngle - segment * floor(rawAngle / segment);
                     float d = min(a, segment - a);
+                    float boundarySide = a < segment * 0.5 ? -1.0 : 1.0;
 
-                    // Add a subtle "bend" illusion by modulating the boundary distance along radius.
-                    float bend = sin(r * 22.0 + _Time.y * 1.7) * 0.18 * segment;
+                    float bend = sin(r * 22.0 + _Time.y * 1.7) * 0.10 * segment;
                     d = abs(d + bend);
 
-                    float guideLine = 1.0 - smoothstep(0.0, segment * 0.035, d);
+                    float guideWidth = max(segment * 0.055, 0.00065);
+                    guideLine = 1.0 - smoothstep(0.0, guideWidth, d);
+                    guideShadow = 1.0 - smoothstep(guideWidth, guideWidth * 4.5, d);
+
+                    float2 tangent = float2(-dir.y, dir.x);
+                    sampleUV += tangent * boundarySide * guideLine * _GuideStrength * 0.010;
+                }
+
+                fixed4 col = tex2D(_MainTex, frac(sampleUV));
+
+                // Segment guides are toggled through MirrorSettings, routed by Director commands.
+                if (_GuidesVisible > 0.5)
+                {
                     float strength = saturate(_GuideStrength);
-                    float3 inv = float3(1.0, 1.0, 1.0) - col.rgb;
-                    col.rgb = lerp(col.rgb, inv, guideLine * strength);
+                    float3 edgeTint = lerp(col.rgb * 0.72, float3(0.86, 0.94, 1.0), 0.28);
+                    col.rgb = lerp(col.rgb, edgeTint, guideShadow * strength * 0.55);
+                    col.rgb += guideLine * strength * 0.10;
                 }
 
                 return col;

@@ -18,6 +18,8 @@ namespace Kaleidoscope2.CameraSystem
         [SerializeField] private UnityEngine.Camera viewerCamera;
         [SerializeField] private UnityEngine.Camera renderCamera;
         [SerializeField] private UnityEngine.Camera offlineCamera;
+        [SerializeField] private AudioListener viewerAudioListener;
+        [SerializeField] private bool ensureViewerAudioListener = true;
 
         public override string ModuleId
         {
@@ -42,6 +44,11 @@ namespace Kaleidoscope2.CameraSystem
         public UnityEngine.Camera OfflineCamera
         {
             get { return offlineCamera; }
+        }
+
+        protected override void OnInitialized()
+        {
+            EnsureViewerAudioListener();
         }
 
         public UnityEngine.Camera GetCamera(KaleidoscopeCameraRole role)
@@ -72,6 +79,8 @@ namespace Kaleidoscope2.CameraSystem
 
         public override void Validate()
         {
+            EnsureViewerAudioListener();
+
             if (sourceCamera == null)
             {
                 ReportMissingReference("SourceCamera");
@@ -90,6 +99,11 @@ namespace Kaleidoscope2.CameraSystem
             if (offlineCamera == null)
             {
                 ReportMissingReference("OfflineCamera");
+            }
+
+            if (ensureViewerAudioListener && viewerCamera != null && viewerAudioListener == null)
+            {
+                ReportMissingReference("ViewerAudioListener");
             }
         }
 
@@ -117,7 +131,31 @@ namespace Kaleidoscope2.CameraSystem
                 assignedRoles++;
             }
 
-            return CreateStatus("Placeholder. Explicit camera roles assigned: " + assignedRoles + "/4.");
+            string listenerStatus = viewerAudioListener != null && viewerAudioListener.enabled
+                ? ", viewer audio listener ready."
+                : ", viewer audio listener missing.";
+
+            return CreateStatus("Explicit camera roles assigned: " + assignedRoles + "/4" + listenerStatus);
+        }
+
+        private void EnsureViewerAudioListener()
+        {
+            if (!ensureViewerAudioListener || viewerCamera == null)
+            {
+                return;
+            }
+
+            if (viewerAudioListener == null)
+            {
+                viewerAudioListener = viewerCamera.GetComponent<AudioListener>();
+            }
+
+            if (viewerAudioListener == null)
+            {
+                viewerAudioListener = viewerCamera.gameObject.AddComponent<AudioListener>();
+            }
+
+            viewerAudioListener.enabled = true;
         }
     }
 }

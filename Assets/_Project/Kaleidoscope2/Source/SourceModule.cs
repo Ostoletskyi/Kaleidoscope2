@@ -71,7 +71,8 @@ namespace Kaleidoscope2.Source
 
             return command.Type == KaleidoscopeCommandType.SetSourceMode
                 || command.Type == KaleidoscopeCommandType.SetImageFilePath
-                || command.Type == KaleidoscopeCommandType.SetImageFolderPath;
+                || command.Type == KaleidoscopeCommandType.SetImageFolderPath
+                || command.Type == KaleidoscopeCommandType.TriggerSourceNextImage;
         }
 
         public override void HandleCommand(KaleidoscopeCommand command)
@@ -96,6 +97,10 @@ namespace Kaleidoscope2.Source
                 case KaleidoscopeCommandType.SetSourceMode:
                     // If the user switches away from ImageTexture, we keep the loaded texture cached,
                     // but fall back to the procedural texture until ImageTexture is selected again.
+                    break;
+
+                case KaleidoscopeCommandType.TriggerSourceNextImage:
+                    slideshow.NextImage();
                     break;
             }
         }
@@ -125,7 +130,13 @@ namespace Kaleidoscope2.Source
 
         private void ConfigureSlideshow()
         {
-            slideshow.Configure(imageSwitchInterval, imageCrossfadeDuration, shuffleImages, loopImages);
+            float switchInterval = imageSwitchInterval;
+            if (State != null && State.ActiveVisualMode == KaleidoscopeVisualMode.FiveD && State.FiveDSettings != null)
+            {
+                switchInterval = State.FiveDSettings.ImageSwitchInterval;
+            }
+
+            slideshow.Configure(switchInterval, imageCrossfadeDuration, shuffleImages, loopImages);
         }
 
         private void TrySyncFromState()

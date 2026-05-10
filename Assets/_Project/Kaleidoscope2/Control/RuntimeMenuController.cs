@@ -64,6 +64,8 @@ namespace Kaleidoscope2.Control
         private Text rotationSpeedValueText;
         private Text hoseOpeningValueText;
         private Text hoseWallCurvatureValueText;
+        private Text hoseChromaticAberrationValueText;
+        private Text sevenDStrategyValueText;
 
         private BrowserMode activeBrowserMode;
         private string browserCurrentPath;
@@ -235,6 +237,17 @@ namespace Kaleidoscope2.Control
                 hoseWallCurvatureValueText.text = tunnel != null ? tunnel.HoseWallCurvatureUnits.ToString("0") : "0";
             }
 
+            if (hoseChromaticAberrationValueText != null)
+            {
+                hoseChromaticAberrationValueText.text = tunnel != null && tunnel.HoseChromaticAberrationEnabled ? "Вкл" : "Выкл";
+            }
+
+            if (sevenDStrategyValueText != null)
+            {
+                SevenDSettings sevenD = state != null ? state.SevenDSettings : null;
+                sevenDStrategyValueText.text = sevenD != null ? GetSevenDStrategyLabel(sevenD.Strategy) : "Нет";
+            }
+
             if (imagePathText != null)
             {
                 string value = !string.IsNullOrWhiteSpace(state.ImageFilePath) ? state.ImageFilePath : state.ImageFolderPath;
@@ -365,10 +378,15 @@ namespace Kaleidoscope2.Control
             });
 
             RectTransform modeRow = CreateRow(panel, "Режим:", out modeValueText);
-            CreateButton(modeRow, "ToggleMode", "2D / 3D / 4D", ButtonColor, ToggleMode);
+            CreateButton(modeRow, "ToggleMode", "2D / 3D / 4D / 5D / 6D / 7D", ButtonColor, ToggleMode);
 
             CreateRow(panel, "4D Г:", out hoseOpeningValueText);
             CreateRow(panel, "4D Щ:", out hoseWallCurvatureValueText);
+            RectTransform chromaticAberrationRow = CreateRow(panel, "4D CA:", out hoseChromaticAberrationValueText);
+            CreateButton(chromaticAberrationRow, "Toggle4DCA", "Вкл/Выкл", ButtonColor, ToggleHoseChromaticAberration);
+            RectTransform sevenDRow = CreateRow(panel, "7D:", out sevenDStrategyValueText);
+            CreateButton(sevenDRow, "Prev7D", "-", MutedButtonColor, () => CycleSevenDStrategy(-1));
+            CreateButton(sevenDRow, "Next7D", "+", ButtonColor, () => CycleSevenDStrategy(1));
 
             RectTransform guidesRow = CreateRow(panel, "Линии:", out guidesValueText);
             CreateButton(guidesRow, "ToggleGuides", "Вкл/Выкл", ButtonColor, ToggleGuides);
@@ -396,7 +414,7 @@ namespace Kaleidoscope2.Control
             scrim.color = ScrimColor;
             scrim.raycastTarget = true;
 
-            RectTransform panel = CreatePanel(rootRect, "HelpPanel", new Vector2(720f, 640f));
+            RectTransform panel = CreatePanel(rootRect, "HelpPanel", new Vector2(720f, 720f));
 
             VerticalLayoutGroup layout = panel.gameObject.AddComponent<VerticalLayoutGroup>();
             layout.padding = new RectOffset(18, 18, 18, 18);
@@ -410,18 +428,26 @@ namespace Kaleidoscope2.Control
                 "Управление:\n" +
                 "Колесо мыши (клик) — открыть/закрыть меню\n" +
                 "Esc — закрыть меню\n\n" +
-                "Num0 (доп. клавиатура) — линии сегментов (вкл/выкл)\n" +
+                "0 / Num0 — мягкие линии стыка зеркал (вкл/выкл)\n" +
                 "Num5 (доп. клавиатура) — сброс движения и 4D-профиля\n" +
-                "NumEnter (боковой Enter) — переключение 2D / 3D / 4D\n" +
-                "1/2/3 — 6/12/24 зеркальных секторов\n" +
-                "W/A/S/D — искажение 3D-туннеля\n" +
+                "NumEnter (боковой Enter) — переключение 2D / 3D / 4D / 5D / 6D / 7D\n" +
+                "1..9 — 6/12/24/48/96/192/384/768/1536 зеркал\n" +
+                "Z/X/C (рус. Я/Ч/С) — предыдущий / стоп-плей / следующий трек\n" +
+                "Q/E (рус. Й/У) — полёт к центру и обратно в 2D/3D/4D/6D/7D\n" +
+                "W/A/S/D (рус. Ц/Ф/Ы/В) — сдвиг изображения в активном режиме; в 3D дополнительно изгиб туннеля\n" +
                 "I/K/J/L — изгиб 4D-шланга (на русской раскладке: Ш/Л/О/Д)\n\n" +
                 "U/Y (рус. Г/Н) — ширина воронки 4D: -500..+500\n" +
-                "O/P (рус. Щ/З) — кривизна стенок 4D: -500..+500\n\n" +
+                "O/P (рус. Щ/З) — кривизна стенок 4D: -500..+500\n" +
+                "[ (рус. Х) — chromatic aberration в 4D\n" +
+                "+/- — скорость полёта 5D к центру; в 7D — переключение стратегии\n" +
+                "Space — встряхнуть активный визуальный режим и сменить изображение\n\n" +
                 "Режимы:\n" +
                 "2D — классический калейдоскоп (сегменты от центра).\n" +
                 "3D — старое туннельное искажение с копиями калейдоскопа по бокам.\n" +
-                "4D — воронка с независимой шириной Г и профилем стенок Щ.\n\n" +
+                "4D — воронка с независимой шириной Г и профилем стенок Щ.\n" +
+                "5D — вечный полёт в центр по ленте Мёбиуса.\n\n" +
+                "6D — псевдообъёмная оптика: depth warp, focus, haze и lens distortion.\n\n" +
+                "7D — природные стратегии: Романеско, снежинки, структурный цвет, мурмурация, подсолнух.\n\n" +
                 "Источники:\n" +
                 "Изображение: JPG/PNG/BMP/TGA.\n" +
                 "Музыка: MP3/WAV/OGG/AIFF (в зависимости от поддержки Unity на вашей платформе).",
@@ -429,7 +455,7 @@ namespace Kaleidoscope2.Control
                 FontStyle.Normal,
                 MutedTextColor,
                 TextAnchor.UpperLeft);
-            body.gameObject.AddComponent<LayoutElement>().preferredHeight = 480f;
+            body.gameObject.AddComponent<LayoutElement>().preferredHeight = 560f;
 
             CreateButton(panel, "HelpClose", "Назад", ButtonColor, () => SetActiveIfDifferent(helpRoot, false));
             helpRoot.SetActive(false);
@@ -799,7 +825,13 @@ namespace Kaleidoscope2.Control
                 ? KaleidoscopeVisualMode.Tunnel
                 : current == KaleidoscopeVisualMode.Tunnel
                     ? KaleidoscopeVisualMode.Hose
-                    : KaleidoscopeVisualMode.Classic;
+                    : current == KaleidoscopeVisualMode.Hose
+                        ? KaleidoscopeVisualMode.FiveD
+                        : current == KaleidoscopeVisualMode.FiveD
+                            ? KaleidoscopeVisualMode.SixD
+                            : current == KaleidoscopeVisualMode.SixD
+                                ? KaleidoscopeVisualMode.SevenD
+                            : KaleidoscopeVisualMode.Classic;
 
             director.Dispatch(KaleidoscopeCommand.SetVisualMode(next));
             SyncUiFromState();
@@ -813,8 +845,31 @@ namespace Kaleidoscope2.Control
                     return "3D";
                 case KaleidoscopeVisualMode.Hose:
                     return "4D";
+                case KaleidoscopeVisualMode.FiveD:
+                    return "5D";
+                case KaleidoscopeVisualMode.SixD:
+                    return "6D";
+                case KaleidoscopeVisualMode.SevenD:
+                    return "7D";
                 default:
                     return "2D";
+            }
+        }
+
+        private static string GetSevenDStrategyLabel(SevenDVisualizationStrategy strategy)
+        {
+            switch (strategy)
+            {
+                case SevenDVisualizationStrategy.Snowflake:
+                    return "Снежинки";
+                case SevenDVisualizationStrategy.StructuralColor:
+                    return "Структурный цвет";
+                case SevenDVisualizationStrategy.Murmuration:
+                    return "Мурмурация";
+                case SevenDVisualizationStrategy.Sunflower:
+                    return "Подсолнух";
+                default:
+                    return "Капуста Романеско";
             }
         }
 
@@ -829,6 +884,28 @@ namespace Kaleidoscope2.Control
             SyncUiFromState();
         }
 
+        private void ToggleHoseChromaticAberration()
+        {
+            if (director == null)
+            {
+                return;
+            }
+
+            director.Dispatch(KaleidoscopeCommand.ToggleTunnelHoseChromaticAberration());
+            SyncUiFromState();
+        }
+
+        private void CycleSevenDStrategy(int direction)
+        {
+            if (director == null)
+            {
+                return;
+            }
+
+            director.Dispatch(KaleidoscopeCommand.CycleSevenDStrategy(direction));
+            SyncUiFromState();
+        }
+
         private void ResetMotion()
         {
             if (director == null)
@@ -839,6 +916,12 @@ namespace Kaleidoscope2.Control
             director.Dispatch(KaleidoscopeCommand.SetMirrorRotationSpeedUnits(0f));
             director.Dispatch(KaleidoscopeCommand.SetTunnelBend(Vector2.zero));
             director.Dispatch(KaleidoscopeCommand.ResetTunnelHoseProfile());
+            director.Dispatch(KaleidoscopeCommand.SetFiveDFlightSpeedUnits(0f));
+            director.Dispatch(KaleidoscopeCommand.ResetVisualMotion(KaleidoscopeVisualMode.Classic));
+            director.Dispatch(KaleidoscopeCommand.ResetVisualMotion(KaleidoscopeVisualMode.Tunnel));
+            director.Dispatch(KaleidoscopeCommand.ResetVisualMotion(KaleidoscopeVisualMode.Hose));
+            director.Dispatch(KaleidoscopeCommand.ResetVisualMotion(KaleidoscopeVisualMode.SixD));
+            director.Dispatch(KaleidoscopeCommand.ResetVisualMotion(KaleidoscopeVisualMode.SevenD));
             SyncUiFromState();
         }
 

@@ -9,6 +9,7 @@ namespace Kaleidoscope2.Mirror
         public static readonly int Rotation = Shader.PropertyToID("_Rotation");
         public static readonly int Zoom = Shader.PropertyToID("_Zoom");
         public static readonly int CenterOffset = Shader.PropertyToID("_CenterOffset");
+        public static readonly int MotionOffset = Shader.PropertyToID("_MotionOffset");
         public static readonly int Scroll = Shader.PropertyToID("_Scroll");
         public static readonly int GuidesVisible = Shader.PropertyToID("_GuidesVisible");
         public static readonly int GuideStrength = Shader.PropertyToID("_GuideStrength");
@@ -23,10 +24,14 @@ namespace Kaleidoscope2.Mirror
         [SerializeField] private Shader mirrorShader;
         [SerializeField] private Material mirrorMaterial;
         [SerializeField, Range(0f, 1f)] private float guideStrength = 0.65f;
+        [SerializeField, Range(0.1f, 2f)] private float motionShakeDuration = 0.55f;
+        [SerializeField, Range(0f, 0.08f)] private float motionShakeStrength = 0.028f;
 
         private Material runtimeMaterial;
         private RenderTexture outputTexture;
         private float scroll;
+        private float motionShakeRemaining;
+        private float motionShakeSeed = 0.37f;
 
         public override string ModuleId
         {
@@ -67,12 +72,14 @@ namespace Kaleidoscope2.Mirror
             float rotationRadians = settings != null ? settings.Rotation * Mathf.Deg2Rad : 0f;
             float zoom = settings != null ? settings.Zoom : 1f;
             Vector2 centerOffset = settings != null ? settings.CenterOffset : Vector2.zero;
+            Vector2 motionOffset = GetActiveMotionOffset(runtimeState) + GetShakeOffset();
             float guidesVisible = settings != null && settings.GuidesVisible ? 1f : 0f;
 
             material.SetFloat(MirrorShaderIds.MirrorCount, mirrorCount);
             material.SetFloat(MirrorShaderIds.Rotation, rotationRadians);
             material.SetFloat(MirrorShaderIds.Zoom, zoom);
             material.SetVector(MirrorShaderIds.CenterOffset, centerOffset);
+            material.SetVector(MirrorShaderIds.MotionOffset, motionOffset);
             material.SetFloat(MirrorShaderIds.Scroll, scroll);
             material.SetFloat(MirrorShaderIds.GuidesVisible, guidesVisible);
             material.SetFloat(MirrorShaderIds.GuideStrength, guideStrength);
@@ -102,6 +109,15 @@ namespace Kaleidoscope2.Mirror
             }
 
             float forwardUnits = settings.ForwardSpeedUnits;
+            if (State.ActiveVisualMode == KaleidoscopeVisualMode.Classic)
+            {
+                VisualMotionSettings motionSettings = State.GetVisualMotionSettings(KaleidoscopeVisualMode.Classic);
+                if (motionSettings != null)
+                {
+                    forwardUnits += motionSettings.FlightSpeedUnits;
+                }
+            }
+
             if (Mathf.Abs(forwardUnits) > 0.0001f)
             {
                 // A lightweight "forward movement" illusion by scrolling sampling radius.
@@ -111,6 +127,11 @@ namespace Kaleidoscope2.Mirror
                 {
                     scroll = 0f;
                 }
+            }
+
+            if (motionShakeRemaining > 0f)
+            {
+                motionShakeRemaining = Mathf.Max(0f, motionShakeRemaining - Mathf.Max(0f, deltaTime));
             }
         }
 
@@ -129,7 +150,22 @@ namespace Kaleidoscope2.Mirror
                 || command.Type == KaleidoscopeCommandType.ToggleMirrorGuides
                 || command.Type == KaleidoscopeCommandType.SetMirrorGuidesVisible
                 || command.Type == KaleidoscopeCommandType.SetMirrorRotationSpeedUnits
-                || command.Type == KaleidoscopeCommandType.SetMirrorForwardSpeedUnits;
+                || command.Type == KaleidoscopeCommandType.SetMirrorForwardSpeedUnits
+                || command.Type == KaleidoscopeCommandType.TriggerVisualMotionShake;
+        }
+
+        public override void HandleCommand(KaleidoscopeCommand command)
+        {
+            if (command == null || command.Type != KaleidoscopeCommandType.TriggerVisualMotionShake)
+            {
+                return;
+            }
+
+            if (command.VisualModeValue == KaleidoscopeVisualMode.Classic)
+            {
+                motionShakeRemaining = Mathf.Max(0.01f, motionShakeDuration);
+                motionShakeSeed = Time.unscaledTime + 0.37f;
+            }
         }
 
         public override KaleidoscopeModuleStatus GetStatus()
@@ -185,6 +221,30 @@ namespace Kaleidoscope2.Mirror
             };
 
             return runtimeMaterial;
+        }
+
+        private Vector2 GetActiveMotionOffset(KaleidoscopeState runtimeState)
+        {
+            if (runtimeState == null || runtimeState.ActiveVisualMode != KaleidoscopeVisualMode.Classic)
+            {
+                return Vector2.zero;
+            }
+
+            VisualMotionSettings motionSettings = runtimeState.GetVisualMotionSettings(KaleidoscopeVisualMode.Classic);
+            return motionSettings != null ? motionSettings.ImageOffset : Vector2.zero;
+        }
+
+        private Vector2 GetShakeOffset()
+        {
+            if (motionShakeRemaining <= 0f || motionShakeDuration <= 0.0001f)
+            {
+                return Vector2.zero;
+            }
+
+            float normalized = Mathf.Clamp01(motionShakeRemaining / motionShakeDuration);
+            float strength = normalized * normalized * motionShakeStrength;
+            float phase = Time.unscaledTime * 41f + motionShakeSeed * 13f;
+            return new Vector2(Mathf.Sin(phase * 1.31f), Mathf.Cos(phase * 1.73f)) * strength;
         }
 
         private void EnsureOutputTexture(KaleidoscopeState runtimeState)

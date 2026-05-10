@@ -33,7 +33,22 @@ namespace Kaleidoscope2.Core
         SetTunnelBend = 25,
         SetTunnelHoseOpeningUnits = 26,
         SetTunnelHoseWallCurvatureUnits = 27,
-        ResetTunnelHoseProfile = 28
+        ResetTunnelHoseProfile = 28,
+        TriggerSourceNextImage = 29,
+        TriggerFiveDShake = 30,
+        SetFiveDFlightSpeedUnits = 31,
+        PreviousAudioTrack = 32,
+        ToggleAudioPlayback = 33,
+        NextAudioTrack = 34,
+        ToggleTunnelHoseChromaticAberration = 35,
+        SetTunnelHoseChromaticAberration = 36,
+        TriggerTunnelShake = 37,
+        SetSevenDStrategy = 38,
+        CycleSevenDStrategy = 39,
+        SetVisualMotionFlightSpeedUnits = 40,
+        SetVisualMotionImageOffset = 41,
+        ResetVisualMotion = 42,
+        TriggerVisualMotionShake = 43
     }
 
     [Serializable]
@@ -312,6 +327,107 @@ namespace Kaleidoscope2.Core
         public static KaleidoscopeCommand ResetTunnelHoseProfile()
         {
             return new KaleidoscopeCommand(KaleidoscopeCommandType.ResetTunnelHoseProfile);
+        }
+
+        public static KaleidoscopeCommand TriggerSourceNextImage()
+        {
+            return new KaleidoscopeCommand(KaleidoscopeCommandType.TriggerSourceNextImage);
+        }
+
+        public static KaleidoscopeCommand TriggerFiveDShake()
+        {
+            return new KaleidoscopeCommand(KaleidoscopeCommandType.TriggerFiveDShake);
+        }
+
+        public static KaleidoscopeCommand SetFiveDFlightSpeedUnits(float speedUnits)
+        {
+            return new KaleidoscopeCommand(KaleidoscopeCommandType.SetFiveDFlightSpeedUnits)
+            {
+                floatValue = speedUnits
+            };
+        }
+
+        public static KaleidoscopeCommand PreviousAudioTrack()
+        {
+            return new KaleidoscopeCommand(KaleidoscopeCommandType.PreviousAudioTrack);
+        }
+
+        public static KaleidoscopeCommand ToggleAudioPlayback()
+        {
+            return new KaleidoscopeCommand(KaleidoscopeCommandType.ToggleAudioPlayback);
+        }
+
+        public static KaleidoscopeCommand NextAudioTrack()
+        {
+            return new KaleidoscopeCommand(KaleidoscopeCommandType.NextAudioTrack);
+        }
+
+        public static KaleidoscopeCommand ToggleTunnelHoseChromaticAberration()
+        {
+            return new KaleidoscopeCommand(KaleidoscopeCommandType.ToggleTunnelHoseChromaticAberration);
+        }
+
+        public static KaleidoscopeCommand SetTunnelHoseChromaticAberration(bool enabled)
+        {
+            return new KaleidoscopeCommand(KaleidoscopeCommandType.SetTunnelHoseChromaticAberration)
+            {
+                boolValue = enabled
+            };
+        }
+
+        public static KaleidoscopeCommand TriggerTunnelShake()
+        {
+            return new KaleidoscopeCommand(KaleidoscopeCommandType.TriggerTunnelShake);
+        }
+
+        public static KaleidoscopeCommand SetSevenDStrategy(SevenDVisualizationStrategy strategy)
+        {
+            return new KaleidoscopeCommand(KaleidoscopeCommandType.SetSevenDStrategy)
+            {
+                intValue = (int)strategy
+            };
+        }
+
+        public static KaleidoscopeCommand CycleSevenDStrategy(int direction)
+        {
+            return new KaleidoscopeCommand(KaleidoscopeCommandType.CycleSevenDStrategy)
+            {
+                intValue = direction
+            };
+        }
+
+        public static KaleidoscopeCommand SetVisualMotionFlightSpeedUnits(KaleidoscopeVisualMode visualMode, float speedUnits)
+        {
+            return new KaleidoscopeCommand(KaleidoscopeCommandType.SetVisualMotionFlightSpeedUnits)
+            {
+                visualModeValue = visualMode,
+                floatValue = speedUnits
+            };
+        }
+
+        public static KaleidoscopeCommand SetVisualMotionImageOffset(KaleidoscopeVisualMode visualMode, Vector2 imageOffset)
+        {
+            return new KaleidoscopeCommand(KaleidoscopeCommandType.SetVisualMotionImageOffset)
+            {
+                visualModeValue = visualMode,
+                vector2Value = imageOffset
+            };
+        }
+
+        public static KaleidoscopeCommand ResetVisualMotion(KaleidoscopeVisualMode visualMode)
+        {
+            return new KaleidoscopeCommand(KaleidoscopeCommandType.ResetVisualMotion)
+            {
+                visualModeValue = visualMode
+            };
+        }
+
+        public static KaleidoscopeCommand TriggerVisualMotionShake(KaleidoscopeVisualMode visualMode)
+        {
+            return new KaleidoscopeCommand(KaleidoscopeCommandType.TriggerVisualMotionShake)
+            {
+                visualModeValue = visualMode
+            };
         }
 
         public override string ToString()

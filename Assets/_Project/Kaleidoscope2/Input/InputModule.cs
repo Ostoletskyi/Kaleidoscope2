@@ -1,5 +1,6 @@
 using Kaleidoscope2.Core;
 using Kaleidoscope2.Tunnel;
+using System;
 using UnityEngine;
 
 namespace Kaleidoscope2.InputSystem
@@ -15,6 +16,7 @@ namespace Kaleidoscope2.InputSystem
         [SerializeField] private KeyCode toggleMenuKey = KeyCode.Mouse2;
         [SerializeField] private KeyCode closeMenuKey = KeyCode.Escape;
         [SerializeField] private KeyCode toggleGuidesKey = KeyCode.Keypad0;
+        [SerializeField] private KeyCode toggleGuidesAlternateKey = KeyCode.Alpha0;
 
         [Header("Mirror Control")]
         // Legacy: older scene iterations serialized this. Kept for backward compatibility.
@@ -32,13 +34,26 @@ namespace Kaleidoscope2.InputSystem
         [SerializeField] private KeyCode sixSegmentsKey = KeyCode.Alpha1;
         [SerializeField] private KeyCode twelveSegmentsKey = KeyCode.Alpha2;
         [SerializeField] private KeyCode twentyFourSegmentsKey = KeyCode.Alpha3;
+        [SerializeField] private KeyCode fortyEightSegmentsKey = KeyCode.Alpha4;
+        [SerializeField] private KeyCode ninetySixSegmentsKey = KeyCode.Alpha5;
+        [SerializeField] private KeyCode oneHundredNinetyTwoSegmentsKey = KeyCode.Alpha6;
+        [SerializeField] private KeyCode threeHundredEightyFourSegmentsKey = KeyCode.Alpha7;
+        [SerializeField] private KeyCode sevenHundredSixtyEightSegmentsKey = KeyCode.Alpha8;
+        [SerializeField] private KeyCode fifteenHundredThirtySixSegmentsKey = KeyCode.Alpha9;
+
+        [Header("2D Keys (Russian layout й / у / ц / ы / ф / в)")]
+        [SerializeField] private ModeMotionInputProfile classicMotionKeys = new ModeMotionInputProfile();
 
         [Header("3D Tunnel Distortion (WASD / Russian layout ц ф ы в)")]
+        [SerializeField] private ModeMotionInputProfile tunnelMotionKeys = new ModeMotionInputProfile();
         [SerializeField] private float bendStepPerSecond = 1.25f;
         [SerializeField] private KeyCode tunnelBendUpKey = KeyCode.W;
         [SerializeField] private KeyCode tunnelBendLeftKey = KeyCode.A;
         [SerializeField] private KeyCode tunnelBendDownKey = KeyCode.S;
         [SerializeField] private KeyCode tunnelBendRightKey = KeyCode.D;
+
+        [Header("4D Motion Keys (Russian layout й / у / ц / ы / ф / в)")]
+        [SerializeField] private ModeMotionInputProfile hoseMotionKeys = new ModeMotionInputProfile();
 
         [Header("4D Hose Bend (Russian layout ш л о д)")]
         [SerializeField] private KeyCode hoseBendUpKey = KeyCode.I;
@@ -52,6 +67,33 @@ namespace Kaleidoscope2.InputSystem
         [SerializeField] private KeyCode hoseOpeningDecreaseKey = KeyCode.Y;
         [SerializeField] private KeyCode hoseWallCurvatureKey = KeyCode.O;
         [SerializeField] private KeyCode hoseWallCurvatureDecreaseKey = KeyCode.P;
+        [SerializeField] private KeyCode hoseChromaticAberrationToggleKey = KeyCode.LeftBracket;
+        [SerializeField] private KeyCode hoseShakeAndNextImageKey = KeyCode.Space;
+
+        [Header("5D Mobius Flight")]
+        [SerializeField] private float fiveDFlightSpeedUnitsStepPerSecond = 1000f;
+        [SerializeField] private KeyCode fiveDFlightSpeedIncreaseKey = KeyCode.KeypadPlus;
+        [SerializeField] private KeyCode fiveDFlightSpeedDecreaseKey = KeyCode.KeypadMinus;
+        [SerializeField] private KeyCode fiveDFlightSpeedIncreaseFallbackKey = KeyCode.Equals;
+        [SerializeField] private KeyCode fiveDFlightSpeedDecreaseFallbackKey = KeyCode.Minus;
+        [SerializeField] private KeyCode fiveDShakeAndNextImageKey = KeyCode.Space;
+
+        [Header("7D Strategy Switching")]
+        [SerializeField] private KeyCode sevenDNextStrategyKey = KeyCode.KeypadPlus;
+        [SerializeField] private KeyCode sevenDPreviousStrategyKey = KeyCode.KeypadMinus;
+        [SerializeField] private KeyCode sevenDNextStrategyFallbackKey = KeyCode.Equals;
+        [SerializeField] private KeyCode sevenDPreviousStrategyFallbackKey = KeyCode.Minus;
+
+        [Header("6D Keys (Russian layout й / у / ц / ы / ф / в)")]
+        [SerializeField] private ModeMotionInputProfile sixDMotionKeys = new ModeMotionInputProfile();
+
+        [Header("7D Keys (Russian layout й / у / ц / ы / ф / в)")]
+        [SerializeField] private ModeMotionInputProfile sevenDMotionKeys = new ModeMotionInputProfile();
+
+        [Header("Audio Playback (Russian layout я / ч / с)")]
+        [SerializeField] private KeyCode previousAudioTrackKey = KeyCode.Z;
+        [SerializeField] private KeyCode toggleAudioPlaybackKey = KeyCode.X;
+        [SerializeField] private KeyCode nextAudioTrackKey = KeyCode.C;
 
         private readonly TunnelBendController tunnelBendController = new TunnelBendController();
 
@@ -75,6 +117,8 @@ namespace Kaleidoscope2.InputSystem
                 return;
             }
 
+            EnsureMotionKeyProfiles();
+
             if (UnityEngine.Input.GetKeyDown(toggleMenuKey))
             {
                 director.Dispatch(KaleidoscopeCommand.ToggleControlMenu());
@@ -85,7 +129,7 @@ namespace Kaleidoscope2.InputSystem
                 director.Dispatch(KaleidoscopeCommand.SetControlMenuVisible(false));
             }
 
-            if (UnityEngine.Input.GetKeyDown(toggleGuidesKey))
+            if (UnityEngine.Input.GetKeyDown(toggleGuidesKey) || UnityEngine.Input.GetKeyDown(toggleGuidesAlternateKey))
             {
                 director.Dispatch(KaleidoscopeCommand.ToggleMirrorGuides());
             }
@@ -93,6 +137,21 @@ namespace Kaleidoscope2.InputSystem
             if (UnityEngine.Input.GetKeyDown(cycleVisualModeKey))
             {
                 CycleVisualMode();
+            }
+
+            if (UnityEngine.Input.GetKeyDown(previousAudioTrackKey))
+            {
+                director.Dispatch(KaleidoscopeCommand.PreviousAudioTrack());
+            }
+
+            if (UnityEngine.Input.GetKeyDown(toggleAudioPlaybackKey))
+            {
+                director.Dispatch(KaleidoscopeCommand.ToggleAudioPlayback());
+            }
+
+            if (UnityEngine.Input.GetKeyDown(nextAudioTrackKey))
+            {
+                director.Dispatch(KaleidoscopeCommand.NextAudioTrack());
             }
 
             // When the menu is open, avoid stealing navigation keys from UI.
@@ -119,6 +178,30 @@ namespace Kaleidoscope2.InputSystem
             {
                 director.Dispatch(KaleidoscopeCommand.SetMirrorCount(24));
             }
+            if (UnityEngine.Input.GetKeyDown(fortyEightSegmentsKey))
+            {
+                director.Dispatch(KaleidoscopeCommand.SetMirrorCount(48));
+            }
+            if (UnityEngine.Input.GetKeyDown(ninetySixSegmentsKey))
+            {
+                director.Dispatch(KaleidoscopeCommand.SetMirrorCount(96));
+            }
+            if (UnityEngine.Input.GetKeyDown(oneHundredNinetyTwoSegmentsKey))
+            {
+                director.Dispatch(KaleidoscopeCommand.SetMirrorCount(192));
+            }
+            if (UnityEngine.Input.GetKeyDown(threeHundredEightyFourSegmentsKey))
+            {
+                director.Dispatch(KaleidoscopeCommand.SetMirrorCount(384));
+            }
+            if (UnityEngine.Input.GetKeyDown(sevenHundredSixtyEightSegmentsKey))
+            {
+                director.Dispatch(KaleidoscopeCommand.SetMirrorCount(768));
+            }
+            if (UnityEngine.Input.GetKeyDown(fifteenHundredThirtySixSegmentsKey))
+            {
+                director.Dispatch(KaleidoscopeCommand.SetMirrorCount(1536));
+            }
 
             float rotation = mirror.RotationSpeed;
             float zoom = mirror.Zoom;
@@ -127,6 +210,12 @@ namespace Kaleidoscope2.InputSystem
             Vector2 tunnelBend = tunnelSettings != null ? tunnelSettings.Bend : Vector2.zero;
             float hoseOpeningUnits = tunnelSettings != null ? tunnelSettings.HoseOpeningUnits : 0f;
             float hoseWallCurvatureUnits = tunnelSettings != null ? tunnelSettings.HoseWallCurvatureUnits : 0f;
+            FiveDSettings fiveDSettings = director.State.FiveDSettings;
+            float fiveDFlightSpeedUnits = fiveDSettings != null ? fiveDSettings.FlightSpeedUnits : 0f;
+            VisualMotionSettings visualMotionSettings = director.State.GetVisualMotionSettings(visualMode);
+            float visualFlightSpeedUnits = visualMotionSettings != null ? visualMotionSettings.FlightSpeedUnits : 0f;
+            Vector2 visualImageOffset = visualMotionSettings != null ? visualMotionSettings.ImageOffset : Vector2.zero;
+            ModeMotionInputProfile motionKeys = GetModeMotionKeys(visualMode);
             Vector2 hoseInput = Vector2.zero;
 
             // Hold keys for continuous change.
@@ -134,6 +223,9 @@ namespace Kaleidoscope2.InputSystem
             float zoomDelta = Mathf.Max(0f, zoomStepPerSecond) * deltaTime;
             float bendDelta = Mathf.Max(0f, bendStepPerSecond) * deltaTime;
             float hoseProfileDelta = Mathf.Max(1000f, hoseProfileUnitsStepPerSecond) * deltaTime;
+            float fiveDFlightDelta = Mathf.Max(0f, fiveDFlightSpeedUnitsStepPerSecond) * deltaTime;
+            float visualMotionFlightDelta = motionKeys != null ? Mathf.Max(0f, motionKeys.FlightSpeedUnitsStepPerSecond) * deltaTime : 0f;
+            float visualMotionOffsetDelta = motionKeys != null ? Mathf.Max(0f, motionKeys.ImageOffsetStepPerSecond) * deltaTime : 0f;
 
             if (UnityEngine.Input.GetKey(zoomInKey))
             {
@@ -150,6 +242,52 @@ namespace Kaleidoscope2.InputSystem
             if (UnityEngine.Input.GetKey(rotationRightKey))
             {
                 rotation += perSecond;
+            }
+
+            if (motionKeys != null && visualMotionSettings != null)
+            {
+                if (UnityEngine.Input.GetKey(motionKeys.FlightForwardKey))
+                {
+                    visualFlightSpeedUnits += visualMotionFlightDelta;
+                }
+                if (UnityEngine.Input.GetKey(motionKeys.FlightBackwardKey))
+                {
+                    visualFlightSpeedUnits -= visualMotionFlightDelta;
+                }
+
+                Vector2 imageMotionInput = Vector2.zero;
+                if (UnityEngine.Input.GetKey(motionKeys.MoveUpKey))
+                {
+                    imageMotionInput.y += 1f;
+                }
+                if (UnityEngine.Input.GetKey(motionKeys.MoveDownKey))
+                {
+                    imageMotionInput.y -= 1f;
+                }
+                if (UnityEngine.Input.GetKey(motionKeys.MoveLeftKey))
+                {
+                    imageMotionInput.x -= 1f;
+                }
+                if (UnityEngine.Input.GetKey(motionKeys.MoveRightKey))
+                {
+                    imageMotionInput.x += 1f;
+                }
+
+                if (imageMotionInput.sqrMagnitude > 1f)
+                {
+                    imageMotionInput.Normalize();
+                }
+
+                if (imageMotionInput.sqrMagnitude > 0.0001f)
+                {
+                    visualImageOffset += imageMotionInput * visualMotionOffsetDelta;
+                }
+
+                if (IsModeShakePressed(visualMode, motionKeys))
+                {
+                    director.Dispatch(KaleidoscopeCommand.TriggerVisualMotionShake(visualMode));
+                    director.Dispatch(KaleidoscopeCommand.TriggerSourceNextImage());
+                }
             }
 
             if (visualMode == KaleidoscopeVisualMode.Tunnel)
@@ -207,6 +345,41 @@ namespace Kaleidoscope2.InputSystem
                 {
                     hoseWallCurvatureUnits -= hoseProfileDelta;
                 }
+
+                if (UnityEngine.Input.GetKeyDown(hoseChromaticAberrationToggleKey))
+                {
+                    director.Dispatch(KaleidoscopeCommand.ToggleTunnelHoseChromaticAberration());
+                }
+            }
+
+            if (visualMode == KaleidoscopeVisualMode.FiveD)
+            {
+                if (UnityEngine.Input.GetKey(fiveDFlightSpeedIncreaseKey) || UnityEngine.Input.GetKey(fiveDFlightSpeedIncreaseFallbackKey))
+                {
+                    fiveDFlightSpeedUnits += fiveDFlightDelta;
+                }
+                if (UnityEngine.Input.GetKey(fiveDFlightSpeedDecreaseKey) || UnityEngine.Input.GetKey(fiveDFlightSpeedDecreaseFallbackKey))
+                {
+                    fiveDFlightSpeedUnits -= fiveDFlightDelta;
+                }
+                if (UnityEngine.Input.GetKeyDown(fiveDShakeAndNextImageKey))
+                {
+                    director.Dispatch(KaleidoscopeCommand.TriggerFiveDShake());
+                    director.Dispatch(KaleidoscopeCommand.TriggerSourceNextImage());
+                }
+            }
+
+            if (visualMode == KaleidoscopeVisualMode.SevenD)
+            {
+                if (UnityEngine.Input.GetKeyDown(sevenDNextStrategyKey) || UnityEngine.Input.GetKeyDown(sevenDNextStrategyFallbackKey))
+                {
+                    director.Dispatch(KaleidoscopeCommand.CycleSevenDStrategy(1));
+                }
+
+                if (UnityEngine.Input.GetKeyDown(sevenDPreviousStrategyKey) || UnityEngine.Input.GetKeyDown(sevenDPreviousStrategyFallbackKey))
+                {
+                    director.Dispatch(KaleidoscopeCommand.CycleSevenDStrategy(-1));
+                }
             }
 
             if (UnityEngine.Input.GetKeyDown(resetSpeedsKey))
@@ -215,8 +388,12 @@ namespace Kaleidoscope2.InputSystem
                 tunnelBend = Vector2.zero;
                 hoseOpeningUnits = 0f;
                 hoseWallCurvatureUnits = 0f;
+                fiveDFlightSpeedUnits = 0f;
+                visualFlightSpeedUnits = 0f;
+                visualImageOffset = Vector2.zero;
                 tunnelBendController.Reset(director.State);
                 director.Dispatch(KaleidoscopeCommand.ResetTunnelHoseProfile());
+                ResetAllVisualMotion();
             }
 
             rotation = Mathf.Clamp(rotation, MirrorSettings.RotationSpeedMinUnits, MirrorSettings.RotationSpeedMaxUnits);
@@ -224,6 +401,8 @@ namespace Kaleidoscope2.InputSystem
             tunnelBend = new Vector2(Mathf.Clamp(tunnelBend.x, -1f, 1f), Mathf.Clamp(tunnelBend.y, -1f, 1f));
             hoseOpeningUnits = Mathf.Clamp(hoseOpeningUnits, TunnelSettings.HoseProfileMinUnits, TunnelSettings.HoseProfileMaxUnits);
             hoseWallCurvatureUnits = Mathf.Clamp(hoseWallCurvatureUnits, TunnelSettings.HoseProfileMinUnits, TunnelSettings.HoseProfileMaxUnits);
+            fiveDFlightSpeedUnits = Mathf.Clamp(fiveDFlightSpeedUnits, FiveDSettings.FlightSpeedMinUnits, FiveDSettings.FlightSpeedMaxUnits);
+            visualFlightSpeedUnits = Mathf.Clamp(visualFlightSpeedUnits, VisualMotionSettings.FlightSpeedMinUnits, VisualMotionSettings.FlightSpeedMaxUnits);
 
             if (!Mathf.Approximately(zoom, mirror.Zoom))
             {
@@ -250,6 +429,21 @@ namespace Kaleidoscope2.InputSystem
                 director.Dispatch(KaleidoscopeCommand.SetTunnelHoseWallCurvatureUnits(hoseWallCurvatureUnits));
             }
 
+            if (fiveDSettings != null && !Mathf.Approximately(fiveDFlightSpeedUnits, fiveDSettings.FlightSpeedUnits))
+            {
+                director.Dispatch(KaleidoscopeCommand.SetFiveDFlightSpeedUnits(fiveDFlightSpeedUnits));
+            }
+
+            if (visualMotionSettings != null && !Mathf.Approximately(visualFlightSpeedUnits, visualMotionSettings.FlightSpeedUnits))
+            {
+                director.Dispatch(KaleidoscopeCommand.SetVisualMotionFlightSpeedUnits(visualMode, visualFlightSpeedUnits));
+            }
+
+            if (visualMotionSettings != null && visualImageOffset != visualMotionSettings.ImageOffset)
+            {
+                director.Dispatch(KaleidoscopeCommand.SetVisualMotionImageOffset(visualMode, visualImageOffset));
+            }
+
             if (visualMode == KaleidoscopeVisualMode.Hose)
             {
                 tunnelBendController.Tick(director.State, hoseInput, deltaTime);
@@ -272,9 +466,16 @@ namespace Kaleidoscope2.InputSystem
             Vector2 bend = director.State.TunnelSettings != null ? director.State.TunnelSettings.Bend : Vector2.zero;
             Vector2 hoseBend = director.State.TunnelBendState != null ? director.State.TunnelBendState.BendOffset : Vector2.zero;
             TunnelSettings tunnelSettings = director.State.TunnelSettings;
+            FiveDSettings fiveDSettings = director.State.FiveDSettings;
             float opening = tunnelSettings != null ? tunnelSettings.HoseOpeningUnits : 0f;
             float curvature = tunnelSettings != null ? tunnelSettings.HoseWallCurvatureUnits : 0f;
-            return CreateStatus("Zoom " + mirror.Zoom.ToString("0.00") + ", Rotation " + mirror.RotationSpeed.ToString("0") + ", 3D bend " + bend.ToString("0.00") + ", 4D hose " + hoseBend.ToString("0.00") + ", G " + opening.ToString("0") + ", Shch " + curvature.ToString("0") + ".");
+            bool chromaticAberration = tunnelSettings != null && tunnelSettings.HoseChromaticAberrationEnabled;
+            float flightSpeed = fiveDSettings != null ? fiveDSettings.FlightSpeedUnits : 0f;
+            VisualMotionSettings visualMotion = director.State.GetVisualMotionSettings(director.State.ActiveVisualMode);
+            float modeFlightSpeed = visualMotion != null ? visualMotion.FlightSpeedUnits : 0f;
+            SevenDSettings sevenDSettings = director.State.SevenDSettings;
+            string sevenDStrategy = sevenDSettings != null ? sevenDSettings.StrategyLabel : "None";
+            return CreateStatus("Zoom " + mirror.Zoom.ToString("0.00") + ", Rotation " + mirror.RotationSpeed.ToString("0") + ", 3D bend " + bend.ToString("0.00") + ", 4D hose " + hoseBend.ToString("0.00") + ", G " + opening.ToString("0") + ", Shch " + curvature.ToString("0") + ", 4D CA " + (chromaticAberration ? "on" : "off") + ", 5D flight " + flightSpeed.ToString("0") + ", mode flight " + modeFlightSpeed.ToString("0") + ", 7D " + sevenDStrategy + ".");
         }
 
         private void CycleVisualMode()
@@ -284,9 +485,146 @@ namespace Kaleidoscope2.InputSystem
                 ? KaleidoscopeVisualMode.Tunnel
                 : current == KaleidoscopeVisualMode.Tunnel
                     ? KaleidoscopeVisualMode.Hose
-                    : KaleidoscopeVisualMode.Classic;
+                    : current == KaleidoscopeVisualMode.Hose
+                        ? KaleidoscopeVisualMode.FiveD
+                        : current == KaleidoscopeVisualMode.FiveD
+                            ? KaleidoscopeVisualMode.SixD
+                            : current == KaleidoscopeVisualMode.SixD
+                                ? KaleidoscopeVisualMode.SevenD
+                            : KaleidoscopeVisualMode.Classic;
 
             director.Dispatch(KaleidoscopeCommand.SetVisualMode(next));
+        }
+
+        private ModeMotionInputProfile GetModeMotionKeys(KaleidoscopeVisualMode visualMode)
+        {
+            switch (visualMode)
+            {
+                case KaleidoscopeVisualMode.Classic:
+                    return classicMotionKeys;
+                case KaleidoscopeVisualMode.Tunnel:
+                    return tunnelMotionKeys;
+                case KaleidoscopeVisualMode.Hose:
+                    return hoseMotionKeys;
+                case KaleidoscopeVisualMode.SixD:
+                    return sixDMotionKeys;
+                case KaleidoscopeVisualMode.SevenD:
+                    return sevenDMotionKeys;
+                default:
+                    return null;
+            }
+        }
+
+        private void EnsureMotionKeyProfiles()
+        {
+            if (classicMotionKeys == null)
+            {
+                classicMotionKeys = new ModeMotionInputProfile();
+            }
+
+            if (tunnelMotionKeys == null)
+            {
+                tunnelMotionKeys = new ModeMotionInputProfile();
+            }
+
+            if (hoseMotionKeys == null)
+            {
+                hoseMotionKeys = new ModeMotionInputProfile();
+            }
+
+            if (sixDMotionKeys == null)
+            {
+                sixDMotionKeys = new ModeMotionInputProfile();
+            }
+
+            if (sevenDMotionKeys == null)
+            {
+                sevenDMotionKeys = new ModeMotionInputProfile();
+            }
+        }
+
+        private bool IsModeShakePressed(KaleidoscopeVisualMode visualMode, ModeMotionInputProfile motionKeys)
+        {
+            if (motionKeys == null)
+            {
+                return false;
+            }
+
+            bool pressed = UnityEngine.Input.GetKeyDown(motionKeys.ShakeAndNextImageKey);
+            if (visualMode == KaleidoscopeVisualMode.Hose && hoseShakeAndNextImageKey != motionKeys.ShakeAndNextImageKey)
+            {
+                pressed = pressed || UnityEngine.Input.GetKeyDown(hoseShakeAndNextImageKey);
+            }
+
+            return pressed;
+        }
+
+        private void ResetAllVisualMotion()
+        {
+            director.Dispatch(KaleidoscopeCommand.ResetVisualMotion(KaleidoscopeVisualMode.Classic));
+            director.Dispatch(KaleidoscopeCommand.ResetVisualMotion(KaleidoscopeVisualMode.Tunnel));
+            director.Dispatch(KaleidoscopeCommand.ResetVisualMotion(KaleidoscopeVisualMode.Hose));
+            director.Dispatch(KaleidoscopeCommand.ResetVisualMotion(KaleidoscopeVisualMode.SixD));
+            director.Dispatch(KaleidoscopeCommand.ResetVisualMotion(KaleidoscopeVisualMode.SevenD));
+        }
+
+        [Serializable]
+        private sealed class ModeMotionInputProfile
+        {
+            [SerializeField] private KeyCode flightForwardKey = KeyCode.Q;
+            [SerializeField] private KeyCode flightBackwardKey = KeyCode.E;
+            [SerializeField] private KeyCode moveUpKey = KeyCode.W;
+            [SerializeField] private KeyCode moveDownKey = KeyCode.S;
+            [SerializeField] private KeyCode moveLeftKey = KeyCode.A;
+            [SerializeField] private KeyCode moveRightKey = KeyCode.D;
+            [SerializeField] private KeyCode shakeAndNextImageKey = KeyCode.Space;
+            [SerializeField] private float flightSpeedUnitsStepPerSecond = 1000f;
+            [SerializeField] private float imageOffsetStepPerSecond = 0.45f;
+
+            public KeyCode FlightForwardKey
+            {
+                get { return flightForwardKey; }
+            }
+
+            public KeyCode FlightBackwardKey
+            {
+                get { return flightBackwardKey; }
+            }
+
+            public KeyCode MoveUpKey
+            {
+                get { return moveUpKey; }
+            }
+
+            public KeyCode MoveDownKey
+            {
+                get { return moveDownKey; }
+            }
+
+            public KeyCode MoveLeftKey
+            {
+                get { return moveLeftKey; }
+            }
+
+            public KeyCode MoveRightKey
+            {
+                get { return moveRightKey; }
+            }
+
+            public KeyCode ShakeAndNextImageKey
+            {
+                get { return shakeAndNextImageKey; }
+            }
+
+            public float FlightSpeedUnitsStepPerSecond
+            {
+                get { return flightSpeedUnitsStepPerSecond; }
+            }
+
+            public float ImageOffsetStepPerSecond
+            {
+                get { return imageOffsetStepPerSecond; }
+            }
         }
     }
 }

@@ -6,10 +6,10 @@ namespace Kaleidoscope2.Core
     [Serializable]
     public sealed class TunnelBendSettings
     {
-        [SerializeField] private float bendSpeed = 0.65f;
+        [SerializeField] private float bendSpeed = 13f;
         [SerializeField] private float bendLimit = 1.0f;
-        [SerializeField] private float bendReturnSpeed = 0.35f;
-        [SerializeField] private float bendSmoothTime = 0.18f;
+        [SerializeField] private float bendReturnSpeed = 7f;
+        [SerializeField] private float bendSmoothTime = 0.08f;
         [SerializeField] private float foldStrength = 0.45f;
         [SerializeField] private float foldShadowStrength = 0.55f;
         [SerializeField] private float darknessDepth = 0.85f;
