@@ -58,6 +58,7 @@ namespace Kaleidoscope2.Core
             }
 
             float deltaTime = Time.deltaTime;
+            state.TickImageReanimation(deltaTime);
 
             for (int index = 0; index < modules.Count; index++)
             {
@@ -300,6 +301,46 @@ namespace Kaleidoscope2.Core
                     state.ResetVisualMotion(command.VisualModeValue);
                     return true;
 
+                case KaleidoscopeCommandType.StartImageReanimation:
+                    state.BeginImageReanimation(ImageReanimationState.DefaultDurationSeconds);
+                    return true;
+
+                case KaleidoscopeCommandType.SetVisualMotionImageVelocity:
+                    {
+                        VisualMotionSettings motionSettings = state.GetVisualMotionSettings(command.VisualModeValue);
+                        if (motionSettings != null)
+                        {
+                            motionSettings.SetImageOffsetVelocity(command.Vector2Value);
+                            return true;
+                        }
+
+                        return false;
+                    }
+
+                case KaleidoscopeCommandType.ToggleVisualMotionImageInertia:
+                    {
+                        VisualMotionSettings motionSettings = state.GetVisualMotionSettings(command.VisualModeValue);
+                        if (motionSettings != null)
+                        {
+                            motionSettings.ToggleImageShiftInertia();
+                            return true;
+                        }
+
+                        return false;
+                    }
+
+                case KaleidoscopeCommandType.SetVisualMotionImageInertia:
+                    {
+                        VisualMotionSettings motionSettings = state.GetVisualMotionSettings(command.VisualModeValue);
+                        if (motionSettings != null)
+                        {
+                            motionSettings.SetImageShiftInertiaEnabled(command.BoolValue);
+                            return true;
+                        }
+
+                        return false;
+                    }
+
                 case KaleidoscopeCommandType.SetRecordingStatus:
                     state.SetRecordingStatus(command.RecordingStatusValue);
                     return true;
@@ -332,6 +373,22 @@ namespace Kaleidoscope2.Core
 
                 case KaleidoscopeCommandType.ToggleControlMenu:
                     state.SetControlMenuVisible(!state.ControlMenuVisible);
+                    return true;
+
+                case KaleidoscopeCommandType.ToggleHotkeysHelp:
+                    state.ToggleHotkeysHelpVisible();
+                    return true;
+
+                case KaleidoscopeCommandType.SetHotkeysHelpVisible:
+                    state.SetHotkeysHelpVisible(command.BoolValue);
+                    return true;
+
+                case KaleidoscopeCommandType.SetDiamondFocusEnabled:
+                    state.DiamondFocusSettings.SetEnabled(command.BoolValue);
+                    return true;
+
+                case KaleidoscopeCommandType.ToggleDiamondFocus:
+                    state.DiamondFocusSettings.ToggleEnabled();
                     return true;
 
                 case KaleidoscopeCommandType.SetImageFilePath:

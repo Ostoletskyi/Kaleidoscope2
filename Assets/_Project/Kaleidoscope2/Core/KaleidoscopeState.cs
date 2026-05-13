@@ -62,6 +62,7 @@ namespace Kaleidoscope2.Core
         [SerializeField] private FiveDSettings fiveDSettings = new FiveDSettings();
         [SerializeField] private SixDSettings sixDSettings = new SixDSettings();
         [SerializeField] private SevenDSettings sevenDSettings = new SevenDSettings();
+        [SerializeField] private DiamondFocusSettings diamondFocusSettings = new DiamondFocusSettings();
         [SerializeField] private VisualMotionSettings classicMotionSettings = new VisualMotionSettings();
         [SerializeField] private VisualMotionSettings tunnelMotionSettings = new VisualMotionSettings();
         [SerializeField] private VisualMotionSettings hoseMotionSettings = new VisualMotionSettings();
@@ -74,10 +75,12 @@ namespace Kaleidoscope2.Core
         [SerializeField] private string audioFilePath = string.Empty;
         [SerializeField] private string audioFolderPath = string.Empty;
         [SerializeField] private bool controlMenuVisible;
+        [SerializeField] private bool hotkeysHelpVisible;
         [SerializeField] private string activePreset = "None";
         [SerializeField] private bool tunnelEnabled;
         [SerializeField] private KaleidoscopeRecordingStatus recordingStatus = KaleidoscopeRecordingStatus.Idle;
         [SerializeField] private KaleidoscopeQualityLevel qualityLevel = KaleidoscopeQualityLevel.Preview;
+        [SerializeField] private ImageReanimationState imageReanimation = new ImageReanimationState();
         [SerializeField] private DiagnosticsState diagnostics = new DiagnosticsState();
 
         public KaleidoscopeSourceMode ActiveSourceMode
@@ -118,6 +121,11 @@ namespace Kaleidoscope2.Core
         public SevenDSettings SevenDSettings
         {
             get { return sevenDSettings; }
+        }
+
+        public DiamondFocusSettings DiamondFocusSettings
+        {
+            get { return diamondFocusSettings; }
         }
 
         public VisualMotionSettings ClassicMotionSettings
@@ -180,6 +188,11 @@ namespace Kaleidoscope2.Core
             get { return controlMenuVisible; }
         }
 
+        public bool HotkeysHelpVisible
+        {
+            get { return hotkeysHelpVisible; }
+        }
+
         public string ActivePreset
         {
             get { return activePreset; }
@@ -225,6 +238,16 @@ namespace Kaleidoscope2.Core
             get { return diagnostics; }
         }
 
+        public bool ImageReanimationActive
+        {
+            get { return imageReanimation != null && imageReanimation.Active; }
+        }
+
+        public float ImageReanimationBlend
+        {
+            get { return imageReanimation != null ? imageReanimation.SmoothProgress : 0f; }
+        }
+
         public void EnsureInitialized()
         {
             if (mirrorSettings == null)
@@ -255,6 +278,11 @@ namespace Kaleidoscope2.Core
             if (sevenDSettings == null)
             {
                 sevenDSettings = new SevenDSettings();
+            }
+
+            if (diamondFocusSettings == null)
+            {
+                diamondFocusSettings = new DiamondFocusSettings();
             }
 
             if (classicMotionSettings == null)
@@ -295,6 +323,11 @@ namespace Kaleidoscope2.Core
             if (diagnostics == null)
             {
                 diagnostics = new DiagnosticsState();
+            }
+
+            if (imageReanimation == null)
+            {
+                imageReanimation = new ImageReanimationState();
             }
         }
 
@@ -365,6 +398,24 @@ namespace Kaleidoscope2.Core
         public void SetControlMenuVisible(bool visible)
         {
             controlMenuVisible = visible;
+            if (!controlMenuVisible)
+            {
+                hotkeysHelpVisible = false;
+            }
+        }
+
+        public void SetHotkeysHelpVisible(bool visible)
+        {
+            hotkeysHelpVisible = visible;
+            if (hotkeysHelpVisible)
+            {
+                controlMenuVisible = true;
+            }
+        }
+
+        public void ToggleHotkeysHelpVisible()
+        {
+            SetHotkeysHelpVisible(!hotkeysHelpVisible);
         }
 
         public void SetFramesPerSecond(float framesPerSecond)
@@ -440,6 +491,20 @@ namespace Kaleidoscope2.Core
             if (settings != null)
             {
                 settings.Reset();
+            }
+        }
+
+        public void BeginImageReanimation(float durationSeconds)
+        {
+            EnsureInitialized();
+            imageReanimation.Begin(this, durationSeconds);
+        }
+
+        public void TickImageReanimation(float deltaTime)
+        {
+            if (imageReanimation != null)
+            {
+                imageReanimation.Tick(this, deltaTime);
             }
         }
     }
@@ -664,6 +729,8 @@ namespace Kaleidoscope2.Core
 
         [SerializeField] private float flightSpeedUnits;
         [SerializeField] private Vector2 imageOffset = Vector2.zero;
+        [SerializeField] private Vector2 imageOffsetVelocity = Vector2.zero;
+        [SerializeField] private bool imageShiftInertiaEnabled;
 
         public float FlightSpeedUnits
         {
@@ -673,6 +740,16 @@ namespace Kaleidoscope2.Core
         public Vector2 ImageOffset
         {
             get { return imageOffset; }
+        }
+
+        public Vector2 ImageOffsetVelocity
+        {
+            get { return imageOffsetVelocity; }
+        }
+
+        public bool ImageShiftInertiaEnabled
+        {
+            get { return imageShiftInertiaEnabled; }
         }
 
         public void SetFlightSpeedUnits(float value)
@@ -687,10 +764,262 @@ namespace Kaleidoscope2.Core
                 Mathf.Clamp(value.y, ImageOffsetMin, ImageOffsetMax));
         }
 
+        public void SetImageOffsetVelocity(Vector2 value)
+        {
+            imageOffsetVelocity = Vector2.ClampMagnitude(value, 4f);
+        }
+
+        public void SetImageShiftInertiaEnabled(bool enabled)
+        {
+            imageShiftInertiaEnabled = enabled;
+            if (!imageShiftInertiaEnabled)
+            {
+                imageOffsetVelocity = Vector2.zero;
+            }
+        }
+
+        public void ToggleImageShiftInertia()
+        {
+            SetImageShiftInertiaEnabled(!imageShiftInertiaEnabled);
+        }
+
         public void Reset()
         {
             flightSpeedUnits = 0f;
             imageOffset = Vector2.zero;
+            imageOffsetVelocity = Vector2.zero;
+        }
+    }
+
+    [Serializable]
+    public sealed class ImageReanimationState
+    {
+        public const float DefaultDurationSeconds = 10f;
+
+        [SerializeField] private bool active;
+        [SerializeField] private float durationSeconds = DefaultDurationSeconds;
+        [SerializeField] private float elapsedSeconds;
+        [SerializeField] private ImageReanimationSnapshot snapshot = new ImageReanimationSnapshot();
+
+        public bool Active
+        {
+            get { return active; }
+        }
+
+        public float Progress
+        {
+            get
+            {
+                if (!active || durationSeconds <= 0.0001f)
+                {
+                    return active ? 1f : 0f;
+                }
+
+                return Mathf.Clamp01(elapsedSeconds / durationSeconds);
+            }
+        }
+
+        public float SmoothProgress
+        {
+            get
+            {
+                float value = Progress;
+                return value * value * (3f - 2f * value);
+            }
+        }
+
+        public void Begin(KaleidoscopeState state, float duration)
+        {
+            if (state == null)
+            {
+                return;
+            }
+
+            if (snapshot == null)
+            {
+                snapshot = new ImageReanimationSnapshot();
+            }
+
+            durationSeconds = Mathf.Max(0.1f, duration);
+            elapsedSeconds = 0f;
+            active = true;
+            snapshot.Capture(state);
+        }
+
+        public void Tick(KaleidoscopeState state, float deltaTime)
+        {
+            if (!active || state == null)
+            {
+                return;
+            }
+
+            elapsedSeconds = Mathf.Min(durationSeconds, elapsedSeconds + Mathf.Max(0f, deltaTime));
+            Apply(state, SmoothProgress);
+
+            if (elapsedSeconds >= durationSeconds)
+            {
+                Complete(state);
+            }
+        }
+
+        private void Apply(KaleidoscopeState state, float t)
+        {
+            MirrorSettings mirror = state.MirrorSettings;
+            if (mirror != null)
+            {
+                mirror.SetRotationSpeed(Mathf.Lerp(snapshot.MirrorRotationSpeedUnits, 0f, t));
+                mirror.SetForwardSpeedUnits(Mathf.Lerp(snapshot.MirrorForwardSpeedUnits, 0f, t));
+                mirror.SetZoom(Mathf.Lerp(snapshot.MirrorZoom, 1f, t));
+                mirror.SetCenterOffset(Vector2.Lerp(snapshot.MirrorCenterOffset, Vector2.zero, t));
+            }
+
+            TunnelSettings tunnel = state.TunnelSettings;
+            if (tunnel != null)
+            {
+                tunnel.SetBend(Vector2.Lerp(snapshot.TunnelBend, Vector2.zero, t));
+                tunnel.SetHoseOpeningUnits(Mathf.Lerp(snapshot.HoseOpeningUnits, 0f, t));
+                tunnel.SetHoseWallCurvatureUnits(Mathf.Lerp(snapshot.HoseWallCurvatureUnits, 0f, t));
+            }
+
+            TunnelBendState bendState = state.TunnelBendState;
+            if (bendState != null)
+            {
+                bendState.SetBendOffset(Vector2.Lerp(snapshot.TunnelBendOffset, Vector2.zero, t));
+                bendState.SetBendVelocity(Vector2.Lerp(snapshot.TunnelBendVelocity, Vector2.zero, t));
+            }
+
+            FiveDSettings fiveD = state.FiveDSettings;
+            if (fiveD != null)
+            {
+                fiveD.SetFlightSpeedUnits(Mathf.Lerp(snapshot.FiveDFlightSpeedUnits, 0f, t));
+            }
+
+            ApplyVisualMotion(state.ClassicMotionSettings, snapshot.ClassicMotion, t);
+            ApplyVisualMotion(state.TunnelMotionSettings, snapshot.TunnelMotion, t);
+            ApplyVisualMotion(state.HoseMotionSettings, snapshot.HoseMotion, t);
+            ApplyVisualMotion(state.SixDMotionSettings, snapshot.SixDMotion, t);
+            ApplyVisualMotion(state.SevenDMotionSettings, snapshot.SevenDMotion, t);
+        }
+
+        private void Complete(KaleidoscopeState state)
+        {
+            Apply(state, 1f);
+
+            if (state.TunnelSettings != null)
+            {
+                state.TunnelSettings.SetHoseChromaticAberrationEnabled(false);
+            }
+
+            if (state.MirrorSettings != null)
+            {
+                state.MirrorSettings.SetGuidesVisible(false);
+            }
+
+            if (state.TunnelBendState != null)
+            {
+                state.TunnelBendState.Reset();
+            }
+
+            state.SetVisualMode(KaleidoscopeVisualMode.Classic);
+            active = false;
+            elapsedSeconds = 0f;
+        }
+
+        private static void ApplyVisualMotion(VisualMotionSettings settings, VisualMotionSnapshot snapshotValue, float t)
+        {
+            if (settings == null)
+            {
+                return;
+            }
+
+            settings.SetFlightSpeedUnits(Mathf.Lerp(snapshotValue.FlightSpeedUnits, 0f, t));
+            settings.SetImageOffset(Vector2.Lerp(snapshotValue.ImageOffset, Vector2.zero, t));
+            settings.SetImageOffsetVelocity(Vector2.Lerp(snapshotValue.ImageOffsetVelocity, Vector2.zero, t));
+        }
+    }
+
+    [Serializable]
+    public sealed class ImageReanimationSnapshot
+    {
+        [SerializeField] private float mirrorRotationSpeedUnits;
+        [SerializeField] private float mirrorForwardSpeedUnits;
+        [SerializeField] private float mirrorZoom = 1f;
+        [SerializeField] private Vector2 mirrorCenterOffset = Vector2.zero;
+        [SerializeField] private Vector2 tunnelBend = Vector2.zero;
+        [SerializeField] private float hoseOpeningUnits;
+        [SerializeField] private float hoseWallCurvatureUnits;
+        [SerializeField] private Vector2 tunnelBendOffset = Vector2.zero;
+        [SerializeField] private Vector2 tunnelBendVelocity = Vector2.zero;
+        [SerializeField] private float fiveDFlightSpeedUnits;
+        [SerializeField] private VisualMotionSnapshot classicMotion;
+        [SerializeField] private VisualMotionSnapshot tunnelMotion;
+        [SerializeField] private VisualMotionSnapshot hoseMotion;
+        [SerializeField] private VisualMotionSnapshot sixDMotion;
+        [SerializeField] private VisualMotionSnapshot sevenDMotion;
+
+        public float MirrorRotationSpeedUnits { get { return mirrorRotationSpeedUnits; } }
+        public float MirrorForwardSpeedUnits { get { return mirrorForwardSpeedUnits; } }
+        public float MirrorZoom { get { return mirrorZoom; } }
+        public Vector2 MirrorCenterOffset { get { return mirrorCenterOffset; } }
+        public Vector2 TunnelBend { get { return tunnelBend; } }
+        public float HoseOpeningUnits { get { return hoseOpeningUnits; } }
+        public float HoseWallCurvatureUnits { get { return hoseWallCurvatureUnits; } }
+        public Vector2 TunnelBendOffset { get { return tunnelBendOffset; } }
+        public Vector2 TunnelBendVelocity { get { return tunnelBendVelocity; } }
+        public float FiveDFlightSpeedUnits { get { return fiveDFlightSpeedUnits; } }
+        public VisualMotionSnapshot ClassicMotion { get { return classicMotion; } }
+        public VisualMotionSnapshot TunnelMotion { get { return tunnelMotion; } }
+        public VisualMotionSnapshot HoseMotion { get { return hoseMotion; } }
+        public VisualMotionSnapshot SixDMotion { get { return sixDMotion; } }
+        public VisualMotionSnapshot SevenDMotion { get { return sevenDMotion; } }
+
+        public void Capture(KaleidoscopeState state)
+        {
+            MirrorSettings mirror = state.MirrorSettings;
+            mirrorRotationSpeedUnits = mirror != null ? mirror.RotationSpeed : 0f;
+            mirrorForwardSpeedUnits = mirror != null ? mirror.ForwardSpeedUnits : 0f;
+            mirrorZoom = mirror != null ? mirror.Zoom : 1f;
+            mirrorCenterOffset = mirror != null ? mirror.CenterOffset : Vector2.zero;
+
+            TunnelSettings tunnel = state.TunnelSettings;
+            tunnelBend = tunnel != null ? tunnel.Bend : Vector2.zero;
+            hoseOpeningUnits = tunnel != null ? tunnel.HoseOpeningUnits : 0f;
+            hoseWallCurvatureUnits = tunnel != null ? tunnel.HoseWallCurvatureUnits : 0f;
+
+            TunnelBendState bendState = state.TunnelBendState;
+            tunnelBendOffset = bendState != null ? bendState.BendOffset : Vector2.zero;
+            tunnelBendVelocity = bendState != null ? bendState.BendVelocity : Vector2.zero;
+
+            FiveDSettings fiveD = state.FiveDSettings;
+            fiveDFlightSpeedUnits = fiveD != null ? fiveD.FlightSpeedUnits : 0f;
+
+            classicMotion = VisualMotionSnapshot.Capture(state.ClassicMotionSettings);
+            tunnelMotion = VisualMotionSnapshot.Capture(state.TunnelMotionSettings);
+            hoseMotion = VisualMotionSnapshot.Capture(state.HoseMotionSettings);
+            sixDMotion = VisualMotionSnapshot.Capture(state.SixDMotionSettings);
+            sevenDMotion = VisualMotionSnapshot.Capture(state.SevenDMotionSettings);
+        }
+    }
+
+    [Serializable]
+    public struct VisualMotionSnapshot
+    {
+        [SerializeField] private float flightSpeedUnits;
+        [SerializeField] private Vector2 imageOffset;
+        [SerializeField] private Vector2 imageOffsetVelocity;
+
+        public float FlightSpeedUnits { get { return flightSpeedUnits; } }
+        public Vector2 ImageOffset { get { return imageOffset; } }
+        public Vector2 ImageOffsetVelocity { get { return imageOffsetVelocity; } }
+
+        public static VisualMotionSnapshot Capture(VisualMotionSettings settings)
+        {
+            return new VisualMotionSnapshot
+            {
+                flightSpeedUnits = settings != null ? settings.FlightSpeedUnits : 0f,
+                imageOffset = settings != null ? settings.ImageOffset : Vector2.zero,
+                imageOffsetVelocity = settings != null ? settings.ImageOffsetVelocity : Vector2.zero
+            };
         }
     }
 

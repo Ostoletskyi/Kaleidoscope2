@@ -23,6 +23,7 @@ namespace Kaleidoscope2.Tunnel
         public static readonly int TunnelChromaticAberrationStrength = Shader.PropertyToID("_TunnelChromaticAberrationStrength");
         public static readonly int ModeMotionOffset = Shader.PropertyToID("_ModeMotionOffset");
         public static readonly int ModeMotionShake = Shader.PropertyToID("_ModeMotionShake");
+        public static readonly int ImageReanimationBlend = Shader.PropertyToID("_ImageReanimationBlend");
         public static readonly int FiveDEnabled = Shader.PropertyToID("_FiveDEnabled");
         public static readonly int FiveDTime = Shader.PropertyToID("_FiveDTime");
         public static readonly int FiveDShake = Shader.PropertyToID("_FiveDShake");
@@ -52,6 +53,9 @@ namespace Kaleidoscope2.Tunnel
         private RenderTexture outputTexture;
         private float fiveDTime;
         private float modeMotionScroll;
+        private float fiveDRecoveryStart;
+        private float modeMotionRecoveryStart;
+        private bool internalRecoveryActive;
         private float fiveDShakeRemaining;
         private float tunnelShakeRemaining;
 
@@ -66,7 +70,8 @@ namespace Kaleidoscope2.Tunnel
                 && (command.Type == KaleidoscopeCommandType.SetTunnelEnabled
                     || command.Type == KaleidoscopeCommandType.TriggerFiveDShake
                     || command.Type == KaleidoscopeCommandType.TriggerTunnelShake
-                    || command.Type == KaleidoscopeCommandType.TriggerVisualMotionShake);
+                    || command.Type == KaleidoscopeCommandType.TriggerVisualMotionShake
+                    || command.Type == KaleidoscopeCommandType.StartImageReanimation);
         }
 
         public override void HandleCommand(KaleidoscopeCommand command)
@@ -94,6 +99,12 @@ namespace Kaleidoscope2.Tunnel
                 {
                     fiveDShakeRemaining = Mathf.Max(0.01f, fiveDShakeDuration);
                 }
+            }
+            else if (command.Type == KaleidoscopeCommandType.StartImageReanimation)
+            {
+                fiveDRecoveryStart = fiveDTime;
+                modeMotionRecoveryStart = modeMotionScroll;
+                internalRecoveryActive = true;
             }
         }
 
@@ -130,6 +141,19 @@ namespace Kaleidoscope2.Tunnel
             if (tunnelShakeRemaining > 0f)
             {
                 tunnelShakeRemaining = Mathf.Max(0f, tunnelShakeRemaining - deltaTime);
+            }
+
+            if (internalRecoveryActive && State.ImageReanimationActive)
+            {
+                float blend = State.ImageReanimationBlend;
+                fiveDTime = Mathf.Lerp(fiveDRecoveryStart, 0f, blend);
+                modeMotionScroll = Mathf.Lerp(modeMotionRecoveryStart, 0f, blend);
+            }
+            else if (internalRecoveryActive)
+            {
+                fiveDTime = 0f;
+                modeMotionScroll = 0f;
+                internalRecoveryActive = false;
             }
         }
 
@@ -201,6 +225,7 @@ namespace Kaleidoscope2.Tunnel
             material.SetFloat(TunnelShaderIds.TunnelChromaticAberrationStrength, hoseChromaticAberrationStrength);
             material.SetVector(TunnelShaderIds.ModeMotionOffset, modeMotionOffset);
             material.SetFloat(TunnelShaderIds.ModeMotionShake, tunnelShake);
+            material.SetFloat(TunnelShaderIds.ImageReanimationBlend, runtimeState.ImageReanimationBlend);
 
             Graphics.Blit(sourceTexture, outputTexture, material);
             return outputTexture;

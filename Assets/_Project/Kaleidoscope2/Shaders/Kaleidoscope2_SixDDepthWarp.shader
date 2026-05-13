@@ -13,6 +13,7 @@ Shader "Kaleidoscope2/SixDDepthWarp"
         _MotionOffset ("Motion Offset", Vector) = (0, 0, 0, 0)
         _FlightTime ("Flight Time", Float) = 0
         _MotionShake ("Motion Shake", Range(0,1)) = 0
+        _ImageReanimationBlend ("Image Reanimation Blend", Range(0,1)) = 0
     }
     SubShader
     {
@@ -40,6 +41,7 @@ Shader "Kaleidoscope2/SixDDepthWarp"
             float4 _MotionOffset;
             float _FlightTime;
             float _MotionShake;
+            float _ImageReanimationBlend;
 
             struct appdata
             {
@@ -98,7 +100,9 @@ Shader "Kaleidoscope2/SixDDepthWarp"
                 warped += tangent * tangentialDrift;
                 warped = lerp(baseUV, warped, saturate(_DepthStrength));
 
-                return tex2D(_MainTex, frac(warped));
+                fixed4 col = tex2D(_MainTex, frac(warped));
+                fixed4 cleanCol = tex2D(_MainTex, uv);
+                return lerp(col, cleanCol, saturate(_ImageReanimationBlend));
             }
             ENDCG
         }

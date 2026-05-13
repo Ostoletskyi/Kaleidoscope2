@@ -140,7 +140,9 @@ namespace Kaleidoscope2.Control
             }
 
             return command.Type == KaleidoscopeCommandType.ToggleControlMenu
-                || command.Type == KaleidoscopeCommandType.SetControlMenuVisible;
+                || command.Type == KaleidoscopeCommandType.SetControlMenuVisible
+                || command.Type == KaleidoscopeCommandType.ToggleHotkeysHelp
+                || command.Type == KaleidoscopeCommandType.SetHotkeysHelpVisible;
         }
 
         public override void HandleCommand(KaleidoscopeCommand command)
@@ -158,6 +160,11 @@ namespace Kaleidoscope2.Control
 
                 case KaleidoscopeCommandType.SetControlMenuVisible:
                     SetMenuVisible(director != null ? director.State.ControlMenuVisible : command.BoolValue, updateState: false);
+                    break;
+
+                case KaleidoscopeCommandType.ToggleHotkeysHelp:
+                case KaleidoscopeCommandType.SetHotkeysHelpVisible:
+                    ApplyHotkeysHelpVisible(director != null && director.State.HotkeysHelpVisible);
                     break;
             }
         }
@@ -427,14 +434,22 @@ namespace Kaleidoscope2.Control
             Text body = CreateText(panel, "HelpBody",
                 "Управление:\n" +
                 "Колесо мыши (клик) — открыть/закрыть меню\n" +
+                "F1 — открыть/закрыть справку по клавишам\n" +
                 "Esc — закрыть меню\n\n" +
                 "0 / Num0 — мягкие линии стыка зеркал (вкл/выкл)\n" +
+                "Num* — плавная реанимация картинки за 10 секунд к обычному 2D-калейдоскопу\n" +
                 "Num5 (доп. клавиатура) — сброс движения и 4D-профиля\n" +
                 "NumEnter (боковой Enter) — переключение 2D / 3D / 4D / 5D / 6D / 7D\n" +
                 "1..9 — 6/12/24/48/96/192/384/768/1536 зеркал\n" +
                 "Z/X/C (рус. Я/Ч/С) — предыдущий / стоп-плей / следующий трек\n" +
                 "Q/E (рус. Й/У) — полёт к центру и обратно в 2D/3D/4D/6D/7D\n" +
                 "W/A/S/D (рус. Ц/Ф/Ы/В) — сдвиг изображения в активном режиме; в 3D дополнительно изгиб туннеля\n" +
+                "Backspace — включить/выключить центральный 3D-кристалл в любом режиме\n" +
+                "Diamond Focus: Num8/2/4/6 — разгон вращения вверх / вниз / влево / вправо\n" +
+                "Diamond Focus: Num7/9/1/3 — разгон вращения по диагоналям\n" +
+                "Diamond Focus: Num+ / Num- — следующая / предыдущая форма алмаза\n" +
+                "Diamond Focus: NumDel / Num, — режим материала кристалла\n" +
+                "R (рус. К) — инерционный сдвиг 2D: разгон при удержании Ц/Ф/Ы/В и плавная остановка за 5 секунд\n" +
                 "I/K/J/L — изгиб 4D-шланга (на русской раскладке: Ш/Л/О/Д)\n\n" +
                 "U/Y (рус. Г/Н) — ширина воронки 4D: -500..+500\n" +
                 "O/P (рус. Щ/З) — кривизна стенок 4D: -500..+500\n" +
@@ -455,7 +470,7 @@ namespace Kaleidoscope2.Control
                 FontStyle.Normal,
                 MutedTextColor,
                 TextAnchor.UpperLeft);
-            body.gameObject.AddComponent<LayoutElement>().preferredHeight = 560f;
+            body.gameObject.AddComponent<LayoutElement>().preferredHeight = 640f;
 
             CreateButton(panel, "HelpClose", "Назад", ButtonColor, () => SetActiveIfDifferent(helpRoot, false));
             helpRoot.SetActive(false);
@@ -810,7 +825,24 @@ namespace Kaleidoscope2.Control
 
         private void OpenHelp()
         {
-            SetActiveIfDifferent(helpRoot, true);
+            if (director != null)
+            {
+                director.Dispatch(KaleidoscopeCommand.SetHotkeysHelpVisible(true));
+                return;
+            }
+
+            ApplyHotkeysHelpVisible(true);
+        }
+
+        private void ApplyHotkeysHelpVisible(bool visible)
+        {
+            if (visible)
+            {
+                SetActiveIfDifferent(menuRoot, true);
+                SetActiveIfDifferent(browserRoot, false);
+            }
+
+            SetActiveIfDifferent(helpRoot, visible);
         }
 
         private void ToggleMode()

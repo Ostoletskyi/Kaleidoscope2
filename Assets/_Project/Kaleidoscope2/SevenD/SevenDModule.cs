@@ -15,6 +15,7 @@ namespace Kaleidoscope2.SevenD
         public static readonly int MotionOffset = Shader.PropertyToID("_MotionOffset");
         public static readonly int FlightTime = Shader.PropertyToID("_FlightTime");
         public static readonly int MotionShake = Shader.PropertyToID("_MotionShake");
+        public static readonly int ImageReanimationBlend = Shader.PropertyToID("_ImageReanimationBlend");
     }
 
     [DisallowMultipleComponent]
@@ -32,6 +33,8 @@ namespace Kaleidoscope2.SevenD
         private RenderTexture outputTexture;
         private float time;
         private float flightTime;
+        private float flightRecoveryStart;
+        private bool internalRecoveryActive;
         private float motionShakeRemaining;
 
         public override string ModuleId
@@ -69,6 +72,16 @@ namespace Kaleidoscope2.SevenD
                 }
             }
 
+            if (internalRecoveryActive && State != null && State.ImageReanimationActive)
+            {
+                flightTime = Mathf.Lerp(flightRecoveryStart, 0f, State.ImageReanimationBlend);
+            }
+            else if (internalRecoveryActive)
+            {
+                flightTime = 0f;
+                internalRecoveryActive = false;
+            }
+
             if (motionShakeRemaining > 0f)
             {
                 motionShakeRemaining = Mathf.Max(0f, motionShakeRemaining - deltaTime);
@@ -77,16 +90,27 @@ namespace Kaleidoscope2.SevenD
 
         public override bool CanHandle(KaleidoscopeCommand command)
         {
-            return command != null && command.Type == KaleidoscopeCommandType.TriggerVisualMotionShake;
+            return command != null
+                && (command.Type == KaleidoscopeCommandType.TriggerVisualMotionShake
+                    || command.Type == KaleidoscopeCommandType.StartImageReanimation);
         }
 
         public override void HandleCommand(KaleidoscopeCommand command)
         {
-            if (command != null
-                && command.Type == KaleidoscopeCommandType.TriggerVisualMotionShake
+            if (command == null)
+            {
+                return;
+            }
+
+            if (command.Type == KaleidoscopeCommandType.TriggerVisualMotionShake
                 && command.VisualModeValue == KaleidoscopeVisualMode.SevenD)
             {
                 motionShakeRemaining = Mathf.Max(0.01f, motionShakeDuration);
+            }
+            else if (command.Type == KaleidoscopeCommandType.StartImageReanimation)
+            {
+                flightRecoveryStart = flightTime;
+                internalRecoveryActive = true;
             }
         }
 
@@ -130,6 +154,7 @@ namespace Kaleidoscope2.SevenD
             material.SetVector(SevenDShaderIds.MotionOffset, motionOffset);
             material.SetFloat(SevenDShaderIds.FlightTime, flightTime);
             material.SetFloat(SevenDShaderIds.MotionShake, motionShake);
+            material.SetFloat(SevenDShaderIds.ImageReanimationBlend, runtimeState.ImageReanimationBlend);
 
             Graphics.Blit(sourceTexture, outputTexture, material);
             return outputTexture;

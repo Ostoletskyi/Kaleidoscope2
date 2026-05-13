@@ -14,6 +14,7 @@ namespace Kaleidoscope2.SixD
         public static readonly int MotionOffset = Shader.PropertyToID("_MotionOffset");
         public static readonly int FlightTime = Shader.PropertyToID("_FlightTime");
         public static readonly int MotionShake = Shader.PropertyToID("_MotionShake");
+        public static readonly int ImageReanimationBlend = Shader.PropertyToID("_ImageReanimationBlend");
     }
 
     [DisallowMultipleComponent]
@@ -45,6 +46,7 @@ namespace Kaleidoscope2.SixD
             activeMaterial.SetVector(VolumetricIllusionShaderIds.MotionOffset, MotionOffset);
             activeMaterial.SetFloat(VolumetricIllusionShaderIds.FlightTime, MotionFlightTime);
             activeMaterial.SetFloat(VolumetricIllusionShaderIds.MotionShake, MotionShake);
+            activeMaterial.SetFloat(VolumetricIllusionShaderIds.ImageReanimationBlend, runtimeState.ImageReanimationBlend);
         }
     }
 }

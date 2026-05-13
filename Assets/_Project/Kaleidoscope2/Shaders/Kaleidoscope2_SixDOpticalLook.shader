@@ -13,6 +13,7 @@ Shader "Kaleidoscope2/SixDOpticalLook"
         _MotionOffset ("Motion Offset", Vector) = (0, 0, 0, 0)
         _FlightTime ("Flight Time", Float) = 0
         _MotionShake ("Motion Shake", Range(0,1)) = 0
+        _ImageReanimationBlend ("Image Reanimation Blend", Range(0,1)) = 0
     }
     SubShader
     {
@@ -40,6 +41,7 @@ Shader "Kaleidoscope2/SixDOpticalLook"
             float4 _MotionOffset;
             float _FlightTime;
             float _MotionShake;
+            float _ImageReanimationBlend;
 
             struct appdata
             {
@@ -106,7 +108,8 @@ Shader "Kaleidoscope2/SixDOpticalLook"
                 col.rgb += centerSharp * 0.035;
                 col.rgb *= lerp(1.0, 0.86, smoothstep(0.72, 1.05, radius));
 
-                return col;
+                fixed4 cleanCol = tex2D(_MainTex, uv);
+                return lerp(col, cleanCol, saturate(_ImageReanimationBlend));
             }
             ENDCG
         }

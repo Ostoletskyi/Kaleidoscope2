@@ -16,6 +16,8 @@ namespace Kaleidoscope2.SixD
         private RenderTexture outputTexture;
         private float time;
         private float motionFlightTime;
+        private float flightRecoveryStart;
+        private bool internalRecoveryActive;
         private float motionShakeRemaining;
 
         public Texture OutputTexture
@@ -90,6 +92,16 @@ namespace Kaleidoscope2.SixD
                 }
             }
 
+            if (internalRecoveryActive && State != null && State.ImageReanimationActive)
+            {
+                motionFlightTime = Mathf.Lerp(flightRecoveryStart, 0f, State.ImageReanimationBlend);
+            }
+            else if (internalRecoveryActive)
+            {
+                motionFlightTime = 0f;
+                internalRecoveryActive = false;
+            }
+
             if (motionShakeRemaining > 0f)
             {
                 motionShakeRemaining = Mathf.Max(0f, motionShakeRemaining - deltaTime);
@@ -98,16 +110,27 @@ namespace Kaleidoscope2.SixD
 
         public override bool CanHandle(KaleidoscopeCommand command)
         {
-            return command != null && command.Type == KaleidoscopeCommandType.TriggerVisualMotionShake;
+            return command != null
+                && (command.Type == KaleidoscopeCommandType.TriggerVisualMotionShake
+                    || command.Type == KaleidoscopeCommandType.StartImageReanimation);
         }
 
         public override void HandleCommand(KaleidoscopeCommand command)
         {
-            if (command != null
-                && command.Type == KaleidoscopeCommandType.TriggerVisualMotionShake
+            if (command == null)
+            {
+                return;
+            }
+
+            if (command.Type == KaleidoscopeCommandType.TriggerVisualMotionShake
                 && command.VisualModeValue == KaleidoscopeVisualMode.SixD)
             {
                 motionShakeRemaining = Mathf.Max(0.01f, motionShakeDuration);
+            }
+            else if (command.Type == KaleidoscopeCommandType.StartImageReanimation)
+            {
+                flightRecoveryStart = motionFlightTime;
+                internalRecoveryActive = true;
             }
         }
 

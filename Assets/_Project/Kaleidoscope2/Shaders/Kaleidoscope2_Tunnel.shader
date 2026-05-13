@@ -21,6 +21,7 @@ Shader "Kaleidoscope2/Tunnel"
         _TunnelChromaticAberrationStrength ("Tunnel Chromatic Aberration Strength", Float) = 0.0075
         _ModeMotionOffset ("Mode Motion Offset", Vector) = (0, 0, 0, 0)
         _ModeMotionShake ("Mode Motion Shake", Range(0,1)) = 0
+        _ImageReanimationBlend ("Image Reanimation Blend", Range(0,1)) = 0
         _FiveDEnabled ("5D Enabled", Float) = 0
         _FiveDTime ("5D Time", Float) = 0
         _FiveDShake ("5D Shake", Range(0,1)) = 0
@@ -60,6 +61,7 @@ Shader "Kaleidoscope2/Tunnel"
             float _TunnelChromaticAberrationStrength;
             float4 _ModeMotionOffset;
             float _ModeMotionShake;
+            float _ImageReanimationBlend;
             float _FiveDEnabled;
             float _FiveDTime;
             float _FiveDShake;
@@ -88,6 +90,8 @@ Shader "Kaleidoscope2/Tunnel"
             {
                 float2 uv = i.uv;
                 float2 p = uv - 0.5;
+                fixed4 cleanCol = tex2D(_MainTex, uv);
+                float recoveryBlend = saturate(_ImageReanimationBlend);
                 float motionShake = saturate(_ModeMotionShake);
                 float2 motionOffset = _ModeMotionOffset.xy;
                 if (motionShake > 0.001)
@@ -135,7 +139,7 @@ Shader "Kaleidoscope2/Tunnel"
                     col.rgb += centerPull * 0.18;
                     col.rgb += _FiveDShake * 0.08;
 
-                    return col;
+                    return lerp(col, cleanCol, recoveryBlend);
                 }
 
                 if (_TunnelHoseEnabled < 0.5)
@@ -152,7 +156,7 @@ Shader "Kaleidoscope2/Tunnel"
                     fixed4 legacyCol = tex2D(_MainTex, legacyUV);
                     float legacyCenter = saturate(1.0 - (r * 2.0));
                     legacyCol.rgb *= lerp(1.0, 1.0 - _CenterDarken, legacyCenter);
-                    return legacyCol;
+                    return lerp(legacyCol, cleanCol, recoveryBlend);
                 }
 
                 float tunnelShake = saturate(_TunnelShake);
@@ -253,7 +257,7 @@ Shader "Kaleidoscope2/Tunnel"
                 float center = saturate(1.0 - (radial * 2.0));
                 col.rgb *= lerp(1.0, 1.0 - _CenterDarken * 0.25, center);
 
-                return col;
+                return lerp(col, cleanCol, recoveryBlend);
             }
             ENDCG
         }

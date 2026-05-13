@@ -12,6 +12,7 @@ Shader "Kaleidoscope2/SixDVolumetricIllusion"
         _MotionOffset ("Motion Offset", Vector) = (0, 0, 0, 0)
         _FlightTime ("Flight Time", Float) = 0
         _MotionShake ("Motion Shake", Range(0,1)) = 0
+        _ImageReanimationBlend ("Image Reanimation Blend", Range(0,1)) = 0
     }
     SubShader
     {
@@ -38,6 +39,7 @@ Shader "Kaleidoscope2/SixDVolumetricIllusion"
             float4 _MotionOffset;
             float _FlightTime;
             float _MotionShake;
+            float _ImageReanimationBlend;
 
             struct appdata
             {
@@ -98,7 +100,8 @@ Shader "Kaleidoscope2/SixDVolumetricIllusion"
                 col.rgb *= 1.0 - peripheralMist;
                 col.rgb *= lerp(0.92, 1.08, depth);
 
-                return col;
+                fixed4 cleanCol = tex2D(_MainTex, uv);
+                return lerp(col, cleanCol, saturate(_ImageReanimationBlend));
             }
             ENDCG
         }

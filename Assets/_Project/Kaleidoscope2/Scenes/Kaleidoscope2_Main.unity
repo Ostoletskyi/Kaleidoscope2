@@ -422,6 +422,9 @@ MonoBehaviour:
   - moduleArea: 8
     moduleBehaviour: {fileID: 900000003}
     required: 1
+  - moduleArea: 16
+    moduleBehaviour: {fileID: 920000003}
+    required: 0
   - moduleArea: 6
     moduleBehaviour: {fileID: 955706883}
     required: 1
@@ -3913,6 +3916,7 @@ Transform:
   - {fileID: 910000062}
   - {fileID: 900000022}
   - {fileID: 900000002}
+  - {fileID: 920000002}
   - {fileID: 955706882}
   - {fileID: 900000012}
   - {fileID: 668585098}
@@ -5425,6 +5429,68 @@ MonoBehaviour:
   hoseBendDownKey: 107
   hoseBendLeftKey: 106
   hoseBendRightKey: 108
+--- !u!1 &920000001
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 920000002}
+  - component: {fileID: 920000003}
+  m_Layer: 0
+  m_Name: DiamondFocusModule
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &920000002
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 920000001}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1413481328}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &920000003
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 920000001}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0f3a0f7d8315a904ea4b7b9016e80f11, type: 3}
+  m_Name: ''
+  m_EditorClassIdentifier: ''
+  startActive: 1
+  diamondShader: {fileID: 0}
+  diamondMaterial: {fileID: 0}
+  crystalShader: {fileID: 0}
+  crystalMaterial: {fileID: 0}
+  blurShader: {fileID: 0}
+  blurMaterial: {fileID: 0}
+  renderScale: 1
+  blurStrength: 0
+  maxBlurRadius: 6
+  blurIterations: 2
+  blurDownsample: 1
+  crystalLayer: 31
+  orthographicSize: 0.78
+  cameraDistance: 4
+  crystalWorldScale: 1.85
+  moduleEnabled: 1
+  onlyIn4DMode: 0
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

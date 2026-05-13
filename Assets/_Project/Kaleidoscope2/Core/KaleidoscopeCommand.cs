@@ -48,7 +48,25 @@ namespace Kaleidoscope2.Core
         SetVisualMotionFlightSpeedUnits = 40,
         SetVisualMotionImageOffset = 41,
         ResetVisualMotion = 42,
-        TriggerVisualMotionShake = 43
+        TriggerVisualMotionShake = 43,
+        StartImageReanimation = 44,
+        SetVisualMotionImageVelocity = 45,
+        ToggleVisualMotionImageInertia = 46,
+        SetVisualMotionImageInertia = 47,
+        SetDiamondRotationDirection = 48,
+        AdjustDiamondRotationSpeed = 49,
+        SetDiamondRotationSpeed = 50,
+        NextDiamondShape = 51,
+        PreviousDiamondShape = 52,
+        SetDiamondShape = 53,
+        SetDiamondFocusEnabled = 54,
+        ToggleDiamondFocus = 55,
+        IncreaseDiamondRotationSpeed = 56,
+        DecreaseDiamondRotationSpeed = 57,
+        ToggleHotkeysHelp = 58,
+        SetHotkeysHelpVisible = 59,
+        CycleDiamondMaterialMode = 60,
+        SetDiamondMaterialMode = 61
     }
 
     [Serializable]
@@ -427,6 +445,137 @@ namespace Kaleidoscope2.Core
             return new KaleidoscopeCommand(KaleidoscopeCommandType.TriggerVisualMotionShake)
             {
                 visualModeValue = visualMode
+            };
+        }
+
+        public static KaleidoscopeCommand StartImageReanimation()
+        {
+            return new KaleidoscopeCommand(KaleidoscopeCommandType.StartImageReanimation);
+        }
+
+        public static KaleidoscopeCommand SetVisualMotionImageVelocity(KaleidoscopeVisualMode visualMode, Vector2 imageVelocity)
+        {
+            return new KaleidoscopeCommand(KaleidoscopeCommandType.SetVisualMotionImageVelocity)
+            {
+                visualModeValue = visualMode,
+                vector2Value = imageVelocity
+            };
+        }
+
+        public static KaleidoscopeCommand ToggleVisualMotionImageInertia(KaleidoscopeVisualMode visualMode)
+        {
+            return new KaleidoscopeCommand(KaleidoscopeCommandType.ToggleVisualMotionImageInertia)
+            {
+                visualModeValue = visualMode
+            };
+        }
+
+        public static KaleidoscopeCommand SetVisualMotionImageInertia(KaleidoscopeVisualMode visualMode, bool enabled)
+        {
+            return new KaleidoscopeCommand(KaleidoscopeCommandType.SetVisualMotionImageInertia)
+            {
+                visualModeValue = visualMode,
+                boolValue = enabled
+            };
+        }
+
+        public static KaleidoscopeCommand SetDiamondRotationDirection(Vector2 direction)
+        {
+            return new KaleidoscopeCommand(KaleidoscopeCommandType.SetDiamondRotationDirection)
+            {
+                vector2Value = direction
+            };
+        }
+
+        public static KaleidoscopeCommand AdjustDiamondRotationSpeed(float delta)
+        {
+            return new KaleidoscopeCommand(KaleidoscopeCommandType.AdjustDiamondRotationSpeed)
+            {
+                floatValue = delta
+            };
+        }
+
+        public static KaleidoscopeCommand SetDiamondRotationSpeed(float speed)
+        {
+            return new KaleidoscopeCommand(KaleidoscopeCommandType.SetDiamondRotationSpeed)
+            {
+                floatValue = speed
+            };
+        }
+
+        public static KaleidoscopeCommand IncreaseDiamondRotationSpeed(float amount)
+        {
+            return new KaleidoscopeCommand(KaleidoscopeCommandType.IncreaseDiamondRotationSpeed)
+            {
+                floatValue = amount
+            };
+        }
+
+        public static KaleidoscopeCommand DecreaseDiamondRotationSpeed(float amount)
+        {
+            return new KaleidoscopeCommand(KaleidoscopeCommandType.DecreaseDiamondRotationSpeed)
+            {
+                floatValue = amount
+            };
+        }
+
+        public static KaleidoscopeCommand NextDiamondShape()
+        {
+            return new KaleidoscopeCommand(KaleidoscopeCommandType.NextDiamondShape);
+        }
+
+        public static KaleidoscopeCommand PreviousDiamondShape()
+        {
+            return new KaleidoscopeCommand(KaleidoscopeCommandType.PreviousDiamondShape);
+        }
+
+        public static KaleidoscopeCommand SetDiamondShape(DiamondFocusShape shape)
+        {
+            return new KaleidoscopeCommand(KaleidoscopeCommandType.SetDiamondShape)
+            {
+                intValue = (int)shape
+            };
+        }
+
+        public static KaleidoscopeCommand CycleDiamondMaterialMode(int direction)
+        {
+            return new KaleidoscopeCommand(KaleidoscopeCommandType.CycleDiamondMaterialMode)
+            {
+                intValue = direction
+            };
+        }
+
+        public static KaleidoscopeCommand SetDiamondMaterialMode(DiamondCrystalMaterialMode mode)
+        {
+            return new KaleidoscopeCommand(KaleidoscopeCommandType.SetDiamondMaterialMode)
+            {
+                intValue = (int)mode
+            };
+        }
+
+        public static KaleidoscopeCommand SetDiamondFocusEnabled(bool enabled)
+        {
+            return new KaleidoscopeCommand(KaleidoscopeCommandType.SetDiamondFocusEnabled)
+            {
+                boolValue = enabled
+            };
+        }
+
+        public static KaleidoscopeCommand ToggleDiamondFocus()
+        {
+            return new KaleidoscopeCommand(KaleidoscopeCommandType.ToggleDiamondFocus);
+        }
+
+        public static KaleidoscopeCommand ToggleHotkeysHelp()
+        {
+            return new KaleidoscopeCommand(KaleidoscopeCommandType.ToggleHotkeysHelp);
+        }
+
+        public static KaleidoscopeCommand SetHotkeysHelpVisible(bool visible)
+        {
+            return new KaleidoscopeCommand(KaleidoscopeCommandType.SetHotkeysHelpVisible)
+            {
+                boolValue = visible
             };
         }
 

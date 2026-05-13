@@ -20,7 +20,8 @@ namespace Kaleidoscope2.Core
         DepthWarp = 12,
         OpticalLook = 13,
         VolumetricIllusion = 14,
-        SevenD = 15
+        SevenD = 15,
+        DiamondFocus = 16
     }
 
     [Serializable]

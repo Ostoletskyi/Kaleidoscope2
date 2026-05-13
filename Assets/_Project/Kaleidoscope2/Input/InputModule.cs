@@ -1,4 +1,5 @@
 using Kaleidoscope2.Core;
+using Kaleidoscope2.DiamondFocus;
 using Kaleidoscope2.Tunnel;
 using System;
 using UnityEngine;
@@ -9,14 +10,18 @@ namespace Kaleidoscope2.InputSystem
     [DisallowMultipleComponent]
     public sealed class InputModule : KaleidoscopeModuleBase
     {
+        private const string DiamondFocusModuleId = "DiamondFocus";
+
         [Header("References")]
         [SerializeField] private KaleidoscopeDirector director;
 
         [Header("Keys")]
         [SerializeField] private KeyCode toggleMenuKey = KeyCode.Mouse2;
         [SerializeField] private KeyCode closeMenuKey = KeyCode.Escape;
+        [SerializeField] private KeyCode toggleHotkeysHelpKey = KeyCode.F1;
         [SerializeField] private KeyCode toggleGuidesKey = KeyCode.Keypad0;
         [SerializeField] private KeyCode toggleGuidesAlternateKey = KeyCode.Alpha0;
+        [SerializeField] private KeyCode reanimateImageKey = KeyCode.KeypadMultiply;
 
         [Header("Mirror Control")]
         // Legacy: older scene iterations serialized this. Kept for backward compatibility.
@@ -44,6 +49,12 @@ namespace Kaleidoscope2.InputSystem
         [Header("2D Keys (Russian layout й / у / ц / ы / ф / в)")]
         [SerializeField] private ModeMotionInputProfile classicMotionKeys = new ModeMotionInputProfile();
 
+        [Header("2D Inertial Shift (Russian layout к)")]
+        [SerializeField] private KeyCode classicShiftInertiaToggleKey = KeyCode.R;
+        [SerializeField] private float classicShiftAccelerationPerSecond = 0.85f;
+        [SerializeField] private float classicShiftMaxSpeed = 1.2f;
+        [SerializeField] private float classicShiftInertiaStopSeconds = 5f;
+
         [Header("3D Tunnel Distortion (WASD / Russian layout ц ф ы в)")]
         [SerializeField] private ModeMotionInputProfile tunnelMotionKeys = new ModeMotionInputProfile();
         [SerializeField] private float bendStepPerSecond = 1.25f;
@@ -60,6 +71,28 @@ namespace Kaleidoscope2.InputSystem
         [SerializeField] private KeyCode hoseBendDownKey = KeyCode.K;
         [SerializeField] private KeyCode hoseBendLeftKey = KeyCode.J;
         [SerializeField] private KeyCode hoseBendRightKey = KeyCode.L;
+
+        [Header("Diamond Focus")]
+        [SerializeField] private KeyCode diamondRotateLeftKey = KeyCode.A;
+        [SerializeField] private KeyCode diamondRotateRightKey = KeyCode.D;
+        [SerializeField] private KeyCode diamondRotateUpKey = KeyCode.W;
+        [SerializeField] private KeyCode diamondRotateDownKey = KeyCode.S;
+        [SerializeField] private bool diamondLegacyWasdControlsEnabled;
+        [SerializeField] private KeyCode diamondRotateDownLeftKey = KeyCode.Keypad1;
+        [SerializeField] private KeyCode diamondRotateDownKeypadKey = KeyCode.Keypad2;
+        [SerializeField] private KeyCode diamondRotateDownRightKey = KeyCode.Keypad3;
+        [SerializeField] private KeyCode diamondRotateLeftKeypadKey = KeyCode.Keypad4;
+        [SerializeField] private KeyCode diamondRotateRightKeypadKey = KeyCode.Keypad6;
+        [SerializeField] private KeyCode diamondRotateUpLeftKey = KeyCode.Keypad7;
+        [SerializeField] private KeyCode diamondRotateUpKeypadKey = KeyCode.Keypad8;
+        [SerializeField] private KeyCode diamondRotateUpRightKey = KeyCode.Keypad9;
+        [SerializeField] private KeyCode diamondSpeedDecreaseKey = KeyCode.Q;
+        [SerializeField] private KeyCode diamondSpeedIncreaseKey = KeyCode.E;
+        [SerializeField] private KeyCode diamondNextShapeKey = KeyCode.KeypadPlus;
+        [SerializeField] private KeyCode diamondPreviousShapeKey = KeyCode.KeypadMinus;
+        [SerializeField] private KeyCode diamondNextMaterialModeKey = KeyCode.KeypadPeriod;
+        [SerializeField] private KeyCode diamondToggleKey = KeyCode.Backspace;
+        [SerializeField] private float diamondSpeedStepPerSecond = 90f;
 
         [Header("4D Hose Profile (Russian layout г/н and щ/з)")]
         [SerializeField] private float hoseProfileUnitsStepPerSecond = 1000f;
@@ -124,19 +157,28 @@ namespace Kaleidoscope2.InputSystem
                 director.Dispatch(KaleidoscopeCommand.ToggleControlMenu());
             }
 
-            if (director.State.ControlMenuVisible && UnityEngine.Input.GetKeyDown(closeMenuKey))
+            if (UnityEngine.Input.GetKeyDown(toggleHotkeysHelpKey))
+            {
+                director.Dispatch(KaleidoscopeCommand.ToggleHotkeysHelp());
+            }
+
+            if (director.State.HotkeysHelpVisible && UnityEngine.Input.GetKeyDown(closeMenuKey))
+            {
+                director.Dispatch(KaleidoscopeCommand.SetHotkeysHelpVisible(false));
+            }
+            else if (director.State.ControlMenuVisible && UnityEngine.Input.GetKeyDown(closeMenuKey))
             {
                 director.Dispatch(KaleidoscopeCommand.SetControlMenuVisible(false));
             }
 
-            if (UnityEngine.Input.GetKeyDown(toggleGuidesKey) || UnityEngine.Input.GetKeyDown(toggleGuidesAlternateKey))
+            if (UnityEngine.Input.GetKeyDown(diamondToggleKey))
             {
-                director.Dispatch(KaleidoscopeCommand.ToggleMirrorGuides());
+                director.Dispatch(KaleidoscopeCommand.ToggleDiamondFocus());
             }
 
-            if (UnityEngine.Input.GetKeyDown(cycleVisualModeKey))
+            if (UnityEngine.Input.GetKeyDown(reanimateImageKey))
             {
-                CycleVisualMode();
+                director.Dispatch(KaleidoscopeCommand.StartImageReanimation());
             }
 
             if (UnityEngine.Input.GetKeyDown(previousAudioTrackKey))
@@ -152,6 +194,21 @@ namespace Kaleidoscope2.InputSystem
             if (UnityEngine.Input.GetKeyDown(nextAudioTrackKey))
             {
                 director.Dispatch(KaleidoscopeCommand.NextAudioTrack());
+            }
+
+            if (director.State.ImageReanimationActive)
+            {
+                return;
+            }
+
+            if (UnityEngine.Input.GetKeyDown(toggleGuidesKey) || UnityEngine.Input.GetKeyDown(toggleGuidesAlternateKey))
+            {
+                director.Dispatch(KaleidoscopeCommand.ToggleMirrorGuides());
+            }
+
+            if (UnityEngine.Input.GetKeyDown(cycleVisualModeKey))
+            {
+                CycleVisualMode();
             }
 
             // When the menu is open, avoid stealing navigation keys from UI.
@@ -206,6 +263,20 @@ namespace Kaleidoscope2.InputSystem
             float rotation = mirror.RotationSpeed;
             float zoom = mirror.Zoom;
             KaleidoscopeVisualMode visualMode = director.State.ActiveVisualMode;
+            if (visualMode == KaleidoscopeVisualMode.Classic && UnityEngine.Input.GetKeyDown(classicShiftInertiaToggleKey))
+            {
+                director.Dispatch(KaleidoscopeCommand.ToggleVisualMotionImageInertia(KaleidoscopeVisualMode.Classic));
+            }
+
+            bool diamondControlsActive = director.State.DiamondFocusSettings != null
+                && IsDiamondFocusModuleRegistered()
+                && director.State.DiamondFocusSettings.Enabled;
+
+            if (diamondControlsActive)
+            {
+                DispatchDiamondControls(deltaTime);
+            }
+
             TunnelSettings tunnelSettings = director.State.TunnelSettings;
             Vector2 tunnelBend = tunnelSettings != null ? tunnelSettings.Bend : Vector2.zero;
             float hoseOpeningUnits = tunnelSettings != null ? tunnelSettings.HoseOpeningUnits : 0f;
@@ -215,6 +286,7 @@ namespace Kaleidoscope2.InputSystem
             VisualMotionSettings visualMotionSettings = director.State.GetVisualMotionSettings(visualMode);
             float visualFlightSpeedUnits = visualMotionSettings != null ? visualMotionSettings.FlightSpeedUnits : 0f;
             Vector2 visualImageOffset = visualMotionSettings != null ? visualMotionSettings.ImageOffset : Vector2.zero;
+            Vector2 visualImageVelocity = visualMotionSettings != null ? visualMotionSettings.ImageOffsetVelocity : Vector2.zero;
             ModeMotionInputProfile motionKeys = GetModeMotionKeys(visualMode);
             Vector2 hoseInput = Vector2.zero;
 
@@ -226,6 +298,9 @@ namespace Kaleidoscope2.InputSystem
             float fiveDFlightDelta = Mathf.Max(0f, fiveDFlightSpeedUnitsStepPerSecond) * deltaTime;
             float visualMotionFlightDelta = motionKeys != null ? Mathf.Max(0f, motionKeys.FlightSpeedUnitsStepPerSecond) * deltaTime : 0f;
             float visualMotionOffsetDelta = motionKeys != null ? Mathf.Max(0f, motionKeys.ImageOffsetStepPerSecond) * deltaTime : 0f;
+            bool classicInertialShift = visualMode == KaleidoscopeVisualMode.Classic
+                && visualMotionSettings != null
+                && visualMotionSettings.ImageShiftInertiaEnabled;
 
             if (UnityEngine.Input.GetKey(zoomInKey))
             {
@@ -278,16 +353,42 @@ namespace Kaleidoscope2.InputSystem
                     imageMotionInput.Normalize();
                 }
 
-                if (imageMotionInput.sqrMagnitude > 0.0001f)
+                if (classicInertialShift)
+                {
+                    float maxShiftSpeed = Mathf.Max(0.01f, classicShiftMaxSpeed);
+                    if (imageMotionInput.sqrMagnitude > 0.0001f)
+                    {
+                        Vector2 targetVelocity = imageMotionInput * maxShiftSpeed;
+                        float acceleration = Mathf.Max(0f, classicShiftAccelerationPerSecond) * deltaTime;
+                        visualImageVelocity = Vector2.MoveTowards(visualImageVelocity, targetVelocity, acceleration);
+                    }
+                    else
+                    {
+                        float stopSeconds = Mathf.Max(0.1f, classicShiftInertiaStopSeconds);
+                        float deceleration = maxShiftSpeed / stopSeconds * deltaTime;
+                        visualImageVelocity = Vector2.MoveTowards(visualImageVelocity, Vector2.zero, deceleration);
+                    }
+
+                    if (visualImageVelocity.sqrMagnitude > 0.000001f)
+                    {
+                        visualImageOffset += visualImageVelocity * deltaTime;
+                    }
+                }
+                else if (imageMotionInput.sqrMagnitude > 0.0001f)
                 {
                     visualImageOffset += imageMotionInput * visualMotionOffsetDelta;
                 }
-
-                if (IsModeShakePressed(visualMode, motionKeys))
+                else if (visualImageVelocity.sqrMagnitude > 0.000001f)
                 {
-                    director.Dispatch(KaleidoscopeCommand.TriggerVisualMotionShake(visualMode));
-                    director.Dispatch(KaleidoscopeCommand.TriggerSourceNextImage());
+                    visualImageVelocity = Vector2.zero;
                 }
+
+            }
+
+            if (motionKeys != null && visualMotionSettings != null && IsModeShakePressed(visualMode, motionKeys))
+            {
+                director.Dispatch(KaleidoscopeCommand.TriggerVisualMotionShake(visualMode));
+                director.Dispatch(KaleidoscopeCommand.TriggerSourceNextImage());
             }
 
             if (visualMode == KaleidoscopeVisualMode.Tunnel)
@@ -354,11 +455,11 @@ namespace Kaleidoscope2.InputSystem
 
             if (visualMode == KaleidoscopeVisualMode.FiveD)
             {
-                if (UnityEngine.Input.GetKey(fiveDFlightSpeedIncreaseKey) || UnityEngine.Input.GetKey(fiveDFlightSpeedIncreaseFallbackKey))
+                if ((!diamondControlsActive && UnityEngine.Input.GetKey(fiveDFlightSpeedIncreaseKey)) || UnityEngine.Input.GetKey(fiveDFlightSpeedIncreaseFallbackKey))
                 {
                     fiveDFlightSpeedUnits += fiveDFlightDelta;
                 }
-                if (UnityEngine.Input.GetKey(fiveDFlightSpeedDecreaseKey) || UnityEngine.Input.GetKey(fiveDFlightSpeedDecreaseFallbackKey))
+                if ((!diamondControlsActive && UnityEngine.Input.GetKey(fiveDFlightSpeedDecreaseKey)) || UnityEngine.Input.GetKey(fiveDFlightSpeedDecreaseFallbackKey))
                 {
                     fiveDFlightSpeedUnits -= fiveDFlightDelta;
                 }
@@ -371,18 +472,18 @@ namespace Kaleidoscope2.InputSystem
 
             if (visualMode == KaleidoscopeVisualMode.SevenD)
             {
-                if (UnityEngine.Input.GetKeyDown(sevenDNextStrategyKey) || UnityEngine.Input.GetKeyDown(sevenDNextStrategyFallbackKey))
+                if ((!diamondControlsActive && UnityEngine.Input.GetKeyDown(sevenDNextStrategyKey)) || UnityEngine.Input.GetKeyDown(sevenDNextStrategyFallbackKey))
                 {
                     director.Dispatch(KaleidoscopeCommand.CycleSevenDStrategy(1));
                 }
 
-                if (UnityEngine.Input.GetKeyDown(sevenDPreviousStrategyKey) || UnityEngine.Input.GetKeyDown(sevenDPreviousStrategyFallbackKey))
+                if ((!diamondControlsActive && UnityEngine.Input.GetKeyDown(sevenDPreviousStrategyKey)) || UnityEngine.Input.GetKeyDown(sevenDPreviousStrategyFallbackKey))
                 {
                     director.Dispatch(KaleidoscopeCommand.CycleSevenDStrategy(-1));
                 }
             }
 
-            if (UnityEngine.Input.GetKeyDown(resetSpeedsKey))
+            if (!diamondControlsActive && UnityEngine.Input.GetKeyDown(resetSpeedsKey))
             {
                 rotation = 0f;
                 tunnelBend = Vector2.zero;
@@ -391,6 +492,7 @@ namespace Kaleidoscope2.InputSystem
                 fiveDFlightSpeedUnits = 0f;
                 visualFlightSpeedUnits = 0f;
                 visualImageOffset = Vector2.zero;
+                visualImageVelocity = Vector2.zero;
                 tunnelBendController.Reset(director.State);
                 director.Dispatch(KaleidoscopeCommand.ResetTunnelHoseProfile());
                 ResetAllVisualMotion();
@@ -444,6 +546,11 @@ namespace Kaleidoscope2.InputSystem
                 director.Dispatch(KaleidoscopeCommand.SetVisualMotionImageOffset(visualMode, visualImageOffset));
             }
 
+            if (visualMotionSettings != null && visualImageVelocity != visualMotionSettings.ImageOffsetVelocity)
+            {
+                director.Dispatch(KaleidoscopeCommand.SetVisualMotionImageVelocity(visualMode, visualImageVelocity));
+            }
+
             if (visualMode == KaleidoscopeVisualMode.Hose)
             {
                 tunnelBendController.Tick(director.State, hoseInput, deltaTime);
@@ -473,9 +580,12 @@ namespace Kaleidoscope2.InputSystem
             float flightSpeed = fiveDSettings != null ? fiveDSettings.FlightSpeedUnits : 0f;
             VisualMotionSettings visualMotion = director.State.GetVisualMotionSettings(director.State.ActiveVisualMode);
             float modeFlightSpeed = visualMotion != null ? visualMotion.FlightSpeedUnits : 0f;
+            bool classicInertia = director.State.ActiveVisualMode == KaleidoscopeVisualMode.Classic
+                && visualMotion != null
+                && visualMotion.ImageShiftInertiaEnabled;
             SevenDSettings sevenDSettings = director.State.SevenDSettings;
             string sevenDStrategy = sevenDSettings != null ? sevenDSettings.StrategyLabel : "None";
-            return CreateStatus("Zoom " + mirror.Zoom.ToString("0.00") + ", Rotation " + mirror.RotationSpeed.ToString("0") + ", 3D bend " + bend.ToString("0.00") + ", 4D hose " + hoseBend.ToString("0.00") + ", G " + opening.ToString("0") + ", Shch " + curvature.ToString("0") + ", 4D CA " + (chromaticAberration ? "on" : "off") + ", 5D flight " + flightSpeed.ToString("0") + ", mode flight " + modeFlightSpeed.ToString("0") + ", 7D " + sevenDStrategy + ".");
+            return CreateStatus("Zoom " + mirror.Zoom.ToString("0.00") + ", Rotation " + mirror.RotationSpeed.ToString("0") + ", 3D bend " + bend.ToString("0.00") + ", 4D hose " + hoseBend.ToString("0.00") + ", G " + opening.ToString("0") + ", Shch " + curvature.ToString("0") + ", 4D CA " + (chromaticAberration ? "on" : "off") + ", 5D flight " + flightSpeed.ToString("0") + ", mode flight " + modeFlightSpeed.ToString("0") + ", 2D inertia " + (classicInertia ? "on" : "off") + ", 7D " + sevenDStrategy + ".");
         }
 
         private void CycleVisualMode()
@@ -566,6 +676,87 @@ namespace Kaleidoscope2.InputSystem
             director.Dispatch(KaleidoscopeCommand.ResetVisualMotion(KaleidoscopeVisualMode.Hose));
             director.Dispatch(KaleidoscopeCommand.ResetVisualMotion(KaleidoscopeVisualMode.SixD));
             director.Dispatch(KaleidoscopeCommand.ResetVisualMotion(KaleidoscopeVisualMode.SevenD));
+        }
+
+        private void DispatchDiamondControls(float deltaTime)
+        {
+            Vector2 direction = DiamondInputRouter.NormalizeNumpadRotationInput(
+                UnityEngine.Input.GetKey(diamondRotateDownLeftKey),
+                UnityEngine.Input.GetKey(diamondRotateDownKeypadKey),
+                UnityEngine.Input.GetKey(diamondRotateDownRightKey),
+                UnityEngine.Input.GetKey(diamondRotateLeftKeypadKey),
+                UnityEngine.Input.GetKey(diamondRotateRightKeypadKey),
+                UnityEngine.Input.GetKey(diamondRotateUpLeftKey),
+                UnityEngine.Input.GetKey(diamondRotateUpKeypadKey),
+                UnityEngine.Input.GetKey(diamondRotateUpRightKey));
+
+            if (diamondLegacyWasdControlsEnabled)
+            {
+                direction += DiamondInputRouter.NormalizeDirectionInput(
+                    UnityEngine.Input.GetKey(diamondRotateLeftKey),
+                    UnityEngine.Input.GetKey(diamondRotateRightKey),
+                    UnityEngine.Input.GetKey(diamondRotateUpKey),
+                    UnityEngine.Input.GetKey(diamondRotateDownKey));
+                if (direction.sqrMagnitude > 1f)
+                {
+                    direction.Normalize();
+                }
+            }
+
+            DiamondFocusSettings settings = director.State.DiamondFocusSettings;
+            if (settings == null || direction != settings.TargetRotationDirection)
+            {
+                DiamondInputRouter.DispatchDirection(director, direction);
+            }
+
+            float speedDelta = 0f;
+            float step = Mathf.Max(0f, diamondSpeedStepPerSecond) * Mathf.Max(0f, deltaTime);
+            if (diamondLegacyWasdControlsEnabled && UnityEngine.Input.GetKey(diamondSpeedIncreaseKey))
+            {
+                speedDelta += step;
+            }
+
+            if (diamondLegacyWasdControlsEnabled && UnityEngine.Input.GetKey(diamondSpeedDecreaseKey))
+            {
+                speedDelta -= step;
+            }
+
+            DiamondInputRouter.DispatchSpeedDelta(director, speedDelta);
+
+            if (UnityEngine.Input.GetKeyDown(diamondNextShapeKey))
+            {
+                director.Dispatch(KaleidoscopeCommand.NextDiamondShape());
+            }
+
+            if (UnityEngine.Input.GetKeyDown(diamondPreviousShapeKey))
+            {
+                director.Dispatch(KaleidoscopeCommand.PreviousDiamondShape());
+            }
+
+            if (UnityEngine.Input.GetKeyDown(diamondNextMaterialModeKey))
+            {
+                director.Dispatch(KaleidoscopeCommand.CycleDiamondMaterialMode(1));
+            }
+        }
+
+        private bool IsDiamondFocusModuleRegistered()
+        {
+            if (director == null)
+            {
+                return false;
+            }
+
+            var modules = director.RegisteredModules;
+            for (int index = 0; index < modules.Count; index++)
+            {
+                IKaleidoscopeModule module = modules[index];
+                if (module != null && module.ModuleId == DiamondFocusModuleId)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         [Serializable]

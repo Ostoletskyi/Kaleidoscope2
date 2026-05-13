@@ -30,6 +30,8 @@ namespace Kaleidoscope2.Mirror
         private Material runtimeMaterial;
         private RenderTexture outputTexture;
         private float scroll;
+        private float scrollRecoveryStart;
+        private bool scrollRecoveryActive;
         private float motionShakeRemaining;
         private float motionShakeSeed = 0.37f;
 
@@ -129,6 +131,16 @@ namespace Kaleidoscope2.Mirror
                 }
             }
 
+            if (scrollRecoveryActive && State.ImageReanimationActive)
+            {
+                scroll = Mathf.Lerp(scrollRecoveryStart, 0f, State.ImageReanimationBlend);
+            }
+            else if (scrollRecoveryActive)
+            {
+                scroll = 0f;
+                scrollRecoveryActive = false;
+            }
+
             if (motionShakeRemaining > 0f)
             {
                 motionShakeRemaining = Mathf.Max(0f, motionShakeRemaining - Mathf.Max(0f, deltaTime));
@@ -151,20 +163,26 @@ namespace Kaleidoscope2.Mirror
                 || command.Type == KaleidoscopeCommandType.SetMirrorGuidesVisible
                 || command.Type == KaleidoscopeCommandType.SetMirrorRotationSpeedUnits
                 || command.Type == KaleidoscopeCommandType.SetMirrorForwardSpeedUnits
-                || command.Type == KaleidoscopeCommandType.TriggerVisualMotionShake;
+                || command.Type == KaleidoscopeCommandType.TriggerVisualMotionShake
+                || command.Type == KaleidoscopeCommandType.StartImageReanimation;
         }
 
         public override void HandleCommand(KaleidoscopeCommand command)
         {
-            if (command == null || command.Type != KaleidoscopeCommandType.TriggerVisualMotionShake)
+            if (command == null)
             {
                 return;
             }
 
-            if (command.VisualModeValue == KaleidoscopeVisualMode.Classic)
+            if (command.Type == KaleidoscopeCommandType.TriggerVisualMotionShake && command.VisualModeValue == KaleidoscopeVisualMode.Classic)
             {
                 motionShakeRemaining = Mathf.Max(0.01f, motionShakeDuration);
                 motionShakeSeed = Time.unscaledTime + 0.37f;
+            }
+            else if (command.Type == KaleidoscopeCommandType.StartImageReanimation)
+            {
+                scrollRecoveryStart = scroll;
+                scrollRecoveryActive = true;
             }
         }
 

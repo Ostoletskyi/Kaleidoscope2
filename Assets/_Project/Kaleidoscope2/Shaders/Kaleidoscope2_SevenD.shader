@@ -13,6 +13,7 @@ Shader "Kaleidoscope2/SevenD"
         _MotionOffset ("Motion Offset", Vector) = (0, 0, 0, 0)
         _FlightTime ("Flight Time", Float) = 0
         _MotionShake ("Motion Shake", Range(0,1)) = 0
+        _ImageReanimationBlend ("Image Reanimation Blend", Range(0,1)) = 0
     }
     SubShader
     {
@@ -40,6 +41,7 @@ Shader "Kaleidoscope2/SevenD"
             float4 _MotionOffset;
             float _FlightTime;
             float _MotionShake;
+            float _ImageReanimationBlend;
 
             static const float PI = 3.14159265;
             static const float TWO_PI = 6.28318531;
@@ -254,7 +256,8 @@ Shader "Kaleidoscope2/SevenD"
                 fixed4 finalColor = lerp(source, remapped, saturate(_EffectStrength));
                 finalColor.rgb = lerp(finalColor.rgb, source.rgb, sourceAnchor + centerStability);
                 finalColor.a = source.a;
-                return finalColor;
+                fixed4 cleanCol = tex2D(_MainTex, uv);
+                return lerp(finalColor, cleanCol, saturate(_ImageReanimationBlend));
             }
             ENDCG
         }
