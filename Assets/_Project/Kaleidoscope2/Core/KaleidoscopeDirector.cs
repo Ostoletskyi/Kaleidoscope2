@@ -383,6 +383,14 @@ namespace Kaleidoscope2.Core
                     state.SetHotkeysHelpVisible(command.BoolValue);
                     return true;
 
+                case KaleidoscopeCommandType.ToggleSecondDisplayOutput:
+                    state.ToggleSecondDisplayOutput();
+                    return true;
+
+                case KaleidoscopeCommandType.SetSecondDisplayOutputEnabled:
+                    state.SetSecondDisplayOutputEnabled(command.BoolValue);
+                    return true;
+
                 case KaleidoscopeCommandType.SetDiamondFocusEnabled:
                     state.DiamondFocusSettings.SetEnabled(command.BoolValue);
                     return true;

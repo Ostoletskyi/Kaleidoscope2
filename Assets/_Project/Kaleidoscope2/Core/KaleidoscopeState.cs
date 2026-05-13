@@ -76,6 +76,7 @@ namespace Kaleidoscope2.Core
         [SerializeField] private string audioFolderPath = string.Empty;
         [SerializeField] private bool controlMenuVisible;
         [SerializeField] private bool hotkeysHelpVisible;
+        [SerializeField] private bool secondDisplayOutputEnabled;
         [SerializeField] private string activePreset = "None";
         [SerializeField] private bool tunnelEnabled;
         [SerializeField] private KaleidoscopeRecordingStatus recordingStatus = KaleidoscopeRecordingStatus.Idle;
@@ -191,6 +192,11 @@ namespace Kaleidoscope2.Core
         public bool HotkeysHelpVisible
         {
             get { return hotkeysHelpVisible; }
+        }
+
+        public bool SecondDisplayOutputEnabled
+        {
+            get { return secondDisplayOutputEnabled; }
         }
 
         public string ActivePreset
@@ -416,6 +422,16 @@ namespace Kaleidoscope2.Core
         public void ToggleHotkeysHelpVisible()
         {
             SetHotkeysHelpVisible(!hotkeysHelpVisible);
+        }
+
+        public void SetSecondDisplayOutputEnabled(bool enabled)
+        {
+            secondDisplayOutputEnabled = enabled;
+        }
+
+        public void ToggleSecondDisplayOutput()
+        {
+            secondDisplayOutputEnabled = !secondDisplayOutputEnabled;
         }
 
         public void SetFramesPerSecond(float framesPerSecond)

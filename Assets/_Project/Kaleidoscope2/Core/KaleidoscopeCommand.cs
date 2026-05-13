@@ -66,7 +66,11 @@ namespace Kaleidoscope2.Core
         ToggleHotkeysHelp = 58,
         SetHotkeysHelpVisible = 59,
         CycleDiamondMaterialMode = 60,
-        SetDiamondMaterialMode = 61
+        SetDiamondMaterialMode = 61,
+        ToggleSecondDisplayOutput = 62,
+        SetSecondDisplayOutputEnabled = 63,
+        AdjustDiamondRefractionIndex = 64,
+        SetDiamondRefractionIndex = 65
     }
 
     [Serializable]
@@ -553,6 +557,22 @@ namespace Kaleidoscope2.Core
             };
         }
 
+        public static KaleidoscopeCommand AdjustDiamondRefractionIndex(float delta)
+        {
+            return new KaleidoscopeCommand(KaleidoscopeCommandType.AdjustDiamondRefractionIndex)
+            {
+                floatValue = delta
+            };
+        }
+
+        public static KaleidoscopeCommand SetDiamondRefractionIndex(float value)
+        {
+            return new KaleidoscopeCommand(KaleidoscopeCommandType.SetDiamondRefractionIndex)
+            {
+                floatValue = value
+            };
+        }
+
         public static KaleidoscopeCommand SetDiamondFocusEnabled(bool enabled)
         {
             return new KaleidoscopeCommand(KaleidoscopeCommandType.SetDiamondFocusEnabled)
@@ -576,6 +596,19 @@ namespace Kaleidoscope2.Core
             return new KaleidoscopeCommand(KaleidoscopeCommandType.SetHotkeysHelpVisible)
             {
                 boolValue = visible
+            };
+        }
+
+        public static KaleidoscopeCommand ToggleSecondDisplayOutput()
+        {
+            return new KaleidoscopeCommand(KaleidoscopeCommandType.ToggleSecondDisplayOutput);
+        }
+
+        public static KaleidoscopeCommand SetSecondDisplayOutputEnabled(bool enabled)
+        {
+            return new KaleidoscopeCommand(KaleidoscopeCommandType.SetSecondDisplayOutputEnabled)
+            {
+                boolValue = enabled
             };
         }
 

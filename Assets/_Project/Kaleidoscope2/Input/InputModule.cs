@@ -19,6 +19,7 @@ namespace Kaleidoscope2.InputSystem
         [SerializeField] private KeyCode toggleMenuKey = KeyCode.Mouse2;
         [SerializeField] private KeyCode closeMenuKey = KeyCode.Escape;
         [SerializeField] private KeyCode toggleHotkeysHelpKey = KeyCode.F1;
+        [SerializeField] private KeyCode toggleSecondDisplayOutputKey = KeyCode.F12;
         [SerializeField] private KeyCode toggleGuidesKey = KeyCode.Keypad0;
         [SerializeField] private KeyCode toggleGuidesAlternateKey = KeyCode.Alpha0;
         [SerializeField] private KeyCode reanimateImageKey = KeyCode.KeypadMultiply;
@@ -91,8 +92,11 @@ namespace Kaleidoscope2.InputSystem
         [SerializeField] private KeyCode diamondNextShapeKey = KeyCode.KeypadPlus;
         [SerializeField] private KeyCode diamondPreviousShapeKey = KeyCode.KeypadMinus;
         [SerializeField] private KeyCode diamondNextMaterialModeKey = KeyCode.KeypadPeriod;
+        [SerializeField] private KeyCode diamondRefractionIncreaseKey = KeyCode.Home;
+        [SerializeField] private KeyCode diamondRefractionDecreaseKey = KeyCode.End;
         [SerializeField] private KeyCode diamondToggleKey = KeyCode.Backspace;
         [SerializeField] private float diamondSpeedStepPerSecond = 90f;
+        [SerializeField] private float diamondRefractionIndexStepPerSecond = 1f;
 
         [Header("4D Hose Profile (Russian layout г/н and щ/з)")]
         [SerializeField] private float hoseProfileUnitsStepPerSecond = 1000f;
@@ -160,6 +164,11 @@ namespace Kaleidoscope2.InputSystem
             if (UnityEngine.Input.GetKeyDown(toggleHotkeysHelpKey))
             {
                 director.Dispatch(KaleidoscopeCommand.ToggleHotkeysHelp());
+            }
+
+            if (UnityEngine.Input.GetKeyDown(toggleSecondDisplayOutputKey))
+            {
+                director.Dispatch(KaleidoscopeCommand.ToggleSecondDisplayOutput());
             }
 
             if (director.State.HotkeysHelpVisible && UnityEngine.Input.GetKeyDown(closeMenuKey))
@@ -585,7 +594,8 @@ namespace Kaleidoscope2.InputSystem
                 && visualMotion.ImageShiftInertiaEnabled;
             SevenDSettings sevenDSettings = director.State.SevenDSettings;
             string sevenDStrategy = sevenDSettings != null ? sevenDSettings.StrategyLabel : "None";
-            return CreateStatus("Zoom " + mirror.Zoom.ToString("0.00") + ", Rotation " + mirror.RotationSpeed.ToString("0") + ", 3D bend " + bend.ToString("0.00") + ", 4D hose " + hoseBend.ToString("0.00") + ", G " + opening.ToString("0") + ", Shch " + curvature.ToString("0") + ", 4D CA " + (chromaticAberration ? "on" : "off") + ", 5D flight " + flightSpeed.ToString("0") + ", mode flight " + modeFlightSpeed.ToString("0") + ", 2D inertia " + (classicInertia ? "on" : "off") + ", 7D " + sevenDStrategy + ".");
+            string secondDisplay = director.State.SecondDisplayOutputEnabled ? "on" : "off";
+            return CreateStatus("Zoom " + mirror.Zoom.ToString("0.00") + ", Rotation " + mirror.RotationSpeed.ToString("0") + ", 3D bend " + bend.ToString("0.00") + ", 4D hose " + hoseBend.ToString("0.00") + ", G " + opening.ToString("0") + ", Shch " + curvature.ToString("0") + ", 4D CA " + (chromaticAberration ? "on" : "off") + ", 5D flight " + flightSpeed.ToString("0") + ", mode flight " + modeFlightSpeed.ToString("0") + ", 2D inertia " + (classicInertia ? "on" : "off") + ", 7D " + sevenDStrategy + ", Display 2 " + secondDisplay + ".");
         }
 
         private void CycleVisualMode()
@@ -736,6 +746,23 @@ namespace Kaleidoscope2.InputSystem
             if (UnityEngine.Input.GetKeyDown(diamondNextMaterialModeKey))
             {
                 director.Dispatch(KaleidoscopeCommand.CycleDiamondMaterialMode(1));
+            }
+
+            float refractionDelta = 0f;
+            float refractionStep = Mathf.Max(0f, diamondRefractionIndexStepPerSecond) * Mathf.Max(0f, deltaTime);
+            if (UnityEngine.Input.GetKey(diamondRefractionIncreaseKey))
+            {
+                refractionDelta += refractionStep;
+            }
+
+            if (UnityEngine.Input.GetKey(diamondRefractionDecreaseKey))
+            {
+                refractionDelta -= refractionStep;
+            }
+
+            if (Mathf.Abs(refractionDelta) > 0.0001f)
+            {
+                director.Dispatch(KaleidoscopeCommand.AdjustDiamondRefractionIndex(refractionDelta));
             }
         }
 

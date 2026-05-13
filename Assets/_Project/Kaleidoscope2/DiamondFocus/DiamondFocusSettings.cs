@@ -7,9 +7,10 @@ namespace Kaleidoscope2.Core
     {
         ClassicDiamond = 0,
         FacetedCube = 1,
-        TwelveFacetCrystal = 2,
+        DiscoBall = 2,
         TetrahedralCrystal = 3,
-        HighDetailDiamond = 4
+        RhombicCrystal = 4,
+        OvalRingGem = 5
     }
 
     public enum DiamondCrystalMaterialMode
@@ -32,12 +33,19 @@ namespace Kaleidoscope2.Core
     [Serializable]
     public sealed class DiamondFocusSettings
     {
-        public const int ShapeCount = 5;
+        public const int ShapeCount = 6;
         public const int MaterialModeCount = 5;
         public const int GeneratedMaterialKindCount = 4;
+        public const float RefractionIndexMin = 0f;
+        public const float RefractionIndexMax = 10f;
 
         [SerializeField] private bool enabled;
         [SerializeField] private DiamondFocusShape shape = DiamondFocusShape.ClassicDiamond;
+        [SerializeField] private DiamondFocusShape shapeTransitionFromShape = DiamondFocusShape.ClassicDiamond;
+        [SerializeField] private DiamondFocusShape shapeTransitionToShape = DiamondFocusShape.ClassicDiamond;
+        [SerializeField] private bool shapeTransitionActive;
+        [SerializeField] private float shapeTransitionElapsed;
+        [SerializeField, Range(0.1f, 5f)] private float shapeTransitionDuration = 2f;
         [SerializeField] private DiamondCrystalMaterialMode materialMode = DiamondCrystalMaterialMode.Diamond;
         [SerializeField] private DiamondGeneratedMaterialKind generatedMaterialKind = DiamondGeneratedMaterialKind.Wood;
         [SerializeField] private Color generatedMaterialColor = new Color(0.85f, 0.96f, 1f, 1f);
@@ -57,28 +65,64 @@ namespace Kaleidoscope2.Core
         [SerializeField] private float directionAcceleration = 3.5f;
 
         [Header("Optics")]
-        [SerializeField, Range(0f, 1f)] private float transparency = 0.48f;
-        [SerializeField, Range(0f, 0.12f)] private float refractionStrength = 0.042f;
-        [SerializeField, Range(0f, 1f)] private float reflectionStrength = 0.42f;
+        [SerializeField, Range(0f, 1f)] private float transparency;
+        [SerializeField, Range(0f, 0.12f)] private float refractionStrength = 0.074f;
+        [SerializeField, Range(0f, 1f)] private float reflectionStrength = 0.72f;
         [SerializeField, Range(0.5f, 8f)] private float fresnelPower = 3.2f;
-        [SerializeField, Range(0f, 2f)] private float edgeHighlight = 0.9f;
-        [SerializeField, Range(0f, 0.04f)] private float chromaticAberrationBase = 0.004f;
-        [SerializeField, Range(0f, 0.04f)] private float chromaticAberrationExtra = 0.012f;
-        [SerializeField, Range(0f, 2f)] private float facetContrast = 1.05f;
-        [SerializeField, Range(0f, 1.5f)] private float internalGlow = 0.32f;
-        [SerializeField, Range(0f, 3f)] private float bloomBoostBase = 0.24f;
+        [SerializeField, Range(0f, 2f)] private float edgeHighlight = 1.35f;
+        [SerializeField, Range(0f, 0.04f)] private float chromaticAberrationBase = 0.009f;
+        [SerializeField, Range(0f, 0.04f)] private float chromaticAberrationExtra = 0.016f;
+        [SerializeField, Range(0f, 2f)] private float facetContrast = 1.45f;
+        [SerializeField, Range(0f, 1.5f)] private float internalGlow = 0.62f;
+        [SerializeField, Range(0f, 3f)] private float bloomBoostBase = 0.44f;
         [SerializeField, Range(0f, 3f)] private float bloomBoostExtra = 1.25f;
         [SerializeField, Range(0.1f, 1f)] private float screenScale = 0.38f;
 
+        [Header("Cinematic Crystal Optics")]
+        [SerializeField, Range(0f, 2f)] private float diamondLikeRefraction = 1.8f;
+        [SerializeField, Range(0f, 3f)] private float spectralDispersion = 2.25f;
+        [SerializeField, Range(0f, 3f)] private float highEnergyCaustics = 1.85f;
+        [SerializeField, Range(0f, 3f)] private float multiBounceInternalReflections = 1.75f;
+        [SerializeField, Range(0f, 2f)] private float cinematicCrystalOptics = 1.45f;
+        [SerializeField, Range(0f, 2f)] private float physicallyBasedRefraction = 1.55f;
+        [SerializeField, Range(0f, 3f)] private float deepVolumetricLightScattering = 1.35f;
+        [SerializeField, Range(0f, 1f)] private float crystalSolidity = 1f;
+        [SerializeField, Range(0f, 3f)] private float blueWhitePlasmaEnergy = 2.05f;
+        [SerializeField, Range(0f, 1f)] private float directTransmission = 0.06f;
+        [SerializeField, Range(0f, 3f)] private float totalInternalReturn = 1.65f;
+        [SerializeField, Range(0f, 3f)] private float spectralFireIntensity = 1.85f;
+        [SerializeField, Range(0f, 2f)] private float facetDepthContrast = 1.22f;
+
         [Header("Optical Material Mode")]
-        [SerializeField, Range(1f, 3f)] private float opticalIOR = 2.42f;
+        [SerializeField, Range(0f, 10f)] private float opticalIOR = 2.42f;
         [SerializeField, Range(0f, 2f)] private float opticalCaustics = 0.8f;
-        [SerializeField, Range(0f, 2f)] private float opticalDispersion = 0.9f;
-        [SerializeField, Range(0f, 2f)] private float totalInternalReflection = 0.9f;
+        [SerializeField, Range(0f, 2f)] private float opticalDispersion = 1.45f;
+        [SerializeField, Range(0f, 2f)] private float totalInternalReflection = 1.45f;
 
         public bool Enabled { get { return enabled; } }
         public DiamondFocusShape Shape { get { return shape; } }
         public int ShapeIndex { get { return Mathf.Clamp((int)shape, 0, ShapeCount - 1); } }
+        public DiamondFocusShape ShapeTransitionFromShape { get { return shapeTransitionFromShape; } }
+        public DiamondFocusShape ShapeTransitionToShape { get { return shapeTransitionToShape; } }
+        public bool ShapeTransitionActive { get { return shapeTransitionActive; } }
+        public float ShapeTransitionDuration { get { return Mathf.Max(0.1f, shapeTransitionDuration); } }
+        public float ShapeTransitionProgress
+        {
+            get
+            {
+                return shapeTransitionActive
+                    ? Mathf.Clamp01(shapeTransitionElapsed / ShapeTransitionDuration)
+                    : 1f;
+            }
+        }
+        public float ShapeTransitionSmoothProgress
+        {
+            get
+            {
+                float value = ShapeTransitionProgress;
+                return value * value * (3f - 2f * value);
+            }
+        }
         public DiamondCrystalMaterialMode MaterialMode { get { return materialMode; } }
         public int MaterialModeIndex { get { return Mathf.Clamp((int)materialMode, 0, MaterialModeCount - 1); } }
         public DiamondGeneratedMaterialKind GeneratedMaterialKind { get { return generatedMaterialKind; } }
@@ -107,7 +151,21 @@ namespace Kaleidoscope2.Core
         public float InternalGlow { get { return Mathf.Max(0f, internalGlow); } }
         public float BloomBoost { get { return Mathf.Max(0f, bloomBoostBase + NormalizedRotationSpeed * bloomBoostExtra); } }
         public float ScreenScale { get { return Mathf.Clamp(screenScale, 0.1f, 1f); } }
-        public float OpticalIOR { get { return Mathf.Clamp(opticalIOR, 1f, 3f); } }
+        public float DiamondLikeRefraction { get { return Mathf.Max(0f, diamondLikeRefraction); } }
+        public float SpectralDispersion { get { return Mathf.Max(0f, spectralDispersion); } }
+        public float HighEnergyCaustics { get { return Mathf.Max(0f, highEnergyCaustics); } }
+        public float MultiBounceInternalReflections { get { return Mathf.Max(0f, multiBounceInternalReflections); } }
+        public float CinematicCrystalOptics { get { return Mathf.Max(0f, cinematicCrystalOptics); } }
+        public float PhysicallyBasedRefraction { get { return Mathf.Max(0f, physicallyBasedRefraction); } }
+        public float DeepVolumetricLightScattering { get { return Mathf.Max(0f, deepVolumetricLightScattering); } }
+        public float CrystalSolidity { get { return Mathf.Clamp01(crystalSolidity); } }
+        public float BlueWhitePlasmaEnergy { get { return Mathf.Max(0f, blueWhitePlasmaEnergy); } }
+        public float DirectTransmission { get { return Mathf.Clamp01(directTransmission); } }
+        public float TotalInternalReturn { get { return Mathf.Max(0f, totalInternalReturn); } }
+        public float SpectralFireIntensity { get { return Mathf.Max(0f, spectralFireIntensity); } }
+        public float FacetDepthContrast { get { return Mathf.Max(0f, facetDepthContrast); } }
+        public float OpticalIOR { get { return RefractionIndex; } }
+        public float RefractionIndex { get { return Mathf.Clamp(opticalIOR, RefractionIndexMin, RefractionIndexMax); } }
         public float OpticalCaustics { get { return Mathf.Max(0f, opticalCaustics); } }
         public float OpticalDispersion { get { return Mathf.Max(0f, opticalDispersion); } }
         public float TotalInternalReflection { get { return Mathf.Max(0f, totalInternalReflection); } }
@@ -133,6 +191,38 @@ namespace Kaleidoscope2.Core
         public void SetShape(DiamondFocusShape value)
         {
             shape = value;
+            shapeTransitionFromShape = value;
+            shapeTransitionToShape = value;
+            shapeTransitionActive = false;
+            shapeTransitionElapsed = 0f;
+        }
+
+        public void BeginShapeTransition(DiamondFocusShape value)
+        {
+            DiamondFocusShape target = (DiamondFocusShape)Mathf.Clamp((int)value, 0, ShapeCount - 1);
+            DiamondFocusShape from = shapeTransitionActive ? shapeTransitionToShape : shape;
+
+            shape = target;
+            shapeTransitionFromShape = from;
+            shapeTransitionToShape = target;
+            shapeTransitionElapsed = 0f;
+            shapeTransitionActive = from != target;
+        }
+
+        public void TickShapeTransition(float deltaTime)
+        {
+            if (!shapeTransitionActive)
+            {
+                return;
+            }
+
+            shapeTransitionElapsed = Mathf.Min(ShapeTransitionDuration, shapeTransitionElapsed + Mathf.Max(0f, deltaTime));
+            if (shapeTransitionElapsed >= ShapeTransitionDuration)
+            {
+                shapeTransitionActive = false;
+                shapeTransitionFromShape = shapeTransitionToShape;
+                shape = shapeTransitionToShape;
+            }
         }
 
         public void SetShapeIndex(int index)
@@ -213,6 +303,16 @@ namespace Kaleidoscope2.Core
             SetCurrentRotationSpeed(CurrentRotationSpeed + delta);
         }
 
+        public void SetRefractionIndex(float value)
+        {
+            opticalIOR = Mathf.Clamp(value, RefractionIndexMin, RefractionIndexMax);
+        }
+
+        public void AdjustRefractionIndex(float delta)
+        {
+            SetRefractionIndex(RefractionIndex + delta);
+        }
+
         public void SetRotationVelocity(Vector3 value)
         {
             rotationVelocity = Vector3.ClampMagnitude(value, MaxRotationSpeed);
@@ -252,12 +352,14 @@ namespace Kaleidoscope2.Core
             {
                 case DiamondFocusShape.FacetedCube:
                     return "Faceted Cube";
-                case DiamondFocusShape.TwelveFacetCrystal:
-                    return "12-Facet Crystal";
+                case DiamondFocusShape.DiscoBall:
+                    return "Disco Ball";
                 case DiamondFocusShape.TetrahedralCrystal:
-                    return "Tetrahedral Crystal";
-                case DiamondFocusShape.HighDetailDiamond:
-                    return "96-Facet Diamond";
+                    return "Triangular Crystal";
+                case DiamondFocusShape.RhombicCrystal:
+                    return "Rhombic Crystal";
+                case DiamondFocusShape.OvalRingGem:
+                    return "Oval Ring Gem";
                 default:
                     return "Classic Diamond";
             }

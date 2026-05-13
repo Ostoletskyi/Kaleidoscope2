@@ -4,7 +4,7 @@ Stage: DIAMOND-FOCUS-02
 
 ## Responsibility
 
-`DiamondFocusModule` is a reusable downstream optical layer. It consumes the already-rendered kaleidoscope texture from any scene that registers it and adds a central transparent faceted diamond/crystal plus a lightweight background blur pass.
+`DiamondFocusModule` is a reusable downstream optical layer. It consumes the already-rendered kaleidoscope texture from any scene that registers it and adds a central solid faceted diamond/crystal plus a lightweight background blur pass.
 
 ## Pipeline
 
@@ -44,9 +44,10 @@ Forbidden:
 - `Numpad 4`: accelerate yaw left.
 - `Numpad 6`: accelerate yaw right.
 - `Numpad 7 / 9 / 1 / 3`: accelerate diagonal rotation.
-- `Numpad +`: next diamond shape.
-- `Numpad -`: previous diamond shape.
+- `Numpad +`: next diamond shape with a 2 second morph.
+- `Numpad -`: previous diamond shape with a 2 second morph.
 - `Numpad . / Delete`: next crystal material mode.
+- `Home / End`: increase / decrease refraction index in the range `0..10`.
 
 When Diamond Focus is off, numpad controls return to the rest of the project. When it is on, the numpad rotation keys are reserved for the crystal in every visual mode.
 
@@ -54,9 +55,10 @@ When Diamond Focus is off, numpad controls return to the rest of the project. Wh
 
 1. Classic diamond
 2. Faceted cube
-3. 12-facet crystal
-4. Tetrahedral crystal
-5. 96-facet diamond
+3. Disco-ball style faceted sphere
+4. Triangular crystal
+5. Rhombic crystal
+6. Oval ring gem
 
 ## Crystal Material Modes
 
@@ -68,9 +70,28 @@ When Diamond Focus is off, numpad controls return to the rest of the project. Wh
 4. Optical object approximation using IOR, caustics, dispersion, and total internal reflection controls.
 5. Generated material: one of wood, metal, plastic, or stone is picked every time the mode is selected.
 
+## Cinematic Crystal Optics
+
+The crystal shader exposes an artistic optical stack for a stronger high-end look:
+
+- `diamondLikeRefraction`: stronger diamond-style bending of the kaleidoscope image.
+- `spectralDispersion`: wider RGB splitting and spectral fire on facets.
+- `highEnergyCaustics`: bright caustic streaks and flashes on internal facet intersections.
+- `multiBounceInternalReflections`: extra internal reflection samples before final compositing.
+- `cinematicCrystalOptics`: global polish/glow shaping for a more filmic crystal response.
+- `physicallyBasedRefraction`: screen-space approximation driven by IOR and refracted vectors.
+- `deepVolumetricLightScattering`: soft internal light volume, kept inside the crystal layer.
+- `crystalSolidity`: keeps the composite in an opaque real-stone presence. Default is fully solid.
+- `blueWhitePlasmaEnergy`: boosts cold white-blue internal caustics and high-energy facet flashes.
+- `directTransmission`: limits how much raw background can pass straight through the crystal. Default is very low, so the object reads as a dense diamond instead of cheap glass.
+- `totalInternalReturn`: boosts total-internal-reflection style light return toward the viewer.
+- `spectralFireIntensity`: controls rainbow fire from dispersion and caustic bands.
+- `facetDepthContrast`: deepens dark/bright facet separation so the cut feels dimensional.
+- `opticalIOR`: runtime refraction index, controlled by `Home / End` and clamped to `0..10`.
+
 ## 3D Rendering
 
-The current implementation renders actual Unity meshes into a module-owned transparent RenderTexture with an explicit internal offscreen camera. The glass shader samples the already-rendered kaleidoscope texture to approximate refraction and reflection. A separate separable Gaussian pass blurs only the background, then the composite shader blends the sharp crystal over that blurred background.
+The current implementation renders actual Unity meshes into a module-owned RenderTexture with an explicit internal offscreen camera. The crystal shader writes a solid alpha mask, suppresses direct transmission, and uses refracted/reflected samples from the already-rendered kaleidoscope texture as indirect internal light. Diamond mode is dominated by total internal reflection, dark facet depth, cold white-blue return light, and spectral fire rather than simple background visibility. A separate separable Gaussian pass blurs only the background, then the composite shader places the sharp crystal over that blurred background.
 
 Background blur is speed-driven:
 

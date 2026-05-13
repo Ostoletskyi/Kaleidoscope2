@@ -81,6 +81,7 @@ namespace Kaleidoscope2.DiamondFocus
                 return;
             }
 
+            shapeController.Tick(settings, deltaTime);
             rotationController.Tick(settings, deltaTime);
         }
 
@@ -100,7 +101,9 @@ namespace Kaleidoscope2.DiamondFocus
                 || command.Type == KaleidoscopeCommandType.PreviousDiamondShape
                 || command.Type == KaleidoscopeCommandType.SetDiamondShape
                 || command.Type == KaleidoscopeCommandType.CycleDiamondMaterialMode
-                || command.Type == KaleidoscopeCommandType.SetDiamondMaterialMode;
+                || command.Type == KaleidoscopeCommandType.SetDiamondMaterialMode
+                || command.Type == KaleidoscopeCommandType.AdjustDiamondRefractionIndex
+                || command.Type == KaleidoscopeCommandType.SetDiamondRefractionIndex;
         }
 
         public override void HandleCommand(KaleidoscopeCommand command)
@@ -152,6 +155,14 @@ namespace Kaleidoscope2.DiamondFocus
 
                 case KaleidoscopeCommandType.SetDiamondMaterialMode:
                     materialModeController.SetMode(settings, (DiamondCrystalMaterialMode)Mathf.Clamp(command.IntValue, 0, DiamondFocusSettings.MaterialModeCount - 1));
+                    break;
+
+                case KaleidoscopeCommandType.AdjustDiamondRefractionIndex:
+                    settings.AdjustRefractionIndex(command.FloatValue);
+                    break;
+
+                case KaleidoscopeCommandType.SetDiamondRefractionIndex:
+                    settings.SetRefractionIndex(command.FloatValue);
                     break;
             }
         }
@@ -246,8 +257,11 @@ namespace Kaleidoscope2.DiamondFocus
                 + ", material " + materialModeController.GetModeLabel(settings)
                 + ", dir " + direction
                 + ", speed " + speed
+                + ", IOR " + settings.RefractionIndex.ToString("0.00")
                 + ", normalized " + normalized
                 + ", Background Blur " + backgroundBlur + " (radius " + maxBlurRadius.ToString("0.0") + ", iterations " + Mathf.Max(1, blurIterations) + ", downsample " + Mathf.Max(1, blurDownsample) + ")"
+                + ", cinematic optics " + settings.CinematicCrystalOptics.ToString("0.00")
+                + ", caustics " + settings.HighEnergyCaustics.ToString("0.00")
                 + ", optics " + opticsStatus + ".");
         }
 
@@ -526,7 +540,7 @@ namespace Kaleidoscope2.DiamondFocus
                 return false;
             }
 
-            Mesh mesh = shapeController.GetMesh(settings.Shape);
+            Mesh mesh = shapeController.GetMesh(settings);
             if (mesh == null)
             {
                 return false;

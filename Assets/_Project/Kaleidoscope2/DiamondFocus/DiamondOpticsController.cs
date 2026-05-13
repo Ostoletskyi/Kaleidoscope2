@@ -33,6 +33,19 @@ namespace Kaleidoscope2.DiamondFocus
         public static readonly int OpticalCaustics = Shader.PropertyToID("_OpticalCaustics");
         public static readonly int OpticalDispersion = Shader.PropertyToID("_OpticalDispersion");
         public static readonly int TotalInternalReflection = Shader.PropertyToID("_TotalInternalReflection");
+        public static readonly int DiamondLikeRefraction = Shader.PropertyToID("_DiamondLikeRefraction");
+        public static readonly int SpectralDispersion = Shader.PropertyToID("_SpectralDispersion");
+        public static readonly int HighEnergyCaustics = Shader.PropertyToID("_HighEnergyCaustics");
+        public static readonly int MultiBounceInternalReflections = Shader.PropertyToID("_MultiBounceInternalReflections");
+        public static readonly int CinematicCrystalOptics = Shader.PropertyToID("_CinematicCrystalOptics");
+        public static readonly int PhysicallyBasedRefraction = Shader.PropertyToID("_PhysicallyBasedRefraction");
+        public static readonly int DeepVolumetricLightScattering = Shader.PropertyToID("_DeepVolumetricLightScattering");
+        public static readonly int CrystalSolidity = Shader.PropertyToID("_CrystalSolidity");
+        public static readonly int BlueWhitePlasmaEnergy = Shader.PropertyToID("_BlueWhitePlasmaEnergy");
+        public static readonly int DirectTransmission = Shader.PropertyToID("_DirectTransmission");
+        public static readonly int TotalInternalReturn = Shader.PropertyToID("_TotalInternalReturn");
+        public static readonly int SpectralFireIntensity = Shader.PropertyToID("_SpectralFireIntensity");
+        public static readonly int FacetDepthContrast = Shader.PropertyToID("_FacetDepthContrast");
     }
 
     public sealed class DiamondOpticsController
@@ -68,6 +81,19 @@ namespace Kaleidoscope2.DiamondFocus
             material.SetFloat(DiamondOpticalShaderIds.OpticalCaustics, settings.OpticalCaustics);
             material.SetFloat(DiamondOpticalShaderIds.OpticalDispersion, settings.OpticalDispersion);
             material.SetFloat(DiamondOpticalShaderIds.TotalInternalReflection, settings.TotalInternalReflection);
+            material.SetFloat(DiamondOpticalShaderIds.DiamondLikeRefraction, settings.DiamondLikeRefraction);
+            material.SetFloat(DiamondOpticalShaderIds.SpectralDispersion, settings.SpectralDispersion);
+            material.SetFloat(DiamondOpticalShaderIds.HighEnergyCaustics, settings.HighEnergyCaustics);
+            material.SetFloat(DiamondOpticalShaderIds.MultiBounceInternalReflections, settings.MultiBounceInternalReflections);
+            material.SetFloat(DiamondOpticalShaderIds.CinematicCrystalOptics, settings.CinematicCrystalOptics);
+            material.SetFloat(DiamondOpticalShaderIds.PhysicallyBasedRefraction, settings.PhysicallyBasedRefraction);
+            material.SetFloat(DiamondOpticalShaderIds.DeepVolumetricLightScattering, settings.DeepVolumetricLightScattering);
+            material.SetFloat(DiamondOpticalShaderIds.CrystalSolidity, settings.CrystalSolidity);
+            material.SetFloat(DiamondOpticalShaderIds.BlueWhitePlasmaEnergy, settings.BlueWhitePlasmaEnergy);
+            material.SetFloat(DiamondOpticalShaderIds.DirectTransmission, settings.DirectTransmission);
+            material.SetFloat(DiamondOpticalShaderIds.TotalInternalReturn, settings.TotalInternalReturn);
+            material.SetFloat(DiamondOpticalShaderIds.SpectralFireIntensity, settings.SpectralFireIntensity);
+            material.SetFloat(DiamondOpticalShaderIds.FacetDepthContrast, settings.FacetDepthContrast);
             material.SetVector(DiamondOpticalShaderIds.Rotation, settings.RotationEuler);
             material.SetFloat(DiamondOpticalShaderIds.DiamondScale, settings.ScreenScale);
             material.SetVector(DiamondOpticalShaderIds.TexelSize, new Vector4(1f / sceneTexture.width, 1f / sceneTexture.height, sceneTexture.width, sceneTexture.height));
