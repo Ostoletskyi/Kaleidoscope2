@@ -2,11 +2,16 @@ Shader "Kaleidoscope2/DiamondCrystal3D"
 {
     Properties
     {
-        _SceneTex ("Scene Texture", 2D) = "white" {}
+        _KaleidoscopeTex ("Kaleidoscope Texture", 2D) = "white" {}
+        _KaleidoscopeTexValid ("Kaleidoscope Texture Valid", Float) = 1
+        _FallbackWarningColor ("Missing Kaleidoscope Warning Color", Color) = (1, 0, 0.85, 1)
         _Transparency ("Transparency", Range(0,1)) = 0
         _RefractionStrength ("Refraction Strength", Range(0,0.12)) = 0.074
+        _DispersionStrength ("Dispersion Strength", Range(0,2)) = 1
         _ReflectionStrength ("Reflection Strength", Range(0,1)) = 0.72
         _FresnelPower ("Fresnel Power", Range(0.5,8)) = 3.2
+        _InternalBrightness ("Internal Brightness", Range(0,3)) = 1
+        _NoiseDistortionStrength ("Noise Distortion Strength", Range(0,1)) = 0.08
         _EdgeHighlight ("Edge Highlight", Range(0,2)) = 1.35
         _ChromaticAberrationAmount ("Chromatic Aberration Amount", Float) = 0.004
         _FacetContrast ("Facet Contrast", Range(0,2)) = 1.45
@@ -37,6 +42,7 @@ Shader "Kaleidoscope2/DiamondCrystal3D"
         _Rotation ("Rotation", Vector) = (0, 0, 0, 0)
         _DiamondScale ("Diamond Scale", Range(0.1,1)) = 0.38
         _InputTexelSize ("Input Texel Size", Vector) = (0.001, 0.001, 1024, 1024)
+        _CrystalDebugMode ("Crystal Debug Mode", Float) = 0
     }
     SubShader
     {
@@ -52,11 +58,16 @@ Shader "Kaleidoscope2/DiamondCrystal3D"
             #pragma fragment frag
             #include "UnityCG.cginc"
 
-            sampler2D _SceneTex;
+            sampler2D _KaleidoscopeTex;
+            float _KaleidoscopeTexValid;
+            float4 _FallbackWarningColor;
             float _Transparency;
             float _RefractionStrength;
+            float _DispersionStrength;
             float _ReflectionStrength;
             float _FresnelPower;
+            float _InternalBrightness;
+            float _NoiseDistortionStrength;
             float _EdgeHighlight;
             float _ChromaticAberrationAmount;
             float _FacetContrast;
@@ -87,6 +98,7 @@ Shader "Kaleidoscope2/DiamondCrystal3D"
             float4 _Rotation;
             float _DiamondScale;
             float4 _InputTexelSize;
+            float _CrystalDebugMode;
 
             struct appdata
             {
@@ -127,7 +139,7 @@ Shader "Kaleidoscope2/DiamondCrystal3D"
                 float2 redUv = saturate(uv + offset + offset * chroma);
                 float2 greenUv = saturate(uv + offset * 0.72);
                 float2 blueUv = saturate(uv + offset - offset * chroma);
-                return fixed3(tex2D(_SceneTex, redUv).r, tex2D(_SceneTex, greenUv).g, tex2D(_SceneTex, blueUv).b);
+                return fixed3(tex2D(_KaleidoscopeTex, redUv).r, tex2D(_KaleidoscopeTex, greenUv).g, tex2D(_KaleidoscopeTex, blueUv).b);
             }
 
             float SmoothPattern(float3 value, float scale)
@@ -156,6 +168,19 @@ Shader "Kaleidoscope2/DiamondCrystal3D"
             fixed4 frag(v2f i) : SV_Target
             {
                 float2 screenUv = i.screenPos.xy / max(0.0001, i.screenPos.w);
+                if (_KaleidoscopeTexValid < 0.5)
+                {
+                    float warningStripe = step(0.5, frac((screenUv.x + screenUv.y) * 18.0));
+                    fixed3 warning = lerp(_FallbackWarningColor.rgb * 0.35, _FallbackWarningColor.rgb, warningStripe);
+                    return fixed4(warning, 1.0);
+                }
+
+                float debugMode = floor(_CrystalDebugMode + 0.5);
+                if (debugMode > 0.5 && debugMode < 1.5)
+                {
+                    return fixed4(tex2D(_KaleidoscopeTex, saturate(screenUv)).rgb, 1.0);
+                }
+
                 float3 normal = normalize(i.worldNormal);
                 float3 viewDir = normalize(_WorldSpaceCameraPos.xyz - i.worldPos);
                 float ior = max(1.01, _OpticalIOR);
@@ -172,32 +197,45 @@ Shader "Kaleidoscope2/DiamondCrystal3D"
                 float3 lightB = normalize(float3(0.5, 0.25, -0.82));
                 float highlightA = pow(saturate(dot(reflect(-lightA, normal), viewDir)), 26.0);
                 float highlightB = pow(saturate(dot(reflect(-lightB, normal), viewDir)), 58.0);
+                float noiseA = SmoothPattern(i.worldPos + normal * 0.21, 2.1 + facetCount * 0.03) - 0.5;
+                float noiseB = SmoothPattern(float3(i.uv, facet) + normal * 0.11, 3.7) - 0.5;
 
                 float2 bend = normal.xy * _RefractionStrength * (0.95 + edge * 1.7 + focus * 0.55 + _DiamondLikeRefraction * 0.75);
                 bend += physicalRefract.xy * _RefractionStrength * _PhysicallyBasedRefraction * (0.75 + (ior - 1.0) * 0.65);
                 bend += (i.uv - 0.5) * _RefractionStrength * 0.25;
-                float chroma = _ChromaticAberrationAmount * (28.0 + edge * 38.0 + focus * 18.0) * (1.0 + _SpectralDispersion * 0.85);
+                bend += float2(noiseA, noiseB) * _RefractionStrength * _NoiseDistortionStrength * 0.45;
+                float chroma = _ChromaticAberrationAmount * (28.0 + edge * 38.0 + focus * 18.0) * (1.0 + _SpectralDispersion * 0.85) * _DispersionStrength;
                 fixed3 refracted = SampleRefracted(screenUv, bend, chroma);
                 fixed3 wideSpectrum = fixed3(
-                    tex2D(_SceneTex, saturate(screenUv + bend * (1.35 + _DiamondLikeRefraction) + normal.xy * chroma * 2.2)).r,
-                    tex2D(_SceneTex, saturate(screenUv + bend * 0.42 + physicalRefract.xy * chroma * 0.9)).g,
-                    tex2D(_SceneTex, saturate(screenUv - bend * (0.85 + _DiamondLikeRefraction * 0.4) - normal.xy * chroma * 2.0)).b);
+                    tex2D(_KaleidoscopeTex, saturate(screenUv + bend * (1.35 + _DiamondLikeRefraction) + normal.xy * chroma * 2.2)).r,
+                    tex2D(_KaleidoscopeTex, saturate(screenUv + bend * 0.42 + physicalRefract.xy * chroma * 0.9)).g,
+                    tex2D(_KaleidoscopeTex, saturate(screenUv - bend * (0.85 + _DiamondLikeRefraction * 0.4) - normal.xy * chroma * 2.0)).b);
                 refracted = lerp(refracted, wideSpectrum, saturate(_SpectralDispersion * 0.28 + _DiamondLikeRefraction * 0.1));
 
                 float3 reflectedVector = reflect(-viewDir, normal);
                 float2 reflectedUv = frac(0.5 + Rotate2(reflectedVector.xy * (0.34 + edge * 0.22), _Rotation.y * 0.006));
-                fixed3 reflected = tex2D(_SceneTex, reflectedUv).rgb;
+                fixed3 reflected = tex2D(_KaleidoscopeTex, reflectedUv).rgb;
                 float2 reflectedUv2 = frac(0.5 + Rotate2(reflectedVector.yx * (0.48 + facet * 0.18) + normal.xy * 0.1, -_Rotation.x * 0.004));
                 float2 reflectedUv3 = frac(0.5 + Rotate2((reflectedVector.xy + physicalRefract.xy) * (0.24 + edge * 0.32), _Rotation.z * 0.005));
-                fixed3 multiBounce = (reflected + tex2D(_SceneTex, reflectedUv2).rgb + tex2D(_SceneTex, reflectedUv3).rgb) / 3.0;
+                fixed3 multiBounce = (reflected + tex2D(_KaleidoscopeTex, reflectedUv2).rgb + tex2D(_KaleidoscopeTex, reflectedUv3).rgb) / 3.0;
                 reflected = lerp(reflected, multiBounce, saturate(_MultiBounceInternalReflections * 0.45));
+
+                if (debugMode > 1.5 && debugMode < 2.5)
+                {
+                    return fixed4(refracted, 1.0);
+                }
+
+                if (debugMode > 2.5 && debugMode < 3.5)
+                {
+                    return fixed4(reflected, 1.0);
+                }
 
                 fixed3 cool = fixed3(0.64, 0.92, 1.0);
                 fixed3 warm = fixed3(1.0, 0.78, 0.42);
                 fixed3 fire = fixed3(
-                    tex2D(_SceneTex, saturate(screenUv + bend * 1.9 + float2(chroma, 0))).r,
-                    tex2D(_SceneTex, saturate(screenUv - bend * 1.4 + float2(0, chroma))).g,
-                    tex2D(_SceneTex, saturate(screenUv + bend * 0.6 - float2(chroma, chroma))).b);
+                    tex2D(_KaleidoscopeTex, saturate(screenUv + bend * 1.9 + float2(chroma, 0))).r,
+                    tex2D(_KaleidoscopeTex, saturate(screenUv - bend * 1.4 + float2(0, chroma))).g,
+                    tex2D(_KaleidoscopeTex, saturate(screenUv + bend * 0.6 - float2(chroma, chroma))).b);
                 float spectralPhase = facet + angle * 0.159 + dot(i.worldPos, float3(0.37, 0.61, 0.23)) + _Rotation.y * 0.003;
                 fixed3 spectralFire = SpectralPalette(spectralPhase);
                 float causticPatternA = pow(saturate(SmoothPattern(i.worldPos + normal * 0.31, 2.4 + facetCount * 0.02) * facet + highlightA + highlightB), 5.5);
@@ -213,6 +251,7 @@ Shader "Kaleidoscope2/DiamondCrystal3D"
                 float directTransmission = saturate(_DirectTransmission * (0.12 + ndv * 0.32) * (1.0 - totalInternalReflection * 0.88));
                 float facetRidge = pow(saturate(abs(facet - 0.5) * 2.0), 0.58);
                 float facetDepth = saturate(1.0 - facetRidge * 0.36 * _FacetDepthContrast - (1.0 - ndv) * 0.18 * _FacetDepthContrast);
+                float internalBrightness = max(0.0, _InternalBrightness);
 
                 fixed3 deepCore = fixed3(0.012, 0.055, 0.13);
                 fixed3 icyBody = fixed3(0.46, 0.86, 1.0);
@@ -230,12 +269,12 @@ Shader "Kaleidoscope2/DiamondCrystal3D"
                 fixed3 prismaticFire = saturate(spectralFire * 1.35 + fire * 0.42) * spectralBand * (_SpectralFireIntensity * (0.38 + _SpectralDispersion * 0.22));
 
                 glass += cool * edge * _EdgeHighlight * (0.45 + totalInternalReflection * 0.55);
-                glass += fixed3(1.0, 0.97, 0.88) * whiteReturn * (0.62 + _BloomBoost * 0.22);
-                glass += prismaticFire;
-                glass += coldPlasma * plasmaEnergy;
-                glass += causticEnergy * fixed3(0.78, 0.92, 1.0) * (0.72 + _SpectralFireIntensity * 0.18);
-                glass += volumetricScatter * lerp(fixed3(0.14, 0.38, 0.78), spectralFire, saturate(_SpectralDispersion * 0.18));
-                glass += cool * _InternalGlow * saturate(0.4 + normal.y * 0.6) * 0.28;
+                glass += fixed3(1.0, 0.97, 0.88) * whiteReturn * (0.62 + _BloomBoost * 0.22) * internalBrightness;
+                glass += prismaticFire * internalBrightness;
+                glass += coldPlasma * plasmaEnergy * internalBrightness;
+                glass += causticEnergy * fixed3(0.78, 0.92, 1.0) * (0.72 + _SpectralFireIntensity * 0.18) * internalBrightness;
+                glass += volumetricScatter * lerp(fixed3(0.14, 0.38, 0.78), spectralFire, saturate(_SpectralDispersion * 0.18)) * internalBrightness;
+                glass += cool * _InternalGlow * saturate(0.4 + normal.y * 0.6) * 0.28 * internalBrightness;
                 glass = lerp(glass, glass * facetDepth + deepCore * (1.0 - facetDepth) * 0.95, saturate(_CrystalSolidity * 0.55));
                 glass = lerp(glass, pow(saturate(glass), 0.78), saturate(_CinematicCrystalOptics * 0.45));
                 glass = saturate((glass - 0.035) * (1.25 + _CrystalSolidity * 0.35));
@@ -255,16 +294,16 @@ Shader "Kaleidoscope2/DiamondCrystal3D"
                 if (mode > 1.5 && mode < 2.5)
                 {
                     fixed3 glow = saturate(_GeneratedColor.rgb);
-                    fixed3 glowCore = lerp(refracted, glow, 0.42);
-                    glowCore += glow * (0.35 + edge * 1.4 + facet * 0.45 + _InternalGlow * 0.7 + focus * 0.25);
-                    glowCore += fire * 0.12;
-                    glowCore += spectralFire * causticEnergy * 0.22 + glow * volumetricScatter * 0.55;
+                    fixed3 glowCore = lerp(refracted, reflected, 0.35);
+                    glowCore += glow * (0.08 + edge * 0.22 + facet * 0.08 + _InternalGlow * 0.12 + focus * 0.06);
+                    glowCore += fire * 0.16;
+                    glowCore += spectralFire * causticEnergy * 0.22 + glow * volumetricScatter * 0.12;
                     return fixed4(CrystalContrastGrade(glowCore, whiteReturn + edge + 0.25, 1.0 - facetDepth), solidAlpha);
                 }
 
                 if (mode > 2.5 && mode < 3.5)
                 {
-                    float opticalChroma = _ChromaticAberrationAmount * (36.0 + (_OpticalDispersion + _SpectralDispersion) * 58.0 + edge * 32.0);
+                    float opticalChroma = _ChromaticAberrationAmount * (36.0 + (_OpticalDispersion + _SpectralDispersion) * 58.0 + edge * 32.0) * _DispersionStrength;
                     fixed3 spectral = SampleRefracted(screenUv, bend * (0.85 + (ior - 1.0) * 0.85 + _DiamondLikeRefraction * 0.3), opticalChroma);
                     float tir = smoothstep(1.0 / ior, 1.0, 1.0 - ndv) * _TotalInternalReflection;
                     float causticWave = SmoothPattern(i.worldPos + normal * 0.17, 2.2 + facetCount * 0.015);
@@ -286,31 +325,31 @@ Shader "Kaleidoscope2/DiamondCrystal3D"
                     if (kind < 0.5)
                     {
                         float grain = 0.5 + 0.5 * sin((i.worldPos.x + i.worldPos.z) * 28.0 + sin(i.worldPos.y * 19.0) * 3.0);
-                        fixed3 wood = tint * (0.58 + grain * 0.62);
-                        wood += fixed3(0.08, 0.04, 0.015) * pow(grain, 5.0);
-                        fixed3 woodCrystal = wood + reflected * 0.08 + (highlightA + highlightB) * 0.12;
+                        fixed3 woodCrystal = opticalSample * (0.78 + grain * 0.24);
+                        woodCrystal = lerp(woodCrystal, woodCrystal * tint, 0.08);
+                        woodCrystal += reflected * 0.12 + (highlightA + highlightB) * 0.12;
                         return fixed4(CrystalContrastGrade(woodCrystal, highlightA + highlightB + edge * 0.25, 0.72), solidAlpha);
                     }
 
                     if (kind < 1.5)
                     {
-                        fixed3 metal = lerp(reflected, tint, 0.28);
+                        fixed3 metal = lerp(reflected, reflected * tint, 0.12);
                         metal += fixed3(1.0, 0.92, 0.78) * (highlightA * 0.8 + highlightB * 1.4 + edge * 0.18);
                         return fixed4(CrystalContrastGrade(metal, highlightA + highlightB + edge, 0.45), solidAlpha);
                     }
 
                     if (kind < 2.5)
                     {
-                        fixed3 plastic = tint * (0.62 + facet * 0.18);
-                        plastic = lerp(plastic, reflected, 0.12);
+                        fixed3 plastic = lerp(opticalSample, opticalSample * tint, 0.1) * (0.72 + facet * 0.18);
+                        plastic = lerp(plastic, reflected, 0.18);
                         plastic += fixed3(1.0, 1.0, 1.0) * (highlightA * 0.35 + highlightB * 0.75);
                         return fixed4(CrystalContrastGrade(plastic, highlightA + highlightB + edge * 0.35, 0.65), solidAlpha);
                     }
 
                     float veins = pow(abs(sin(i.worldPos.x * 17.0 + i.worldPos.y * 11.0 + i.worldPos.z * 9.0)), 8.0);
-                    fixed3 stone = tint * (0.55 + facet * 0.18);
-                    stone += veins * fixed3(0.18, 0.17, 0.15);
-                    stone += reflected * 0.05 + (highlightA + highlightB) * 0.08;
+                    fixed3 stone = lerp(opticalSample, opticalSample * tint, 0.08) * (0.74 + facet * 0.18);
+                    stone += veins * fixed3(0.08, 0.08, 0.09);
+                    stone += reflected * 0.1 + (highlightA + highlightB) * 0.08;
                     return fixed4(CrystalContrastGrade(stone, highlightA + highlightB + edge * 0.28, 0.75), solidAlpha);
                 }
 

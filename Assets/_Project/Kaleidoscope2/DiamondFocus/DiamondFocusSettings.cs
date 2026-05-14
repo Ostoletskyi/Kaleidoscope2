@@ -22,6 +22,14 @@ namespace Kaleidoscope2.Core
         GeneratedMaterial = 4
     }
 
+    public enum DiamondCrystalDebugMode
+    {
+        FinalCrystalComposite = 0,
+        RawKaleidoscopeTex = 1,
+        RefractionOnly = 2,
+        ReflectionOnly = 3
+    }
+
     public enum DiamondGeneratedMaterialKind
     {
         Wood = 0,
@@ -67,8 +75,11 @@ namespace Kaleidoscope2.Core
         [Header("Optics")]
         [SerializeField, Range(0f, 1f)] private float transparency;
         [SerializeField, Range(0f, 0.12f)] private float refractionStrength = 0.074f;
+        [SerializeField, Range(0f, 2f)] private float dispersionStrength = 1f;
         [SerializeField, Range(0f, 1f)] private float reflectionStrength = 0.72f;
         [SerializeField, Range(0.5f, 8f)] private float fresnelPower = 3.2f;
+        [SerializeField, Range(0f, 3f)] private float internalBrightness = 1f;
+        [SerializeField, Range(0f, 1f)] private float noiseDistortionStrength = 0.08f;
         [SerializeField, Range(0f, 2f)] private float edgeHighlight = 1.35f;
         [SerializeField, Range(0f, 0.04f)] private float chromaticAberrationBase = 0.009f;
         [SerializeField, Range(0f, 0.04f)] private float chromaticAberrationExtra = 0.016f;
@@ -98,6 +109,9 @@ namespace Kaleidoscope2.Core
         [SerializeField, Range(0f, 2f)] private float opticalCaustics = 0.8f;
         [SerializeField, Range(0f, 2f)] private float opticalDispersion = 1.45f;
         [SerializeField, Range(0f, 2f)] private float totalInternalReflection = 1.45f;
+
+        [Header("Debug")]
+        [SerializeField] private DiamondCrystalDebugMode debugMode = DiamondCrystalDebugMode.FinalCrystalComposite;
 
         public bool Enabled { get { return enabled; } }
         public DiamondFocusShape Shape { get { return shape; } }
@@ -143,8 +157,11 @@ namespace Kaleidoscope2.Core
         public float DirectionAcceleration { get { return Mathf.Max(0.01f, directionAcceleration); } }
         public float Transparency { get { return Mathf.Clamp01(transparency); } }
         public float RefractionStrength { get { return Mathf.Clamp(refractionStrength, 0f, 0.12f); } }
+        public float DispersionStrength { get { return Mathf.Max(0f, dispersionStrength); } }
         public float ReflectionStrength { get { return Mathf.Clamp01(reflectionStrength); } }
         public float FresnelPower { get { return Mathf.Clamp(fresnelPower, 0.5f, 8f); } }
+        public float InternalBrightness { get { return Mathf.Max(0f, internalBrightness); } }
+        public float NoiseDistortionStrength { get { return Mathf.Clamp01(noiseDistortionStrength); } }
         public float EdgeHighlight { get { return Mathf.Max(0f, edgeHighlight); } }
         public float ChromaticAberrationAmount { get { return chromaticAberrationBase + NormalizedRotationSpeed * chromaticAberrationExtra; } }
         public float FacetContrast { get { return Mathf.Max(0f, facetContrast); } }
@@ -173,6 +190,7 @@ namespace Kaleidoscope2.Core
         public string ShapeLabel { get { return GetShapeLabel(shape); } }
         public string MaterialModeLabel { get { return GetMaterialModeLabel(materialMode); } }
         public string GeneratedMaterialLabel { get { return GetGeneratedMaterialKindLabel(generatedMaterialKind); } }
+        public DiamondCrystalDebugMode DebugMode { get { return debugMode; } }
 
         public void SetEnabled(bool value)
         {
@@ -404,21 +422,17 @@ namespace Kaleidoscope2.Core
 
         private void RegenerateMaterialVariant()
         {
-            generatedMaterialSeed = UnityEngine.Random.Range(1, int.MaxValue);
+            generatedMaterialSeed = generatedMaterialSeed >= int.MaxValue - 1 ? 1 : generatedMaterialSeed + 1;
 
             if (materialMode == DiamondCrystalMaterialMode.Glow)
             {
-                float hue = UnityEngine.Random.value;
-                float saturation = UnityEngine.Random.Range(0.55f, 0.92f);
-                float value = UnityEngine.Random.Range(0.8f, 1f);
-                generatedMaterialColor = Color.HSVToRGB(hue, saturation, value);
-                generatedMaterialColor.a = 1f;
+                generatedMaterialColor = new Color(0.68f, 0.9f, 1f, 1f);
                 return;
             }
 
             if (materialMode == DiamondCrystalMaterialMode.GeneratedMaterial)
             {
-                generatedMaterialKind = (DiamondGeneratedMaterialKind)UnityEngine.Random.Range(0, GeneratedMaterialKindCount);
+                generatedMaterialKind = (DiamondGeneratedMaterialKind)((GeneratedMaterialKindIndex + 1) % GeneratedMaterialKindCount);
                 generatedMaterialColor = GenerateMaterialColor(generatedMaterialKind);
             }
         }
@@ -428,19 +442,16 @@ namespace Kaleidoscope2.Core
             switch (kind)
             {
                 case DiamondGeneratedMaterialKind.Metal:
-                    return UnityEngine.Random.value > 0.5f
-                        ? new Color(UnityEngine.Random.Range(0.62f, 0.95f), UnityEngine.Random.Range(0.58f, 0.88f), UnityEngine.Random.Range(0.5f, 0.78f), 1f)
-                        : new Color(UnityEngine.Random.Range(0.78f, 1f), UnityEngine.Random.Range(0.42f, 0.64f), UnityEngine.Random.Range(0.22f, 0.38f), 1f);
+                    return new Color(0.86f, 0.82f, 0.72f, 1f);
 
                 case DiamondGeneratedMaterialKind.Plastic:
-                    return Color.HSVToRGB(UnityEngine.Random.value, UnityEngine.Random.Range(0.35f, 0.75f), UnityEngine.Random.Range(0.55f, 0.9f));
+                    return new Color(0.72f, 0.9f, 1f, 1f);
 
                 case DiamondGeneratedMaterialKind.Stone:
-                    float stone = UnityEngine.Random.Range(0.35f, 0.7f);
-                    return new Color(stone * UnityEngine.Random.Range(0.75f, 1.1f), stone * UnityEngine.Random.Range(0.78f, 1.08f), stone * UnityEngine.Random.Range(0.82f, 1.14f), 1f);
+                    return new Color(0.54f, 0.58f, 0.63f, 1f);
 
                 default:
-                    return new Color(UnityEngine.Random.Range(0.42f, 0.72f), UnityEngine.Random.Range(0.2f, 0.42f), UnityEngine.Random.Range(0.08f, 0.2f), 1f);
+                    return new Color(0.62f, 0.38f, 0.18f, 1f);
             }
         }
 

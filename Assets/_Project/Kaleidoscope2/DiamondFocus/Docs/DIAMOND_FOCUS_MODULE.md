@@ -66,14 +66,21 @@ When Diamond Focus is off, numpad controls return to the rest of the project. Wh
 
 1. Absolute mirror.
 2. Diamond glass.
-3. Generated glow with a fresh color tint every time the mode is selected.
+3. Glow tint layered over the kaleidoscope-driven optical samples.
 4. Optical object approximation using IOR, caustics, dispersion, and total internal reflection controls.
-5. Generated material: one of wood, metal, plastic, or stone is picked every time the mode is selected.
+5. Material mask: wood, metal, plastic, or stone-style masks modulate the kaleidoscope-driven optical samples.
 
 ## Cinematic Crystal Optics
 
 The crystal shader exposes an artistic optical stack for a stronger high-end look:
 
+- `_KaleidoscopeTex`: explicit texture input bound by `DiamondFocusModule` from the current processed kaleidoscope output.
+- `refractionStrength`: screen-space bending amount for `_KaleidoscopeTex`.
+- `dispersionStrength`: global scale for RGB split/refraction fire.
+- `reflectionStrength`: reflected samples are taken from `_KaleidoscopeTex`, not skybox, probes, grab pass, or camera opaque texture.
+- `fresnelPower`: controls the edge-weighted optical response.
+- `internalBrightness`: scales bloom-compatible internal highlights, caustics, and glow.
+- `noiseDistortionStrength`: procedural patterns are limited to subtle distortion/intensity variation.
 - `diamondLikeRefraction`: stronger diamond-style bending of the kaleidoscope image.
 - `spectralDispersion`: wider RGB splitting and spectral fire on facets.
 - `highEnergyCaustics`: bright caustic streaks and flashes on internal facet intersections.
@@ -88,6 +95,15 @@ The crystal shader exposes an artistic optical stack for a stronger high-end loo
 - `spectralFireIntensity`: controls rainbow fire from dispersion and caustic bands.
 - `facetDepthContrast`: deepens dark/bright facet separation so the cut feels dimensional.
 - `opticalIOR`: runtime refraction index, controlled by `Home / End` and clamped to `0..10`.
+
+Debug mode is held in `DiamondFocusSettings` and routed by the module to `_CrystalDebugMode`:
+
+1. Final crystal composite.
+2. Raw `_KaleidoscopeTex`.
+3. Refraction only.
+4. Reflection only.
+
+If `_KaleidoscopeTex` is missing or deliberately disabled on the module, the crystal renders a magenta warning fallback and reports a module warning instead of sampling unrelated scene or environment data.
 
 ## 3D Rendering
 

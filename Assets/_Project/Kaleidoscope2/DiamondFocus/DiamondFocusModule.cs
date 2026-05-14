@@ -34,6 +34,11 @@ namespace Kaleidoscope2.DiamondFocus
         [SerializeField, Range(1f, 12f)] private float cameraDistance = 4f;
         [SerializeField, Range(0.25f, 3f)] private float crystalWorldScale = 1.85f;
 
+        [Header("Crystal Source Binding")]
+        [Tooltip("When enabled, the crystal shader receives the current processed kaleidoscope texture through _KaleidoscopeTex.")]
+        [SerializeField] private bool bindKaleidoscopeTexture = true;
+        [SerializeField] private Color missingKaleidoscopeWarningColor = new Color(1f, 0f, 0.85f, 1f);
+
         [Header("Module")]
         [SerializeField] private bool moduleEnabled = true;
         [SerializeField] private bool onlyIn4DMode;
@@ -57,6 +62,9 @@ namespace Kaleidoscope2.DiamondFocus
         private MeshFilter crystalMeshFilter;
         private MeshRenderer crystalMeshRenderer;
         private DiamondFocusShape renderedShape = (DiamondFocusShape)(-1);
+        private Texture2D fallbackKaleidoscopeTexture;
+        private Color fallbackKaleidoscopeTextureColor = Color.clear;
+        private bool missingKaleidoscopeTextureReported;
 
         public override string ModuleId
         {
@@ -169,7 +177,7 @@ namespace Kaleidoscope2.DiamondFocus
 
         public Texture Process(Texture sourceTexture, KaleidoscopeState runtimeState)
         {
-            if (sourceTexture == null || runtimeState == null)
+            if (runtimeState == null)
             {
                 return sourceTexture;
             }
@@ -183,24 +191,29 @@ namespace Kaleidoscope2.DiamondFocus
                 return sourceTexture;
             }
 
+            bool kaleidoscopeTextureValid;
+            Texture kaleidoscopeTexture = ResolveKaleidoscopeTexture(sourceTexture, out kaleidoscopeTextureValid);
+
             Material compositeMaterial = EnsureCompositeMaterial();
             Material glassMaterial = EnsureCrystalMaterial();
             Material activeBlurMaterial = EnsureBlurMaterial();
             if (compositeMaterial == null || glassMaterial == null || activeBlurMaterial == null)
             {
-                return sourceTexture;
+                return sourceTexture != null ? sourceTexture : kaleidoscopeTexture;
             }
 
             EnsureOutputTexture(runtimeState);
-            if (outputTexture == null || !RenderCrystal(sourceTexture, settings, glassMaterial))
+            if (outputTexture == null || !RenderCrystal(kaleidoscopeTexture, kaleidoscopeTextureValid, settings, glassMaterial))
             {
-                return sourceTexture;
+                return sourceTexture != null ? sourceTexture : kaleidoscopeTexture;
             }
 
             float backgroundBlurAmount = ResolveBackgroundBlurAmount(settings);
-            Texture backgroundTexture = RenderBackgroundBlur(sourceTexture, backgroundBlurAmount, activeBlurMaterial);
-            opticsController.ConfigureCompositeMaterial(compositeMaterial, settings, sourceTexture, backgroundTexture, crystalTexture, backgroundBlurAmount);
-            Graphics.Blit(sourceTexture, outputTexture, compositeMaterial);
+            Texture backgroundTexture = kaleidoscopeTextureValid
+                ? RenderBackgroundBlur(kaleidoscopeTexture, backgroundBlurAmount, activeBlurMaterial)
+                : kaleidoscopeTexture;
+            opticsController.ConfigureCompositeMaterial(compositeMaterial, settings, kaleidoscopeTexture, backgroundTexture, crystalTexture, backgroundBlurAmount);
+            Graphics.Blit(kaleidoscopeTexture, outputTexture, compositeMaterial);
             return outputTexture;
         }
 
@@ -243,6 +256,7 @@ namespace Kaleidoscope2.DiamondFocus
             string speed = settings.CurrentRotationSpeed.ToString("0");
             string normalized = settings.NormalizedRotationSpeed.ToString("0.00");
             string backgroundBlur = opticsController.BackgroundBlur.ToString("0.00");
+            string sourceBinding = bindKaleidoscopeTexture ? "_KaleidoscopeTex bound" : "_KaleidoscopeTex fallback";
             string opticsStatus = (diamondMaterial != null || crystalMaterial != null || blurMaterial != null)
                 ? "assigned material"
                 : (runtimeCompositeMaterial != null && runtimeCrystalMaterial != null && runtimeBlurMaterial != null)
@@ -262,6 +276,8 @@ namespace Kaleidoscope2.DiamondFocus
                 + ", Background Blur " + backgroundBlur + " (radius " + maxBlurRadius.ToString("0.0") + ", iterations " + Mathf.Max(1, blurIterations) + ", downsample " + Mathf.Max(1, blurDownsample) + ")"
                 + ", cinematic optics " + settings.CinematicCrystalOptics.ToString("0.00")
                 + ", caustics " + settings.HighEnergyCaustics.ToString("0.00")
+                + ", debug " + settings.DebugMode
+                + ", source " + sourceBinding
                 + ", optics " + opticsStatus + ".");
         }
 
@@ -275,6 +291,7 @@ namespace Kaleidoscope2.DiamondFocus
             DestroyRuntimeObject(runtimeCompositeMaterial);
             DestroyRuntimeObject(runtimeCrystalMaterial);
             DestroyRuntimeObject(runtimeBlurMaterial);
+            DestroyRuntimeObject(fallbackKaleidoscopeTexture);
 
             renderRoot = null;
             cameraObject = null;
@@ -285,6 +302,7 @@ namespace Kaleidoscope2.DiamondFocus
             runtimeCompositeMaterial = null;
             runtimeCrystalMaterial = null;
             runtimeBlurMaterial = null;
+            fallbackKaleidoscopeTexture = null;
         }
 
         private Material EnsureCompositeMaterial()
@@ -525,9 +543,9 @@ namespace Kaleidoscope2.DiamondFocus
             cameraObject.transform.localRotation = Quaternion.identity;
         }
 
-        private bool RenderCrystal(Texture sourceTexture, DiamondFocusSettings settings, Material material)
+        private bool RenderCrystal(Texture kaleidoscopeTexture, bool kaleidoscopeTextureValid, DiamondFocusSettings settings, Material material)
         {
-            if (sourceTexture == null || settings == null || material == null)
+            if (kaleidoscopeTexture == null || settings == null || material == null)
             {
                 return false;
             }
@@ -557,7 +575,7 @@ namespace Kaleidoscope2.DiamondFocus
             crystalObject.transform.localRotation = Quaternion.Euler(settings.RotationEuler);
             crystalObject.transform.localScale = new Vector3(scale, scale, scale);
             crystalMeshRenderer.sharedMaterial = material;
-            opticsController.ConfigureCrystalMaterial(material, settings, sourceTexture);
+            opticsController.ConfigureCrystalMaterial(material, settings, kaleidoscopeTexture, kaleidoscopeTextureValid, missingKaleidoscopeWarningColor);
 
             RenderTexture previousTarget = renderCamera.targetTexture;
             RenderTexture previousActive = RenderTexture.active;
@@ -566,6 +584,54 @@ namespace Kaleidoscope2.DiamondFocus
             renderCamera.targetTexture = previousTarget;
             RenderTexture.active = previousActive;
             return true;
+        }
+
+        private Texture ResolveKaleidoscopeTexture(Texture sourceTexture, out bool textureValid)
+        {
+            textureValid = bindKaleidoscopeTexture && sourceTexture != null;
+            if (textureValid)
+            {
+                missingKaleidoscopeTextureReported = false;
+                return sourceTexture;
+            }
+
+            if (!missingKaleidoscopeTextureReported)
+            {
+                ReportWarning("Missing or disabled _KaleidoscopeTex. Rendering crystal fallback warning color.");
+                missingKaleidoscopeTextureReported = true;
+            }
+
+            return EnsureFallbackKaleidoscopeTexture();
+        }
+
+        private Texture2D EnsureFallbackKaleidoscopeTexture()
+        {
+            if (fallbackKaleidoscopeTexture == null)
+            {
+                fallbackKaleidoscopeTexture = new Texture2D(2, 2, TextureFormat.RGBA32, false)
+                {
+                    name = "Kaleidoscope2_DiamondFocus_MissingKaleidoscopeTex",
+                    hideFlags = HideFlags.HideAndDontSave,
+                    filterMode = FilterMode.Point,
+                    wrapMode = TextureWrapMode.Clamp
+                };
+            }
+
+            if (fallbackKaleidoscopeTextureColor != missingKaleidoscopeWarningColor)
+            {
+                Color dark = new Color(0.03f, 0f, 0.04f, 1f);
+                fallbackKaleidoscopeTexture.SetPixels(new[]
+                {
+                    missingKaleidoscopeWarningColor,
+                    dark,
+                    dark,
+                    missingKaleidoscopeWarningColor
+                });
+                fallbackKaleidoscopeTexture.Apply(false, false);
+                fallbackKaleidoscopeTextureColor = missingKaleidoscopeWarningColor;
+            }
+
+            return fallbackKaleidoscopeTexture;
         }
 
         private Texture RenderBackgroundBlur(Texture sourceTexture, float backgroundBlurAmount, Material material)
