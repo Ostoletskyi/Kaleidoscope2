@@ -19,6 +19,7 @@ namespace Kaleidoscope2.InputSystem
         [SerializeField] private KeyCode toggleMenuKey = KeyCode.Mouse2;
         [SerializeField] private KeyCode closeMenuKey = KeyCode.Escape;
         [SerializeField] private KeyCode toggleHotkeysHelpKey = KeyCode.F1;
+        [SerializeField] private KeyCode toggleSecondDisplayOutputKey = KeyCode.F12;
         [SerializeField] private KeyCode toggleGuidesKey = KeyCode.Keypad0;
         [SerializeField] private KeyCode toggleGuidesAlternateKey = KeyCode.Alpha0;
         [SerializeField] private KeyCode reanimateImageKey = KeyCode.KeypadMultiply;
@@ -91,8 +92,26 @@ namespace Kaleidoscope2.InputSystem
         [SerializeField] private KeyCode diamondNextShapeKey = KeyCode.KeypadPlus;
         [SerializeField] private KeyCode diamondPreviousShapeKey = KeyCode.KeypadMinus;
         [SerializeField] private KeyCode diamondNextMaterialModeKey = KeyCode.KeypadPeriod;
+        [SerializeField] private KeyCode diamondRefractionIncreaseKey = KeyCode.Home;
+        [SerializeField] private KeyCode diamondRefractionDecreaseKey = KeyCode.End;
+        [SerializeField] private KeyCode diamondLightIntensityIncreaseKey = KeyCode.PageUp;
+        [SerializeField] private KeyCode diamondLightIntensityDecreaseKey = KeyCode.PageDown;
+        [SerializeField] private KeyCode crystalLightRigToggleKey = KeyCode.M;
+        [SerializeField] private KeyCode crystalLightRigIntensityIncreaseKey = KeyCode.Insert;
+        [SerializeField] private KeyCode crystalLightRigIntensityDecreaseKey = KeyCode.Delete;
+        [SerializeField] private KeyCode crystalLightRigOneLightKey = KeyCode.F5;
+        [SerializeField] private KeyCode crystalLightRigTwoLightsKey = KeyCode.F6;
+        [SerializeField] private KeyCode crystalLightRigFourLightsKey = KeyCode.F7;
+        [SerializeField] private KeyCode crystalLightRigEightLightsKey = KeyCode.F8;
+        [SerializeField] private KeyCode crystalSimulationModeToggleKey = KeyCode.G;
         [SerializeField] private KeyCode diamondToggleKey = KeyCode.Backspace;
         [SerializeField] private float diamondSpeedStepPerSecond = 90f;
+        [SerializeField] private float diamondRefractionIndexStepPerSecond = 1f;
+        [SerializeField] private float diamondLightIntensityStepPerSecond = 3f;
+        [SerializeField] private float crystalLightRigIntensityStepPerSecond = 6f;
+        private bool diamondOptionalKeysResolved;
+        private bool diamondKeypadDecimalAvailable;
+        private KeyCode diamondKeypadDecimalKey;
 
         [Header("4D Hose Profile (Russian layout г/н and щ/з)")]
         [SerializeField] private float hoseProfileUnitsStepPerSecond = 1000f;
@@ -162,6 +181,11 @@ namespace Kaleidoscope2.InputSystem
                 director.Dispatch(KaleidoscopeCommand.ToggleHotkeysHelp());
             }
 
+            if (UnityEngine.Input.GetKeyDown(toggleSecondDisplayOutputKey))
+            {
+                director.Dispatch(KaleidoscopeCommand.ToggleSecondDisplayOutput());
+            }
+
             if (director.State.HotkeysHelpVisible && UnityEngine.Input.GetKeyDown(closeMenuKey))
             {
                 director.Dispatch(KaleidoscopeCommand.SetHotkeysHelpVisible(false));
@@ -174,6 +198,21 @@ namespace Kaleidoscope2.InputSystem
             if (UnityEngine.Input.GetKeyDown(diamondToggleKey))
             {
                 director.Dispatch(KaleidoscopeCommand.ToggleDiamondFocus());
+            }
+
+            if (UnityEngine.Input.GetKeyDown(crystalLightRigToggleKey) && director.State.DiamondFocusSettings != null)
+            {
+                director.Dispatch(KaleidoscopeCommand.ToggleCrystalLightRig());
+            }
+
+            if (director.State.DiamondFocusSettings != null)
+            {
+                DispatchCrystalLightRigCountShortcuts();
+            }
+
+            if (UnityEngine.Input.GetKeyDown(crystalSimulationModeToggleKey) && director.State.DiamondFocusSettings != null)
+            {
+                director.Dispatch(KaleidoscopeCommand.ToggleCrystalSimulationMode());
             }
 
             if (UnityEngine.Input.GetKeyDown(reanimateImageKey))
@@ -585,7 +624,8 @@ namespace Kaleidoscope2.InputSystem
                 && visualMotion.ImageShiftInertiaEnabled;
             SevenDSettings sevenDSettings = director.State.SevenDSettings;
             string sevenDStrategy = sevenDSettings != null ? sevenDSettings.StrategyLabel : "None";
-            return CreateStatus("Zoom " + mirror.Zoom.ToString("0.00") + ", Rotation " + mirror.RotationSpeed.ToString("0") + ", 3D bend " + bend.ToString("0.00") + ", 4D hose " + hoseBend.ToString("0.00") + ", G " + opening.ToString("0") + ", Shch " + curvature.ToString("0") + ", 4D CA " + (chromaticAberration ? "on" : "off") + ", 5D flight " + flightSpeed.ToString("0") + ", mode flight " + modeFlightSpeed.ToString("0") + ", 2D inertia " + (classicInertia ? "on" : "off") + ", 7D " + sevenDStrategy + ".");
+            string secondDisplay = director.State.SecondDisplayOutputEnabled ? "on" : "off";
+            return CreateStatus("Zoom " + mirror.Zoom.ToString("0.00") + ", Rotation " + mirror.RotationSpeed.ToString("0") + ", 3D bend " + bend.ToString("0.00") + ", 4D hose " + hoseBend.ToString("0.00") + ", G " + opening.ToString("0") + ", Shch " + curvature.ToString("0") + ", 4D CA " + (chromaticAberration ? "on" : "off") + ", 5D flight " + flightSpeed.ToString("0") + ", mode flight " + modeFlightSpeed.ToString("0") + ", 2D inertia " + (classicInertia ? "on" : "off") + ", 7D " + sevenDStrategy + ", Display 2 " + secondDisplay + ".");
         }
 
         private void CycleVisualMode()
@@ -680,6 +720,8 @@ namespace Kaleidoscope2.InputSystem
 
         private void DispatchDiamondControls(float deltaTime)
         {
+            ResolveDiamondOptionalKeys();
+
             Vector2 direction = DiamondInputRouter.NormalizeNumpadRotationInput(
                 UnityEngine.Input.GetKey(diamondRotateDownLeftKey),
                 UnityEngine.Input.GetKey(diamondRotateDownKeypadKey),
@@ -733,9 +775,112 @@ namespace Kaleidoscope2.InputSystem
                 director.Dispatch(KaleidoscopeCommand.PreviousDiamondShape());
             }
 
-            if (UnityEngine.Input.GetKeyDown(diamondNextMaterialModeKey))
+            if (IsDiamondMaterialModeKeyPressed())
             {
                 director.Dispatch(KaleidoscopeCommand.CycleDiamondMaterialMode(1));
+            }
+
+            float refractionDelta = 0f;
+            float refractionStep = Mathf.Max(0f, diamondRefractionIndexStepPerSecond) * Mathf.Max(0f, deltaTime);
+            if (UnityEngine.Input.GetKey(diamondRefractionIncreaseKey))
+            {
+                refractionDelta += refractionStep;
+            }
+
+            if (UnityEngine.Input.GetKey(diamondRefractionDecreaseKey))
+            {
+                refractionDelta -= refractionStep;
+            }
+
+            if (Mathf.Abs(refractionDelta) > 0.0001f)
+            {
+                director.Dispatch(KaleidoscopeCommand.AdjustDiamondRefractionIndex(refractionDelta));
+            }
+
+            float lightDelta = 0f;
+            float lightStep = Mathf.Max(0f, diamondLightIntensityStepPerSecond) * Mathf.Max(0f, deltaTime);
+            if (UnityEngine.Input.GetKey(diamondLightIntensityIncreaseKey))
+            {
+                lightDelta += lightStep;
+            }
+
+            if (UnityEngine.Input.GetKey(diamondLightIntensityDecreaseKey))
+            {
+                lightDelta -= lightStep;
+            }
+
+            if (Mathf.Abs(lightDelta) > 0.0001f)
+            {
+                director.Dispatch(KaleidoscopeCommand.AdjustDiamondDirectedLightIntensity(lightDelta));
+            }
+
+            float rigLightDelta = 0f;
+            float rigLightStep = Mathf.Max(0f, crystalLightRigIntensityStepPerSecond) * Mathf.Max(0f, deltaTime);
+            if (UnityEngine.Input.GetKey(crystalLightRigIntensityIncreaseKey))
+            {
+                rigLightDelta += rigLightStep;
+            }
+
+            if (UnityEngine.Input.GetKey(crystalLightRigIntensityDecreaseKey))
+            {
+                rigLightDelta -= rigLightStep;
+            }
+
+            if (Mathf.Abs(rigLightDelta) > 0.0001f)
+            {
+                director.Dispatch(KaleidoscopeCommand.AdjustCrystalLightRigIntensity(rigLightDelta));
+            }
+        }
+
+        private void ResolveDiamondOptionalKeys()
+        {
+            if (diamondOptionalKeysResolved)
+            {
+                return;
+            }
+
+            diamondOptionalKeysResolved = true;
+            if (Enum.TryParse("KeypadDecimal", out KeyCode parsedKey))
+            {
+                diamondKeypadDecimalAvailable = true;
+                diamondKeypadDecimalKey = parsedKey;
+                return;
+            }
+
+            Debug.Log("[InputModule] KeyCode.KeypadDecimal is not available in this Unity version. Numpad Del/Decimal falls back to KeypadPeriod.", this);
+        }
+
+        private bool IsDiamondMaterialModeKeyPressed()
+        {
+            bool pressed = UnityEngine.Input.GetKeyDown(diamondNextMaterialModeKey);
+            if (diamondKeypadDecimalAvailable && diamondKeypadDecimalKey != diamondNextMaterialModeKey)
+            {
+                pressed = pressed || UnityEngine.Input.GetKeyDown(diamondKeypadDecimalKey);
+            }
+
+            return pressed;
+        }
+
+        private void DispatchCrystalLightRigCountShortcuts()
+        {
+            if (UnityEngine.Input.GetKeyDown(crystalLightRigOneLightKey))
+            {
+                director.Dispatch(KaleidoscopeCommand.SetCrystalLightRigActiveLightCount(1));
+            }
+
+            if (UnityEngine.Input.GetKeyDown(crystalLightRigTwoLightsKey))
+            {
+                director.Dispatch(KaleidoscopeCommand.SetCrystalLightRigActiveLightCount(2));
+            }
+
+            if (UnityEngine.Input.GetKeyDown(crystalLightRigFourLightsKey))
+            {
+                director.Dispatch(KaleidoscopeCommand.SetCrystalLightRigActiveLightCount(4));
+            }
+
+            if (UnityEngine.Input.GetKeyDown(crystalLightRigEightLightsKey))
+            {
+                director.Dispatch(KaleidoscopeCommand.SetCrystalLightRigActiveLightCount(8));
             }
         }
 

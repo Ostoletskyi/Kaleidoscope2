@@ -27,9 +27,7 @@ namespace Kaleidoscope2.DiamondFocus
                 return "None";
             }
 
-            return settings.MaterialMode == DiamondCrystalMaterialMode.GeneratedMaterial
-                ? settings.MaterialModeLabel + " / " + settings.GeneratedMaterialLabel
-                : settings.MaterialModeLabel;
+            return settings.MaterialModeLabel;
         }
     }
 }

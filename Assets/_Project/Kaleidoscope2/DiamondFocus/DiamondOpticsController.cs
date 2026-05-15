@@ -19,7 +19,9 @@ namespace Kaleidoscope2.DiamondFocus
         public static readonly int Rotation = Shader.PropertyToID("_Rotation");
         public static readonly int DiamondScale = Shader.PropertyToID("_DiamondScale");
         public static readonly int TexelSize = Shader.PropertyToID("_InputTexelSize");
-        public static readonly int SceneTex = Shader.PropertyToID("_SceneTex");
+        public static readonly int KaleidoscopeTex = Shader.PropertyToID("_KaleidoscopeTex");
+        public static readonly int KaleidoscopeTexValid = Shader.PropertyToID("_KaleidoscopeTexValid");
+        public static readonly int FallbackWarningColor = Shader.PropertyToID("_FallbackWarningColor");
         public static readonly int CrystalTex = Shader.PropertyToID("_CrystalTex");
         public static readonly int BlurredBackgroundTex = Shader.PropertyToID("_BlurredBackgroundTex");
         public static readonly int CrystalTexelSize = Shader.PropertyToID("_CrystalTexelSize");
@@ -33,44 +35,64 @@ namespace Kaleidoscope2.DiamondFocus
         public static readonly int OpticalCaustics = Shader.PropertyToID("_OpticalCaustics");
         public static readonly int OpticalDispersion = Shader.PropertyToID("_OpticalDispersion");
         public static readonly int TotalInternalReflection = Shader.PropertyToID("_TotalInternalReflection");
+        public static readonly int DiamondLikeRefraction = Shader.PropertyToID("_DiamondLikeRefraction");
+        public static readonly int SpectralDispersion = Shader.PropertyToID("_SpectralDispersion");
+        public static readonly int HighEnergyCaustics = Shader.PropertyToID("_HighEnergyCaustics");
+        public static readonly int MultiBounceInternalReflections = Shader.PropertyToID("_MultiBounceInternalReflections");
+        public static readonly int CinematicCrystalOptics = Shader.PropertyToID("_CinematicCrystalOptics");
+        public static readonly int PhysicallyBasedRefraction = Shader.PropertyToID("_PhysicallyBasedRefraction");
+        public static readonly int DeepVolumetricLightScattering = Shader.PropertyToID("_DeepVolumetricLightScattering");
+        public static readonly int CrystalSolidity = Shader.PropertyToID("_CrystalSolidity");
+        public static readonly int BlueWhitePlasmaEnergy = Shader.PropertyToID("_BlueWhitePlasmaEnergy");
+        public static readonly int DirectTransmission = Shader.PropertyToID("_DirectTransmission");
+        public static readonly int TotalInternalReturn = Shader.PropertyToID("_TotalInternalReturn");
+        public static readonly int SpectralFireIntensity = Shader.PropertyToID("_SpectralFireIntensity");
+        public static readonly int FacetDepthContrast = Shader.PropertyToID("_FacetDepthContrast");
+        public static readonly int DispersionStrength = Shader.PropertyToID("_DispersionStrength");
+        public static readonly int InternalBrightness = Shader.PropertyToID("_InternalBrightness");
+        public static readonly int NoiseDistortionStrength = Shader.PropertyToID("_NoiseDistortionStrength");
+        public static readonly int CrystalDebugMode = Shader.PropertyToID("_CrystalDebugMode");
+        public static readonly int SurfaceTint = Shader.PropertyToID("_SurfaceTint");
+        public static readonly int SurfaceTintStrength = Shader.PropertyToID("_SurfaceTintStrength");
+        public static readonly int Metallic = Shader.PropertyToID("_Metallic");
+        public static readonly int Roughness = Shader.PropertyToID("_Roughness");
+        public static readonly int ScratchStrength = Shader.PropertyToID("_ScratchStrength");
+        public static readonly int Iridescence = Shader.PropertyToID("_Iridescence");
+        public static readonly int SurfacePatternStrength = Shader.PropertyToID("_SurfacePatternStrength");
+        public static readonly int Clarity = Shader.PropertyToID("_Clarity");
+        public static readonly int CrystalSurfaceFamily = Shader.PropertyToID("_CrystalSurfaceFamily");
+        public static readonly int SampleMipBias = Shader.PropertyToID("_SampleMipBias");
+        public static readonly int DirectedLightIntensity = Shader.PropertyToID("_DirectedLightIntensity");
+        public static readonly int CrystalLightRigEnabled = Shader.PropertyToID("_CrystalLightRigEnabled");
+        public static readonly int CrystalRigLightIntensity = Shader.PropertyToID("_CrystalRigLightIntensity");
+        public static readonly int CrystalRigGlintIntensity = Shader.PropertyToID("_CrystalRigGlintIntensity");
+        public static readonly int CrystalRigRimIntensity = Shader.PropertyToID("_CrystalRigRimIntensity");
+        public static readonly int CrystalRigSpectralIntensity = Shader.PropertyToID("_CrystalRigSpectralIntensity");
+        public static readonly int CrystalRigPulse = Shader.PropertyToID("_CrystalRigPulse");
+        public static readonly int CrystalRigOrbitPhase = Shader.PropertyToID("_CrystalRigOrbitPhase");
     }
 
     public sealed class DiamondOpticsController
     {
+        private readonly CrystalMaterialBinder crystalMaterialBinder = new CrystalMaterialBinder();
+
         public float FocusAmount { get; private set; }
         public float BackgroundBlur { get; private set; }
 
-        public void ConfigureCrystalMaterial(Material material, DiamondFocusSettings settings, Texture sceneTexture)
+        public void ConfigureCrystalMaterial(
+            Material material,
+            DiamondFocusSettings settings,
+            Texture kaleidoscopeTexture,
+            bool kaleidoscopeTextureValid,
+            Color fallbackWarningColor)
         {
-            if (material == null || settings == null || sceneTexture == null)
+            if (material == null || settings == null)
             {
                 return;
             }
 
-            FocusAmount = settings.NormalizedRotationSpeed;
-
-            material.SetTexture(DiamondOpticalShaderIds.SceneTex, sceneTexture);
-            material.SetFloat(DiamondOpticalShaderIds.Transparency, settings.Transparency);
-            material.SetFloat(DiamondOpticalShaderIds.RefractionStrength, settings.RefractionStrength);
-            material.SetFloat(DiamondOpticalShaderIds.ReflectionStrength, settings.ReflectionStrength);
-            material.SetFloat(DiamondOpticalShaderIds.FresnelPower, settings.FresnelPower);
-            material.SetFloat(DiamondOpticalShaderIds.EdgeHighlight, settings.EdgeHighlight);
-            material.SetFloat(DiamondOpticalShaderIds.ChromaticAberrationAmount, settings.ChromaticAberrationAmount);
-            material.SetFloat(DiamondOpticalShaderIds.FacetContrast, settings.FacetContrast);
-            material.SetFloat(DiamondOpticalShaderIds.InternalGlow, settings.InternalGlow);
-            material.SetFloat(DiamondOpticalShaderIds.BloomBoost, settings.BloomBoost);
-            material.SetFloat(DiamondOpticalShaderIds.FocusAmount, FocusAmount);
-            material.SetFloat(DiamondOpticalShaderIds.Shape, settings.ShapeIndex);
-            material.SetFloat(DiamondOpticalShaderIds.CrystalMaterialMode, settings.MaterialModeIndex);
-            material.SetColor(DiamondOpticalShaderIds.GeneratedColor, settings.GeneratedMaterialColor);
-            material.SetFloat(DiamondOpticalShaderIds.GeneratedMaterialKind, settings.GeneratedMaterialKindIndex);
-            material.SetFloat(DiamondOpticalShaderIds.OpticalIOR, settings.OpticalIOR);
-            material.SetFloat(DiamondOpticalShaderIds.OpticalCaustics, settings.OpticalCaustics);
-            material.SetFloat(DiamondOpticalShaderIds.OpticalDispersion, settings.OpticalDispersion);
-            material.SetFloat(DiamondOpticalShaderIds.TotalInternalReflection, settings.TotalInternalReflection);
-            material.SetVector(DiamondOpticalShaderIds.Rotation, settings.RotationEuler);
-            material.SetFloat(DiamondOpticalShaderIds.DiamondScale, settings.ScreenScale);
-            material.SetVector(DiamondOpticalShaderIds.TexelSize, new Vector4(1f / sceneTexture.width, 1f / sceneTexture.height, sceneTexture.width, sceneTexture.height));
+            crystalMaterialBinder.ConfigureCrystalMaterial(material, settings, kaleidoscopeTexture, kaleidoscopeTextureValid, fallbackWarningColor);
+            FocusAmount = crystalMaterialBinder.FocusAmount;
         }
 
         public void ConfigureCompositeMaterial(Material material, DiamondFocusSettings settings, Texture sourceTexture, Texture blurredBackgroundTexture, Texture crystalTexture, float backgroundBlurAmount)
