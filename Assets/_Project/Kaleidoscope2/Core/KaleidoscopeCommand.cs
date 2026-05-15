@@ -70,7 +70,16 @@ namespace Kaleidoscope2.Core
         ToggleSecondDisplayOutput = 62,
         SetSecondDisplayOutputEnabled = 63,
         AdjustDiamondRefractionIndex = 64,
-        SetDiamondRefractionIndex = 65
+        SetDiamondRefractionIndex = 65,
+        AdjustDiamondDirectedLightIntensity = 66,
+        SetDiamondDirectedLightIntensity = 67,
+        ToggleCrystalLightRig = 68,
+        SetCrystalLightRigEnabled = 69,
+        AdjustCrystalLightRigIntensity = 70,
+        SetCrystalLightRigIntensity = 71,
+        ToggleCrystalSimulationMode = 72,
+        SetCrystalSimulationMode = 73,
+        SetCrystalLightRigActiveLightCount = 74
     }
 
     [Serializable]
@@ -570,6 +579,72 @@ namespace Kaleidoscope2.Core
             return new KaleidoscopeCommand(KaleidoscopeCommandType.SetDiamondRefractionIndex)
             {
                 floatValue = value
+            };
+        }
+
+        public static KaleidoscopeCommand AdjustDiamondDirectedLightIntensity(float delta)
+        {
+            return new KaleidoscopeCommand(KaleidoscopeCommandType.AdjustDiamondDirectedLightIntensity)
+            {
+                floatValue = delta
+            };
+        }
+
+        public static KaleidoscopeCommand SetDiamondDirectedLightIntensity(float value)
+        {
+            return new KaleidoscopeCommand(KaleidoscopeCommandType.SetDiamondDirectedLightIntensity)
+            {
+                floatValue = value
+            };
+        }
+
+        public static KaleidoscopeCommand ToggleCrystalLightRig()
+        {
+            return new KaleidoscopeCommand(KaleidoscopeCommandType.ToggleCrystalLightRig);
+        }
+
+        public static KaleidoscopeCommand SetCrystalLightRigEnabled(bool enabled)
+        {
+            return new KaleidoscopeCommand(KaleidoscopeCommandType.SetCrystalLightRigEnabled)
+            {
+                boolValue = enabled
+            };
+        }
+
+        public static KaleidoscopeCommand AdjustCrystalLightRigIntensity(float delta)
+        {
+            return new KaleidoscopeCommand(KaleidoscopeCommandType.AdjustCrystalLightRigIntensity)
+            {
+                floatValue = delta
+            };
+        }
+
+        public static KaleidoscopeCommand SetCrystalLightRigIntensity(float value)
+        {
+            return new KaleidoscopeCommand(KaleidoscopeCommandType.SetCrystalLightRigIntensity)
+            {
+                floatValue = value
+            };
+        }
+
+        public static KaleidoscopeCommand SetCrystalLightRigActiveLightCount(int count)
+        {
+            return new KaleidoscopeCommand(KaleidoscopeCommandType.SetCrystalLightRigActiveLightCount)
+            {
+                intValue = count
+            };
+        }
+
+        public static KaleidoscopeCommand ToggleCrystalSimulationMode()
+        {
+            return new KaleidoscopeCommand(KaleidoscopeCommandType.ToggleCrystalSimulationMode);
+        }
+
+        public static KaleidoscopeCommand SetCrystalSimulationMode(CrystalRenderMode mode)
+        {
+            return new KaleidoscopeCommand(KaleidoscopeCommandType.SetCrystalSimulationMode)
+            {
+                intValue = (int)mode
             };
         }
 

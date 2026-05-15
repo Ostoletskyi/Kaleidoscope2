@@ -17,9 +17,22 @@ namespace Kaleidoscope2.Core
     {
         AbsoluteMirror = 0,
         Diamond = 1,
-        Glow = 2,
-        OpticalPhysics = 3,
-        GeneratedMaterial = 4
+        LegacyGlow = 2,
+        LegacyOpticalPhysics = 3,
+        LegacyGeneratedMaterial = 4,
+        Emerald = 5,
+        Topaz = 6,
+        Ruby = 7,
+        Sapphire = 8,
+        Amethyst = 9,
+        Aquamarine = 10,
+        Garnet = 11,
+        FuturisticPlastic = 12,
+        Mercury = 13,
+        StainlessSteel = 14,
+        Chrome = 15,
+        CastIron = 16,
+        PolishedBrass = 17
     }
 
     public enum DiamondCrystalDebugMode
@@ -27,7 +40,11 @@ namespace Kaleidoscope2.Core
         FinalCrystalComposite = 0,
         RawKaleidoscopeTex = 1,
         RefractionOnly = 2,
-        ReflectionOnly = 3
+        ReflectionOnly = 3,
+        DispersionOnly = 4,
+        SurfaceNormalOnly = 5,
+        CrystalOff = 6,
+        ArtifactStressTest = 7
     }
 
     public enum DiamondGeneratedMaterialKind
@@ -42,10 +59,30 @@ namespace Kaleidoscope2.Core
     public sealed class DiamondFocusSettings
     {
         public const int ShapeCount = 6;
-        public const int MaterialModeCount = 5;
         public const int GeneratedMaterialKindCount = 4;
         public const float RefractionIndexMin = 0f;
         public const float RefractionIndexMax = 10f;
+        public const float DirectedLightIntensityMin = -10f;
+        public const float DirectedLightIntensityMax = 10f;
+
+        private static readonly DiamondCrystalMaterialMode[] MaterialModeSequence =
+        {
+            DiamondCrystalMaterialMode.AbsoluteMirror,
+            DiamondCrystalMaterialMode.Diamond,
+            DiamondCrystalMaterialMode.Emerald,
+            DiamondCrystalMaterialMode.Topaz,
+            DiamondCrystalMaterialMode.Ruby,
+            DiamondCrystalMaterialMode.Sapphire,
+            DiamondCrystalMaterialMode.Amethyst,
+            DiamondCrystalMaterialMode.Aquamarine,
+            DiamondCrystalMaterialMode.Garnet,
+            DiamondCrystalMaterialMode.FuturisticPlastic,
+            DiamondCrystalMaterialMode.Mercury,
+            DiamondCrystalMaterialMode.StainlessSteel,
+            DiamondCrystalMaterialMode.Chrome,
+            DiamondCrystalMaterialMode.CastIron,
+            DiamondCrystalMaterialMode.PolishedBrass
+        };
 
         [SerializeField] private bool enabled;
         [SerializeField] private DiamondFocusShape shape = DiamondFocusShape.ClassicDiamond;
@@ -57,7 +94,7 @@ namespace Kaleidoscope2.Core
         [SerializeField] private DiamondCrystalMaterialMode materialMode = DiamondCrystalMaterialMode.Diamond;
         [SerializeField] private DiamondGeneratedMaterialKind generatedMaterialKind = DiamondGeneratedMaterialKind.Wood;
         [SerializeField] private Color generatedMaterialColor = new Color(0.85f, 0.96f, 1f, 1f);
-        [SerializeField] private int generatedMaterialSeed = 1;
+        [SerializeField, InspectorName("RandomSeed")] private int generatedMaterialSeed = 1;
         [SerializeField] private Vector2 targetRotationDirection = new Vector2(0.35f, 0.75f);
         [SerializeField] private Vector2 currentRotationDirection = new Vector2(0.35f, 0.75f);
         [SerializeField] private Vector3 rotationEuler = Vector3.zero;
@@ -105,13 +142,27 @@ namespace Kaleidoscope2.Core
         [SerializeField, Range(0f, 2f)] private float facetDepthContrast = 1.22f;
 
         [Header("Optical Material Mode")]
-        [SerializeField, Range(0f, 10f)] private float opticalIOR = 2.42f;
+        [SerializeField, InspectorName("RefractionCoefficient"), Range(0f, 10f)] private float opticalIOR = 2.42f;
+        [SerializeField, InspectorName("DirectedLightIntensity"), Range(-10f, 10f)] private float directedLightIntensity;
         [SerializeField, Range(0f, 2f)] private float opticalCaustics = 0.8f;
         [SerializeField, Range(0f, 2f)] private float opticalDispersion = 1.45f;
         [SerializeField, Range(0f, 2f)] private float totalInternalReflection = 1.45f;
 
+        [Header("Crystal Light Rig")]
+        [SerializeField] private CrystalLightRigSettings crystalLightRigSettings = new CrystalLightRigSettings();
+
+        [Header("Crystal Presentation")]
+        [SerializeField, InspectorName("Crystal Simulation")] private CrystalRenderMode crystalSimulationMode = CrystalRenderMode.Billboard2D;
+
         [Header("Debug")]
-        [SerializeField] private DiamondCrystalDebugMode debugMode = DiamondCrystalDebugMode.FinalCrystalComposite;
+        [SerializeField, InspectorName("DebugView")] private DiamondCrystalDebugMode debugMode = DiamondCrystalDebugMode.FinalCrystalComposite;
+
+        [Header("Runtime Safety")]
+        [SerializeField] private bool enableRandomVariants = true;
+        [SerializeField] private bool preserveClassicMode = true;
+        [SerializeField, InspectorName("CurrentShapeName")] private string currentShapeName = "Classic Diamond";
+        [SerializeField, InspectorName("CurrentModeName")] private string currentModeName = "High-Purity Diamond";
+        [SerializeField, InspectorName("KaleidoscopeTex Binding Status")] private string kaleidoscopeTexBindingStatus = "Unbound";
 
         public bool Enabled { get { return enabled; } }
         public DiamondFocusShape Shape { get { return shape; } }
@@ -120,6 +171,7 @@ namespace Kaleidoscope2.Core
         public DiamondFocusShape ShapeTransitionToShape { get { return shapeTransitionToShape; } }
         public bool ShapeTransitionActive { get { return shapeTransitionActive; } }
         public float ShapeTransitionDuration { get { return Mathf.Max(0.1f, shapeTransitionDuration); } }
+        public static int MaterialModeCount { get { return MaterialModeSequence.Length; } }
         public float ShapeTransitionProgress
         {
             get
@@ -138,11 +190,12 @@ namespace Kaleidoscope2.Core
             }
         }
         public DiamondCrystalMaterialMode MaterialMode { get { return materialMode; } }
-        public int MaterialModeIndex { get { return Mathf.Clamp((int)materialMode, 0, MaterialModeCount - 1); } }
+        public int MaterialModeIndex { get { return GetMaterialModeIndex(materialMode); } }
         public DiamondGeneratedMaterialKind GeneratedMaterialKind { get { return generatedMaterialKind; } }
         public int GeneratedMaterialKindIndex { get { return Mathf.Clamp((int)generatedMaterialKind, 0, GeneratedMaterialKindCount - 1); } }
         public Color GeneratedMaterialColor { get { return generatedMaterialColor; } }
-        public int GeneratedMaterialSeed { get { return generatedMaterialSeed; } }
+        public int GeneratedMaterialSeed { get { return RandomSeed; } }
+        public int RandomSeed { get { return Mathf.Max(1, generatedMaterialSeed); } }
         public Vector2 TargetRotationDirection { get { return targetRotationDirection; } }
         public Vector2 ResolvedTargetRotationDirection { get { return NormalizeOrDefault(targetRotationDirection); } }
         public Vector2 CurrentRotationDirection { get { return NormalizeOrDefault(currentRotationDirection); } }
@@ -181,8 +234,24 @@ namespace Kaleidoscope2.Core
         public float TotalInternalReturn { get { return Mathf.Max(0f, totalInternalReturn); } }
         public float SpectralFireIntensity { get { return Mathf.Max(0f, spectralFireIntensity); } }
         public float FacetDepthContrast { get { return Mathf.Max(0f, facetDepthContrast); } }
-        public float OpticalIOR { get { return RefractionIndex; } }
-        public float RefractionIndex { get { return Mathf.Clamp(opticalIOR, RefractionIndexMin, RefractionIndexMax); } }
+        public float OpticalIOR { get { return RefractionCoefficient; } }
+        public float RefractionIndex { get { return RefractionCoefficient; } }
+        public float RefractionCoefficient { get { return Mathf.Clamp(opticalIOR, RefractionIndexMin, RefractionIndexMax); } }
+        public float DirectedLightIntensity { get { return Mathf.Clamp(directedLightIntensity, DirectedLightIntensityMin, DirectedLightIntensityMax); } }
+        public CrystalLightRigSettings CrystalLightRigSettings
+        {
+            get
+            {
+                if (crystalLightRigSettings == null)
+                {
+                    crystalLightRigSettings = new CrystalLightRigSettings();
+                }
+
+                return crystalLightRigSettings;
+            }
+        }
+        public CrystalRenderMode CrystalSimulationMode { get { return crystalSimulationMode; } }
+        public string CrystalSimulationModeLabel { get { return CrystalSharedSettings.GetRenderModeLabel(crystalSimulationMode); } }
         public float OpticalCaustics { get { return Mathf.Max(0f, opticalCaustics); } }
         public float OpticalDispersion { get { return Mathf.Max(0f, opticalDispersion); } }
         public float TotalInternalReflection { get { return Mathf.Max(0f, totalInternalReflection); } }
@@ -191,6 +260,12 @@ namespace Kaleidoscope2.Core
         public string MaterialModeLabel { get { return GetMaterialModeLabel(materialMode); } }
         public string GeneratedMaterialLabel { get { return GetGeneratedMaterialKindLabel(generatedMaterialKind); } }
         public DiamondCrystalDebugMode DebugMode { get { return debugMode; } }
+        public DiamondCrystalDebugMode DebugView { get { return debugMode; } }
+        public bool EnableRandomVariants { get { return enableRandomVariants; } }
+        public bool PreserveClassicMode { get { return preserveClassicMode; } }
+        public string CurrentShapeName { get { return currentShapeName; } }
+        public string CurrentModeName { get { return currentModeName; } }
+        public string KaleidoscopeTexBindingStatus { get { return kaleidoscopeTexBindingStatus; } }
 
         public void SetEnabled(bool value)
         {
@@ -198,6 +273,7 @@ namespace Kaleidoscope2.Core
             if (enabled)
             {
                 EnsureDefaultSpin();
+                RegenerateModeVariant();
             }
         }
 
@@ -213,6 +289,7 @@ namespace Kaleidoscope2.Core
             shapeTransitionToShape = value;
             shapeTransitionActive = false;
             shapeTransitionElapsed = 0f;
+            RefreshInspectorLabels();
         }
 
         public void BeginShapeTransition(DiamondFocusShape value)
@@ -225,6 +302,7 @@ namespace Kaleidoscope2.Core
             shapeTransitionToShape = target;
             shapeTransitionElapsed = 0f;
             shapeTransitionActive = from != target;
+            RefreshInspectorLabels();
         }
 
         public void TickShapeTransition(float deltaTime)
@@ -266,19 +344,21 @@ namespace Kaleidoscope2.Core
 
         public void SetMaterialMode(DiamondCrystalMaterialMode value)
         {
-            materialMode = value;
-            RegenerateMaterialVariant();
+            materialMode = NormalizeMaterialMode(value);
+            RegenerateModeVariant();
+            RefreshInspectorLabels();
         }
 
         public void SetMaterialModeIndex(int index)
         {
-            int wrapped = index % MaterialModeCount;
+            int count = MaterialModeCount;
+            int wrapped = count > 0 ? index % count : 0;
             if (wrapped < 0)
             {
-                wrapped += MaterialModeCount;
+                wrapped += count;
             }
 
-            SetMaterialMode((DiamondCrystalMaterialMode)wrapped);
+            SetMaterialMode(MaterialModeSequence[wrapped]);
         }
 
         public void CycleMaterialMode(int direction)
@@ -323,12 +403,69 @@ namespace Kaleidoscope2.Core
 
         public void SetRefractionIndex(float value)
         {
-            opticalIOR = Mathf.Clamp(value, RefractionIndexMin, RefractionIndexMax);
+            SetRefractionCoefficient(value);
         }
 
         public void AdjustRefractionIndex(float delta)
         {
-            SetRefractionIndex(RefractionIndex + delta);
+            SetRefractionCoefficient(RefractionCoefficient + delta);
+        }
+
+        public void SetRefractionCoefficient(float value)
+        {
+            opticalIOR = Mathf.Clamp(value, RefractionIndexMin, RefractionIndexMax);
+        }
+
+        public void AdjustDirectedLightIntensity(float delta)
+        {
+            SetDirectedLightIntensity(DirectedLightIntensity + delta);
+        }
+
+        public void SetDirectedLightIntensity(float value)
+        {
+            directedLightIntensity = Mathf.Clamp(value, DirectedLightIntensityMin, DirectedLightIntensityMax);
+        }
+
+        public void SetCrystalSimulationMode(CrystalRenderMode value)
+        {
+            crystalSimulationMode = value == CrystalRenderMode.RealMesh3D
+                ? CrystalRenderMode.RealMesh3D
+                : CrystalRenderMode.Billboard2D;
+        }
+
+        public void ToggleCrystalSimulationMode()
+        {
+            SetCrystalSimulationMode(crystalSimulationMode == CrystalRenderMode.RealMesh3D
+                ? CrystalRenderMode.Billboard2D
+                : CrystalRenderMode.RealMesh3D);
+        }
+
+        public void SetDebugMode(DiamondCrystalDebugMode value)
+        {
+            debugMode = value;
+        }
+
+        public void CycleDebugMode(int direction)
+        {
+            const int debugModeCount = 8;
+            int next = ((int)debugMode + direction) % debugModeCount;
+            if (next < 0)
+            {
+                next += debugModeCount;
+            }
+
+            debugMode = (DiamondCrystalDebugMode)next;
+        }
+
+        public void SetKaleidoscopeTexBindingStatus(bool bound)
+        {
+            kaleidoscopeTexBindingStatus = bound ? "Bound" : "Missing / fallback";
+        }
+
+        public void RefreshInspectorLabels()
+        {
+            currentShapeName = ShapeLabel;
+            currentModeName = MaterialModeLabel;
         }
 
         public void SetRotationVelocity(Vector3 value)
@@ -387,16 +524,42 @@ namespace Kaleidoscope2.Core
         {
             switch (value)
             {
+                case DiamondCrystalMaterialMode.Emerald:
+                    return "Emerald";
+                case DiamondCrystalMaterialMode.Topaz:
+                    return "Topaz";
+                case DiamondCrystalMaterialMode.Ruby:
+                    return "Ruby";
+                case DiamondCrystalMaterialMode.Sapphire:
+                    return "Sapphire";
+                case DiamondCrystalMaterialMode.Amethyst:
+                    return "Amethyst";
+                case DiamondCrystalMaterialMode.Aquamarine:
+                    return "Aquamarine";
+                case DiamondCrystalMaterialMode.Garnet:
+                    return "Garnet";
+                case DiamondCrystalMaterialMode.FuturisticPlastic:
+                    return "Futuristic Plastic";
+                case DiamondCrystalMaterialMode.Mercury:
+                    return "Mercury";
+                case DiamondCrystalMaterialMode.StainlessSteel:
+                    return "Stainless Steel";
+                case DiamondCrystalMaterialMode.Chrome:
+                    return "Chrome";
+                case DiamondCrystalMaterialMode.CastIron:
+                    return "Cast Iron";
+                case DiamondCrystalMaterialMode.PolishedBrass:
+                    return "Polished Brass";
                 case DiamondCrystalMaterialMode.AbsoluteMirror:
-                    return "Absolute Mirror";
-                case DiamondCrystalMaterialMode.Glow:
-                    return "Generated Glow";
-                case DiamondCrystalMaterialMode.OpticalPhysics:
-                    return "Optical IOR";
-                case DiamondCrystalMaterialMode.GeneratedMaterial:
-                    return "Generated Material";
+                    return "Absolute Mirror + Prism";
+                case DiamondCrystalMaterialMode.LegacyGlow:
+                    return "Legacy Glow";
+                case DiamondCrystalMaterialMode.LegacyOpticalPhysics:
+                    return "Legacy Optical IOR";
+                case DiamondCrystalMaterialMode.LegacyGeneratedMaterial:
+                    return "Legacy Generated Material";
                 default:
-                    return "Diamond";
+                    return "High-Purity Diamond";
             }
         }
 
@@ -420,38 +583,87 @@ namespace Kaleidoscope2.Core
             return value.sqrMagnitude > 0.0001f ? value.normalized : new Vector2(0.35f, 0.75f).normalized;
         }
 
-        private void RegenerateMaterialVariant()
+        public static DiamondCrystalMaterialMode GetModeAtIndex(int index)
         {
-            generatedMaterialSeed = generatedMaterialSeed >= int.MaxValue - 1 ? 1 : generatedMaterialSeed + 1;
+            int count = MaterialModeCount;
+            if (count <= 0)
+            {
+                return DiamondCrystalMaterialMode.Diamond;
+            }
 
-            if (materialMode == DiamondCrystalMaterialMode.Glow)
+            int wrapped = index % count;
+            if (wrapped < 0)
+            {
+                wrapped += count;
+            }
+
+            return MaterialModeSequence[wrapped];
+        }
+
+        private static int GetMaterialModeIndex(DiamondCrystalMaterialMode value)
+        {
+            DiamondCrystalMaterialMode normalized = NormalizeMaterialMode(value);
+            for (int index = 0; index < MaterialModeSequence.Length; index++)
+            {
+                if (MaterialModeSequence[index] == normalized)
+                {
+                    return index;
+                }
+            }
+
+            return 1;
+        }
+
+        private static DiamondCrystalMaterialMode NormalizeMaterialMode(DiamondCrystalMaterialMode value)
+        {
+            switch (value)
+            {
+                case DiamondCrystalMaterialMode.LegacyGlow:
+                    return DiamondCrystalMaterialMode.FuturisticPlastic;
+                case DiamondCrystalMaterialMode.LegacyOpticalPhysics:
+                case DiamondCrystalMaterialMode.LegacyGeneratedMaterial:
+                    return DiamondCrystalMaterialMode.Diamond;
+                default:
+                    for (int index = 0; index < MaterialModeSequence.Length; index++)
+                    {
+                        if (MaterialModeSequence[index] == value)
+                        {
+                            return value;
+                        }
+                    }
+
+                    return DiamondCrystalMaterialMode.Diamond;
+            }
+        }
+
+        private void RegenerateModeVariant()
+        {
+            if (enableRandomVariants)
+            {
+                generatedMaterialSeed = generatedMaterialSeed >= int.MaxValue - 1 ? 1 : generatedMaterialSeed + 1;
+            }
+
+            if (materialMode == DiamondCrystalMaterialMode.FuturisticPlastic)
             {
                 generatedMaterialColor = new Color(0.68f, 0.9f, 1f, 1f);
                 return;
             }
 
-            if (materialMode == DiamondCrystalMaterialMode.GeneratedMaterial)
+            if (materialMode == DiamondCrystalMaterialMode.AbsoluteMirror)
             {
-                generatedMaterialKind = (DiamondGeneratedMaterialKind)((GeneratedMaterialKindIndex + 1) % GeneratedMaterialKindCount);
-                generatedMaterialColor = GenerateMaterialColor(generatedMaterialKind);
+                generatedMaterialColor = new Color(0.92f, 0.96f, 1f, 1f);
+                return;
             }
-        }
 
-        private static Color GenerateMaterialColor(DiamondGeneratedMaterialKind kind)
-        {
-            switch (kind)
+            if (materialMode == DiamondCrystalMaterialMode.PolishedBrass)
             {
-                case DiamondGeneratedMaterialKind.Metal:
-                    return new Color(0.86f, 0.82f, 0.72f, 1f);
+                generatedMaterialColor = new Color(1f, 0.78f, 0.38f, 1f);
+                return;
+            }
 
-                case DiamondGeneratedMaterialKind.Plastic:
-                    return new Color(0.72f, 0.9f, 1f, 1f);
-
-                case DiamondGeneratedMaterialKind.Stone:
-                    return new Color(0.54f, 0.58f, 0.63f, 1f);
-
-                default:
-                    return new Color(0.62f, 0.38f, 0.18f, 1f);
+            if (materialMode == DiamondCrystalMaterialMode.Diamond)
+            {
+                generatedMaterialColor = new Color(0.9f, 0.98f, 1f, 1f);
             }
         }
 

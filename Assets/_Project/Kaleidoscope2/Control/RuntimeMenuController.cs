@@ -57,6 +57,7 @@ namespace Kaleidoscope2.Control
         private GameObject browserRoot;
 
         private Text modeValueText;
+        private Text crystalSimulationValueText;
         private Text imagePathText;
         private Text audioPathText;
         private Text guidesValueText;
@@ -91,6 +92,18 @@ namespace Kaleidoscope2.Control
         public override string ModuleId
         {
             get { return "Control"; }
+        }
+
+        public override KaleidoscopeModuleStatus GetStatus()
+        {
+            string outputPreviewActive = outputImage != null && outputImage.gameObject.activeInHierarchy ? "yes" : "no";
+            Texture texture = outputImage != null ? outputImage.texture : null;
+            string textureStatus = texture != null
+                ? texture.width.ToString() + "x" + texture.height.ToString()
+                : "none";
+            return CreateStatus("OutputPreview active " + outputPreviewActive
+                + ", output texture " + textureStatus
+                + ", menu " + (menuRoot != null && menuRoot.activeSelf ? "visible" : "hidden") + ".");
         }
 
         protected override void OnInitialized()
@@ -217,6 +230,12 @@ namespace Kaleidoscope2.Control
             if (modeValueText != null)
             {
                 modeValueText.text = GetModeLabel(state.ActiveVisualMode);
+            }
+
+            if (crystalSimulationValueText != null)
+            {
+                DiamondFocusSettings diamond = state != null ? state.DiamondFocusSettings : null;
+                crystalSimulationValueText.text = diamond != null ? diamond.CrystalSimulationModeLabel : "2D Performance";
             }
 
             if (guidesValueText != null)
@@ -387,6 +406,9 @@ namespace Kaleidoscope2.Control
             RectTransform modeRow = CreateRow(panel, "Режим:", out modeValueText);
             CreateButton(modeRow, "ToggleMode", "2D / 3D / 4D / 5D / 6D / 7D", ButtonColor, ToggleMode);
 
+            RectTransform crystalSimulationRow = CreateRow(panel, "Crystal Simulation:", out crystalSimulationValueText);
+            CreateButton(crystalSimulationRow, "ToggleCrystalSimulation", "2D / 3D", ButtonColor, ToggleCrystalSimulationMode);
+
             CreateRow(panel, "4D Г:", out hoseOpeningValueText);
             CreateRow(panel, "4D Щ:", out hoseWallCurvatureValueText);
             RectTransform chromaticAberrationRow = CreateRow(panel, "4D CA:", out hoseChromaticAberrationValueText);
@@ -451,6 +473,10 @@ namespace Kaleidoscope2.Control
                 "Diamond Focus: Num+ / Num- — следующая / предыдущая форма алмаза, плавный переход 2 секунды\n" +
                 "Diamond Focus: NumDel / Num, — режим материала кристалла\n" +
                 "Diamond Focus: Home / End — повысить / понизить коэффициент преломления 0..10\n" +
+                "Diamond Focus: PageUp / PageDown — свет на кристалл -10..+10\n" +
+                "Diamond Focus: M — включить/выключить отдельный световой риг вокруг кристалла\n" +
+                "Diamond Focus: Insert / Delete — интенсивность светового рига 0..20\n" +
+                "Diamond Focus: G (рус. П) — Crystal Simulation 2D Performance / 3D Premium\n" +
                 "R (рус. К) — инерционный сдвиг 2D: разгон при удержании Ц/Ф/Ы/В и плавная остановка за 5 секунд\n" +
                 "I/K/J/L — изгиб 4D-шланга (на русской раскладке: Ш/Л/О/Д)\n\n" +
                 "U/Y (рус. Г/Н) — ширина воронки 4D: -500..+500\n" +
@@ -868,6 +894,17 @@ namespace Kaleidoscope2.Control
                             : KaleidoscopeVisualMode.Classic;
 
             director.Dispatch(KaleidoscopeCommand.SetVisualMode(next));
+            SyncUiFromState();
+        }
+
+        private void ToggleCrystalSimulationMode()
+        {
+            if (director == null)
+            {
+                return;
+            }
+
+            director.Dispatch(KaleidoscopeCommand.ToggleCrystalSimulationMode());
             SyncUiFromState();
         }
 

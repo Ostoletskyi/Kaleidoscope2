@@ -22,7 +22,9 @@ namespace Kaleidoscope2.Core
         VolumetricIllusion = 14,
         SevenD = 15,
         DiamondFocus = 16,
-        DisplayOutput = 17
+        DisplayOutput = 17,
+        CrystalLightRig = 18,
+        CrystalPresentation = 19
     }
 
     [Serializable]
