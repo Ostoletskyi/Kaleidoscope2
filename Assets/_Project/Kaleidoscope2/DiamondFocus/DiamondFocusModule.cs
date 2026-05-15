@@ -10,6 +10,11 @@ namespace Kaleidoscope2.DiamondFocus
         private const string CrystalShaderName = "Kaleidoscope2/DiamondCrystal3D";
         private const string BlurShaderName = "Kaleidoscope2/DiamondBackgroundBlur";
 
+        private static readonly int CrystalDominanceShaderId = Shader.PropertyToID("_CrystalDominance");
+        private static readonly int BackgroundDimShaderId = Shader.PropertyToID("_BackgroundDim");
+        private static readonly int FocusVignetteShaderId = Shader.PropertyToID("_FocusVignette");
+        private static readonly int CompositeModeShaderId = Shader.PropertyToID("_CompositeMode");
+
         [Header("Shaders")]
         [Tooltip("Composite shader that blends the 3D crystal render over the current kaleidoscope output.")]
         [SerializeField] private Shader diamondShader;
@@ -63,16 +68,11 @@ namespace Kaleidoscope2.DiamondFocus
         private MeshFilter crystalMeshFilter;
         private MeshRenderer crystalMeshRenderer;
         private DiamondFocusShape renderedShape = (DiamondFocusShape)(-1);
-        private Texture2D fallbackKaleidoscopeTexture;
-        private Color fallbackKaleidoscopeTextureColor = Color.clear;
-        private bool missingKaleidoscopeTextureReported;
-        private float lastReportedRefractionCoefficient = float.MinValue;
-        private float lastRefractionReportTime = -10f;
-        private float lastReportedDirectedLightIntensity = float.MinValue;
-        private float lastLightReportTime = -10f;
-        private float lastReportedCrystalLightRigIntensity = float.MinValue;
-        private int lastReportedCrystalLightRigCount = int.MinValue;
-        private float lastCrystalLightRigReportTime = -10f;
+        private float lastEffectiveCrystalScale;
+        private Vector3 lastCrystalLocalPosition = Vector3.zero;
+        private Bounds lastCrystalBounds;
+        private bool hasLastCrystalBounds;
+        private float lastScreenCoverageEstimate;
 
         public override string ModuleId
         {
@@ -254,11 +254,14 @@ namespace Kaleidoscope2.DiamondFocus
             }
 
             float backgroundBlurAmount = ResolveBackgroundBlurAmount(settings);
-            Texture backgroundTexture = kaleidoscopeTextureValid
-                ? RenderBackgroundBlur(kaleidoscopeTexture, backgroundBlurAmount, activeBlurMaterial)
-                : kaleidoscopeTexture;
-            opticsController.ConfigureCompositeMaterial(compositeMaterial, settings, kaleidoscopeTexture, backgroundTexture, crystalTexture, backgroundBlurAmount);
-            Graphics.Blit(kaleidoscopeTexture, outputTexture, compositeMaterial);
+            Texture backgroundTexture = RenderBackgroundBlur(sourceTexture, backgroundBlurAmount, activeBlurMaterial);
+            opticsController.ConfigureCompositeMaterial(compositeMaterial, settings, sourceTexture, backgroundTexture, crystalTexture, backgroundBlurAmount);
+            // Step 2: premium RealMesh composite policy (Layer 2 only).
+            compositeMaterial.SetFloat(CompositeModeShaderId, 1f);
+            compositeMaterial.SetFloat(CrystalDominanceShaderId, 0.82f);
+            compositeMaterial.SetFloat(BackgroundDimShaderId, 0.35f);
+            compositeMaterial.SetFloat(FocusVignetteShaderId, 0.45f);
+            Graphics.Blit(sourceTexture, outputTexture, compositeMaterial);
             return outputTexture;
         }
 
@@ -337,12 +340,11 @@ namespace Kaleidoscope2.DiamondFocus
                 + " spectral " + lightRig.ResolvedSpectralIntensity.ToString("0.00")
                 + ", normalized " + normalized
                 + ", Background Blur " + backgroundBlur + " (radius " + maxBlurRadius.ToString("0.0") + ", iterations " + Mathf.Max(1, blurIterations) + ", downsample " + Mathf.Max(1, blurDownsample) + ")"
-                + ", cinematic optics " + settings.CinematicCrystalOptics.ToString("0.00")
-                + ", caustics " + settings.HighEnergyCaustics.ToString("0.00")
-                + ", debug " + settings.DebugMode
-                + ", source " + sourceBinding
-                + ", variants " + (settings.EnableRandomVariants ? "on" : "off")
-                + ", preserve classic " + (settings.PreserveClassicMode ? "on" : "off")
+                + ", crystalScale " + lastEffectiveCrystalScale.ToString("0.00")
+                + ", orthoSize " + Mathf.Max(0.05f, orthographicSize).ToString("0.00")
+                + ", crystalPos " + crystalPosition
+                + ", crystalBounds " + crystalBounds
+                + ", coverage " + (lastScreenCoverageEstimate * 100f).ToString("0.0") + "%"
                 + ", optics " + opticsStatus + ".");
         }
 
@@ -606,7 +608,7 @@ namespace Kaleidoscope2.DiamondFocus
             renderCamera.farClipPlane = Mathf.Max(2f, cameraDistance + 4f);
             cameraObject.transform.localPosition = new Vector3(0f, 0f, -Mathf.Max(1f, cameraDistance));
             cameraObject.transform.localRotation = Quaternion.identity;
-            SetRuntimeRendererVisible(false);
+            cameraObject.transform.LookAt(renderRoot.transform.position, Vector3.up);
         }
 
         private bool RenderCrystal(Texture kaleidoscopeTexture, bool kaleidoscopeTextureValid, DiamondFocusSettings settings, Material material)
