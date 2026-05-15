@@ -383,12 +383,48 @@ namespace Kaleidoscope2.Core
                     state.SetHotkeysHelpVisible(command.BoolValue);
                     return true;
 
+                case KaleidoscopeCommandType.ToggleSecondDisplayOutput:
+                    state.ToggleSecondDisplayOutput();
+                    return true;
+
+                case KaleidoscopeCommandType.SetSecondDisplayOutputEnabled:
+                    state.SetSecondDisplayOutputEnabled(command.BoolValue);
+                    return true;
+
                 case KaleidoscopeCommandType.SetDiamondFocusEnabled:
                     state.DiamondFocusSettings.SetEnabled(command.BoolValue);
                     return true;
 
                 case KaleidoscopeCommandType.ToggleDiamondFocus:
                     state.DiamondFocusSettings.ToggleEnabled();
+                    return true;
+
+                case KaleidoscopeCommandType.ToggleCrystalLightRig:
+                    state.DiamondFocusSettings.CrystalLightRigSettings.ToggleRigEnabled();
+                    return true;
+
+                case KaleidoscopeCommandType.SetCrystalLightRigEnabled:
+                    state.DiamondFocusSettings.CrystalLightRigSettings.SetRigEnabled(command.BoolValue);
+                    return true;
+
+                case KaleidoscopeCommandType.AdjustCrystalLightRigIntensity:
+                    state.DiamondFocusSettings.CrystalLightRigSettings.AdjustLightIntensity(command.FloatValue);
+                    return true;
+
+                case KaleidoscopeCommandType.SetCrystalLightRigIntensity:
+                    state.DiamondFocusSettings.CrystalLightRigSettings.SetLightIntensity(command.FloatValue);
+                    return true;
+
+                case KaleidoscopeCommandType.SetCrystalLightRigActiveLightCount:
+                    state.DiamondFocusSettings.CrystalLightRigSettings.SetActiveLightCountLimit(command.IntValue);
+                    return true;
+
+                case KaleidoscopeCommandType.ToggleCrystalSimulationMode:
+                    state.DiamondFocusSettings.ToggleCrystalSimulationMode();
+                    return true;
+
+                case KaleidoscopeCommandType.SetCrystalSimulationMode:
+                    state.DiamondFocusSettings.SetCrystalSimulationMode((CrystalRenderMode)command.IntValue);
                     return true;
 
                 case KaleidoscopeCommandType.SetImageFilePath:

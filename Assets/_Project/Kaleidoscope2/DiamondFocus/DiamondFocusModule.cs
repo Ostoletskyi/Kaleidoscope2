@@ -39,6 +39,11 @@ namespace Kaleidoscope2.DiamondFocus
         [SerializeField, Range(1f, 12f)] private float cameraDistance = 4f;
         [SerializeField, Range(0.25f, 3f)] private float crystalWorldScale = 1.85f;
 
+        [Header("Crystal Source Binding")]
+        [Tooltip("When enabled, the crystal shader receives the current processed kaleidoscope texture through _KaleidoscopeTex.")]
+        [SerializeField] private bool bindKaleidoscopeTexture = true;
+        [SerializeField] private Color missingKaleidoscopeWarningColor = new Color(1f, 0f, 0.85f, 1f);
+
         [Header("Module")]
         [SerializeField] private bool moduleEnabled = true;
         [SerializeField] private bool onlyIn4DMode;
@@ -47,6 +52,7 @@ namespace Kaleidoscope2.DiamondFocus
         private readonly DiamondShapeController shapeController = new DiamondShapeController();
         private readonly DiamondMaterialModeController materialModeController = new DiamondMaterialModeController();
         private readonly DiamondOpticsController opticsController = new DiamondOpticsController();
+        private readonly CrystalMaterialBinder materialBinder = new CrystalMaterialBinder();
 
         private Material runtimeCompositeMaterial;
         private Material runtimeCrystalMaterial;
@@ -91,6 +97,7 @@ namespace Kaleidoscope2.DiamondFocus
                 return;
             }
 
+            shapeController.Tick(settings, deltaTime);
             rotationController.Tick(settings, deltaTime);
         }
 
@@ -110,7 +117,16 @@ namespace Kaleidoscope2.DiamondFocus
                 || command.Type == KaleidoscopeCommandType.PreviousDiamondShape
                 || command.Type == KaleidoscopeCommandType.SetDiamondShape
                 || command.Type == KaleidoscopeCommandType.CycleDiamondMaterialMode
-                || command.Type == KaleidoscopeCommandType.SetDiamondMaterialMode;
+                || command.Type == KaleidoscopeCommandType.SetDiamondMaterialMode
+                || command.Type == KaleidoscopeCommandType.AdjustDiamondRefractionIndex
+                || command.Type == KaleidoscopeCommandType.SetDiamondRefractionIndex
+                || command.Type == KaleidoscopeCommandType.AdjustDiamondDirectedLightIntensity
+                || command.Type == KaleidoscopeCommandType.SetDiamondDirectedLightIntensity
+                || command.Type == KaleidoscopeCommandType.ToggleCrystalLightRig
+                || command.Type == KaleidoscopeCommandType.SetCrystalLightRigEnabled
+                || command.Type == KaleidoscopeCommandType.AdjustCrystalLightRigIntensity
+                || command.Type == KaleidoscopeCommandType.SetCrystalLightRigIntensity
+                || command.Type == KaleidoscopeCommandType.SetCrystalLightRigActiveLightCount;
         }
 
         public override void HandleCommand(KaleidoscopeCommand command)
@@ -161,15 +177,44 @@ namespace Kaleidoscope2.DiamondFocus
                     break;
 
                 case KaleidoscopeCommandType.SetDiamondMaterialMode:
-                    materialModeController.SetMode(settings, (DiamondCrystalMaterialMode)Mathf.Clamp(command.IntValue, 0, DiamondFocusSettings.MaterialModeCount - 1));
+                    materialModeController.SetMode(settings, (DiamondCrystalMaterialMode)command.IntValue);
+                    break;
+
+                case KaleidoscopeCommandType.AdjustDiamondRefractionIndex:
+                    settings.AdjustRefractionIndex(command.FloatValue);
+                    ReportRefractionCoefficient(settings);
+                    break;
+
+                case KaleidoscopeCommandType.SetDiamondRefractionIndex:
+                    settings.SetRefractionIndex(command.FloatValue);
+                    ReportRefractionCoefficient(settings);
+                    break;
+
+                case KaleidoscopeCommandType.AdjustDiamondDirectedLightIntensity:
+                    settings.AdjustDirectedLightIntensity(command.FloatValue);
+                    ReportDirectedLightIntensity(settings);
+                    break;
+
+                case KaleidoscopeCommandType.SetDiamondDirectedLightIntensity:
+                    settings.SetDirectedLightIntensity(command.FloatValue);
+                    ReportDirectedLightIntensity(settings);
+                    break;
+
+                case KaleidoscopeCommandType.ToggleCrystalLightRig:
+                case KaleidoscopeCommandType.SetCrystalLightRigEnabled:
+                case KaleidoscopeCommandType.AdjustCrystalLightRigIntensity:
+                case KaleidoscopeCommandType.SetCrystalLightRigIntensity:
+                case KaleidoscopeCommandType.SetCrystalLightRigActiveLightCount:
+                    ReportCrystalLightRig(settings);
                     break;
             }
         }
 
         public Texture Process(Texture sourceTexture, KaleidoscopeState runtimeState)
         {
-            if (sourceTexture == null || runtimeState == null)
+            if (runtimeState == null)
             {
+                SetRuntimeRendererVisible(false);
                 return sourceTexture;
             }
 
@@ -179,21 +224,33 @@ namespace Kaleidoscope2.DiamondFocus
                 || !settings.Enabled
                 || (onlyIn4DMode && runtimeState.ActiveVisualMode != KaleidoscopeVisualMode.Hose))
             {
+                SetRuntimeRendererVisible(false);
                 return sourceTexture;
             }
+
+            if (settings.CrystalSimulationMode == CrystalRenderMode.RealMesh3D)
+            {
+                SetRuntimeRendererVisible(false);
+                return sourceTexture;
+            }
+
+            bool kaleidoscopeTextureValid;
+            Texture kaleidoscopeTexture = ResolveKaleidoscopeTexture(sourceTexture, out kaleidoscopeTextureValid);
+            settings.SetKaleidoscopeTexBindingStatus(kaleidoscopeTextureValid);
+            settings.RefreshInspectorLabels();
 
             Material compositeMaterial = EnsureCompositeMaterial();
             Material glassMaterial = EnsureCrystalMaterial();
             Material activeBlurMaterial = EnsureBlurMaterial();
             if (compositeMaterial == null || glassMaterial == null || activeBlurMaterial == null)
             {
-                return sourceTexture;
+                return sourceTexture != null ? sourceTexture : kaleidoscopeTexture;
             }
 
             EnsureOutputTexture(runtimeState);
-            if (outputTexture == null || !RenderCrystal(sourceTexture, settings, glassMaterial))
+            if (outputTexture == null || !RenderCrystal(kaleidoscopeTexture, kaleidoscopeTextureValid, settings, glassMaterial))
             {
-                return sourceTexture;
+                return sourceTexture != null ? sourceTexture : kaleidoscopeTexture;
             }
 
             float backgroundBlurAmount = ResolveBackgroundBlurAmount(settings);
@@ -247,6 +304,14 @@ namespace Kaleidoscope2.DiamondFocus
             string speed = settings.CurrentRotationSpeed.ToString("0");
             string normalized = settings.NormalizedRotationSpeed.ToString("0.00");
             string backgroundBlur = opticsController.BackgroundBlur.ToString("0.00");
+            string sourceBinding = settings.KaleidoscopeTexBindingStatus;
+            CrystalLightRigSettings lightRig = settings.CrystalLightRigSettings;
+            string profileName = materialBinder.LastProfile.Surface.ModeName;
+            if (string.IsNullOrEmpty(profileName))
+            {
+                profileName = materialModeController.GetModeLabel(settings);
+            }
+
             string opticsStatus = (diamondMaterial != null || crystalMaterial != null || blurMaterial != null)
                 ? "assigned material"
                 : (runtimeCompositeMaterial != null && runtimeCrystalMaterial != null && runtimeBlurMaterial != null)
@@ -263,8 +328,16 @@ namespace Kaleidoscope2.DiamondFocus
                 + ", " + mode
                 + ", shape " + shapeController.GetShapeLabel(settings)
                 + ", material " + materialModeController.GetModeLabel(settings)
+                + ", profile " + profileName
+                + ", simulation " + settings.CrystalSimulationModeLabel
                 + ", dir " + direction
                 + ", speed " + speed
+                + ", RefractionCoefficient " + settings.RefractionCoefficient.ToString("0.00")
+                + ", DirectedLightIntensity " + settings.DirectedLightIntensity.ToString("0.00")
+                + ", LightRig " + (lightRig.RigEnabled ? "on" : "off")
+                + " " + lightRig.LightIntensity.ToString("0.00") + "/20"
+                + " glint " + lightRig.ResolvedGlintIntensity.ToString("0.00")
+                + " spectral " + lightRig.ResolvedSpectralIntensity.ToString("0.00")
                 + ", normalized " + normalized
                 + ", Background Blur " + backgroundBlur + " (radius " + maxBlurRadius.ToString("0.0") + ", iterations " + Mathf.Max(1, blurIterations) + ", downsample " + Mathf.Max(1, blurDownsample) + ")"
                 + ", crystalScale " + lastEffectiveCrystalScale.ToString("0.00")
@@ -285,6 +358,7 @@ namespace Kaleidoscope2.DiamondFocus
             DestroyRuntimeObject(runtimeCompositeMaterial);
             DestroyRuntimeObject(runtimeCrystalMaterial);
             DestroyRuntimeObject(runtimeBlurMaterial);
+            DestroyRuntimeObject(fallbackKaleidoscopeTexture);
 
             renderRoot = null;
             cameraObject = null;
@@ -295,6 +369,7 @@ namespace Kaleidoscope2.DiamondFocus
             runtimeCompositeMaterial = null;
             runtimeCrystalMaterial = null;
             runtimeBlurMaterial = null;
+            fallbackKaleidoscopeTexture = null;
         }
 
         private Material EnsureCompositeMaterial()
@@ -536,9 +611,9 @@ namespace Kaleidoscope2.DiamondFocus
             cameraObject.transform.LookAt(renderRoot.transform.position, Vector3.up);
         }
 
-        private bool RenderCrystal(Texture sourceTexture, DiamondFocusSettings settings, Material material)
+        private bool RenderCrystal(Texture kaleidoscopeTexture, bool kaleidoscopeTextureValid, DiamondFocusSettings settings, Material material)
         {
-            if (sourceTexture == null || settings == null || material == null)
+            if (kaleidoscopeTexture == null || settings == null || material == null)
             {
                 return false;
             }
@@ -548,12 +623,14 @@ namespace Kaleidoscope2.DiamondFocus
 
             if (crystalTexture == null || renderCamera == null || crystalMeshFilter == null || crystalMeshRenderer == null)
             {
+                SetRuntimeRendererVisible(false);
                 return false;
             }
 
-            Mesh mesh = shapeController.GetMesh(settings.Shape);
+            Mesh mesh = shapeController.GetMesh(settings);
             if (mesh == null)
             {
+                SetRuntimeRendererVisible(false);
                 return false;
             }
 
@@ -593,15 +670,160 @@ namespace Kaleidoscope2.DiamondFocus
             float crystalHalfHeight = Mathf.Max(0.001f, scaledSize.y * 0.5f);
             lastScreenCoverageEstimate = Mathf.Clamp01((crystalHalfHeight / Mathf.Max(0.001f, renderCamera.orthographicSize)) * 2f);
             crystalMeshRenderer.sharedMaterial = material;
-            opticsController.ConfigureCrystalMaterial(material, settings, sourceTexture);
+            materialBinder.ConfigureCrystalMaterial(material, settings, kaleidoscopeTexture, kaleidoscopeTextureValid, missingKaleidoscopeWarningColor);
 
+            SetRuntimeRendererVisible(true);
             RenderTexture previousTarget = renderCamera.targetTexture;
             RenderTexture previousActive = RenderTexture.active;
-            renderCamera.targetTexture = crystalTexture;
-            renderCamera.Render();
-            renderCamera.targetTexture = previousTarget;
-            RenderTexture.active = previousActive;
+            try
+            {
+                renderCamera.targetTexture = crystalTexture;
+                renderCamera.Render();
+            }
+            finally
+            {
+                renderCamera.targetTexture = previousTarget;
+                RenderTexture.active = previousActive;
+                SetRuntimeRendererVisible(false);
+            }
+
             return true;
+        }
+
+        private void SetRuntimeRendererVisible(bool visible)
+        {
+            if (renderRoot != null && renderRoot.activeSelf != visible)
+            {
+                renderRoot.SetActive(visible);
+            }
+
+            if (cameraObject != null && cameraObject.activeSelf != visible)
+            {
+                cameraObject.SetActive(visible);
+            }
+
+            if (crystalObject != null && crystalObject.activeSelf != visible)
+            {
+                crystalObject.SetActive(visible);
+            }
+
+            if (renderCamera != null)
+            {
+                renderCamera.enabled = false;
+            }
+        }
+
+        private void ReportRefractionCoefficient(DiamondFocusSettings settings)
+        {
+            if (settings == null)
+            {
+                return;
+            }
+
+            float value = settings.RefractionCoefficient;
+            float now = Application.isPlaying ? Time.unscaledTime : 0f;
+            if (Mathf.Abs(value - lastReportedRefractionCoefficient) < 0.05f && now - lastRefractionReportTime < 0.5f)
+            {
+                return;
+            }
+
+            lastReportedRefractionCoefficient = value;
+            lastRefractionReportTime = now;
+            Debug.Log("[DiamondFocusModule] RefractionCoefficient " + value.ToString("0.00") + " / 10 mapped to safe crystal shader optics.", this);
+        }
+
+        private void ReportDirectedLightIntensity(DiamondFocusSettings settings)
+        {
+            if (settings == null)
+            {
+                return;
+            }
+
+            float value = settings.DirectedLightIntensity;
+            float now = Application.isPlaying ? Time.unscaledTime : 0f;
+            if (Mathf.Abs(value - lastReportedDirectedLightIntensity) < 0.05f && now - lastLightReportTime < 0.5f)
+            {
+                return;
+            }
+
+            lastReportedDirectedLightIntensity = value;
+            lastLightReportTime = now;
+            Debug.Log("[DiamondFocusModule] DirectedLightIntensity " + value.ToString("0.00") + " / +/-10 applied to crystal glints and internal reflection.", this);
+        }
+
+        private void ReportCrystalLightRig(DiamondFocusSettings settings)
+        {
+            if (settings == null)
+            {
+                return;
+            }
+
+            CrystalLightRigSettings lightRig = settings.CrystalLightRigSettings;
+            float value = lightRig.LightIntensity;
+            int activeLightLimit = lightRig.ActiveLightCountLimit;
+            float now = Application.isPlaying ? Time.unscaledTime : 0f;
+            if (Mathf.Abs(value - lastReportedCrystalLightRigIntensity) < 0.05f
+                && activeLightLimit == lastReportedCrystalLightRigCount
+                && now - lastCrystalLightRigReportTime < 0.5f)
+            {
+                return;
+            }
+
+            lastReportedCrystalLightRigIntensity = value;
+            lastReportedCrystalLightRigCount = activeLightLimit;
+            lastCrystalLightRigReportTime = now;
+            Debug.Log("[DiamondFocusModule] CrystalLightRig "
+                + (lightRig.RigEnabled ? "enabled" : "disabled")
+                + ", light intensity " + value.ToString("0.00") + " / 20"
+                + ", active light limit " + activeLightLimit.ToString() + ".", this);
+        }
+
+        private Texture ResolveKaleidoscopeTexture(Texture sourceTexture, out bool textureValid)
+        {
+            textureValid = bindKaleidoscopeTexture && sourceTexture != null;
+            if (textureValid)
+            {
+                missingKaleidoscopeTextureReported = false;
+                return sourceTexture;
+            }
+
+            if (!missingKaleidoscopeTextureReported)
+            {
+                ReportWarning("Missing or disabled _KaleidoscopeTex. Rendering crystal fallback warning color.");
+                missingKaleidoscopeTextureReported = true;
+            }
+
+            return EnsureFallbackKaleidoscopeTexture();
+        }
+
+        private Texture2D EnsureFallbackKaleidoscopeTexture()
+        {
+            if (fallbackKaleidoscopeTexture == null)
+            {
+                fallbackKaleidoscopeTexture = new Texture2D(2, 2, TextureFormat.RGBA32, false)
+                {
+                    name = "Kaleidoscope2_DiamondFocus_MissingKaleidoscopeTex",
+                    hideFlags = HideFlags.HideAndDontSave,
+                    filterMode = FilterMode.Point,
+                    wrapMode = TextureWrapMode.Clamp
+                };
+            }
+
+            if (fallbackKaleidoscopeTextureColor != missingKaleidoscopeWarningColor)
+            {
+                Color dark = new Color(0.03f, 0f, 0.04f, 1f);
+                fallbackKaleidoscopeTexture.SetPixels(new[]
+                {
+                    missingKaleidoscopeWarningColor,
+                    dark,
+                    dark,
+                    missingKaleidoscopeWarningColor
+                });
+                fallbackKaleidoscopeTexture.Apply(false, false);
+                fallbackKaleidoscopeTextureColor = missingKaleidoscopeWarningColor;
+            }
+
+            return fallbackKaleidoscopeTexture;
         }
 
         private Texture RenderBackgroundBlur(Texture sourceTexture, float backgroundBlurAmount, Material material)
