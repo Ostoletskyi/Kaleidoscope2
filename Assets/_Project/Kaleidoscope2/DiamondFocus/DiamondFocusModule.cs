@@ -316,6 +316,10 @@ namespace Kaleidoscope2.DiamondFocus
                     : (diamondShader != null || crystalShader != null || blurShader != null)
                         ? "assigned shader"
                         : "shader lookup";
+            string crystalPosition = lastCrystalLocalPosition.ToString("F2");
+            string crystalBounds = hasLastCrystalBounds
+                ? "center " + lastCrystalBounds.center.ToString("F2") + ", size " + lastCrystalBounds.size.ToString("F2")
+                : "not rendered";
 
             return CreateStatus(enabled
                 + ", " + mode
@@ -634,10 +638,35 @@ namespace Kaleidoscope2.DiamondFocus
                 renderedShape = settings.Shape;
             }
 
-            float scale = Mathf.Max(0.05f, crystalWorldScale * settings.ScreenScale);
+            float desiredCoverage = 0.33f;
+            float targetHalfHeight = Mathf.Max(0.05f, renderCamera.orthographicSize * desiredCoverage);
+            float baseScale = Mathf.Max(0.05f, crystalWorldScale);
+            float settingsScale = Mathf.Max(0.1f, settings.ScreenScale);
+            float scale = Mathf.Max(0.05f, baseScale * settingsScale * 2.2f);
+
+            Bounds meshBounds = mesh.bounds;
+            float maxExtent = Mathf.Max(0.001f, Mathf.Max(meshBounds.extents.x, Mathf.Max(meshBounds.extents.y, meshBounds.extents.z)));
+            float coverageFitScale = targetHalfHeight / maxExtent;
+            if (coverageFitScale > scale)
+            {
+                scale = coverageFitScale;
+            }
+
             crystalObject.transform.localPosition = Vector3.zero;
             crystalObject.transform.localRotation = Quaternion.Euler(settings.RotationEuler);
             crystalObject.transform.localScale = new Vector3(scale, scale, scale);
+            if (renderCamera != null)
+            {
+                renderCamera.transform.LookAt(renderRoot.transform.position, Vector3.up);
+            }
+
+            lastEffectiveCrystalScale = scale;
+            lastCrystalLocalPosition = crystalObject.transform.localPosition;
+            Vector3 scaledSize = Vector3.Scale(meshBounds.size, crystalObject.transform.localScale);
+            lastCrystalBounds = new Bounds(crystalObject.transform.localPosition + Vector3.Scale(meshBounds.center, crystalObject.transform.localScale), scaledSize);
+            hasLastCrystalBounds = true;
+            float crystalHalfHeight = Mathf.Max(0.001f, scaledSize.y * 0.5f);
+            lastScreenCoverageEstimate = Mathf.Clamp01((crystalHalfHeight / Mathf.Max(0.001f, renderCamera.orthographicSize)) * 2f);
             crystalMeshRenderer.sharedMaterial = material;
             materialBinder.ConfigureCrystalMaterial(material, settings, kaleidoscopeTexture, kaleidoscopeTextureValid, missingKaleidoscopeWarningColor);
 
