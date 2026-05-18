@@ -1,353 +1,180 @@
-# ROADMAP — KAELIS Premium 3D Crystal Mode
+# MINI ROADMAP — Premium3D Crystal Spotlight & Caustics
+STAGE 00 — Safety Checkpoint
 
-## Цель
-
-Создать премиальный 3D-режим кристалла в стиле демонстрационного оптического стенда:
-
-Camera
-↓
-RealMesh3D Crystal
-↓
-Stage Background / Optical Hall
-↓
-Crystal Light Rig
-
-Главная идея:
-кристалл — главный объект сцены, а не эффект поверх картинки.
-
----
-
-## STAGE 01 — Концептуальная фиксация режима
-
-Цель:
-Зафиксировать, что Premium 3D Crystal Mode — это отдельная витрина, а не Billboard2D и не fullscreen composite.
+Цель: зафиксировать текущее состояние Premium3D перед новой фичей.
 
 Нужно:
-- описать режим как отдельный CrystalStage3D;
-- сохранить Legacy DiamondFocus как fallback;
-- запретить использовать fullscreen plane как главный визуальный объект;
-- зафиксировать композицию: камера → кристалл → фон.
+
+проверить git status;
+сделать commit;
+сделать push;
+убедиться, что рабочее дерево чистое.
 
 Критерий готовности:
-Codex понимает, что Premium 3D = stage scene, а не shader overlay.
+есть точка отката перед прожектором.
 
----
+STAGE 01 — Input Gating / Безопасное управление клавишами
 
-## STAGE 02 — Чистая пространственная сцена
+Цель: не ломать существующее управление калейдоскопом.
 
-Цель:
-Собрать правильную сценическую основу.
+Правило:
 
-Нужно создать:
+Crystal hotkeys активны только если:
+Backspace включил кристалл
+и
+Crystal visible == true
 
-CrystalStage3DRoot
-├── CrystalCamera
-├── RealMeshCrystal
-├── BackgroundGeometry / OpticalHall
-├── CrystalLightRig
-└── StageDiagnostics
+Если кристалл выключен:
 
-Требования:
-- кристалл в центре;
-- фон позади;
-- камера смотрит через кристалл;
-- физические объекты stage не видны Main Camera напрямую;
-- Main output получает только Stage RenderTexture.
-
-Критерий готовности:
-в Scene View сбоку видно: Camera → Crystal → Background.
-
----
-
-## STAGE 03 — Геометрия кристалла
-
-Цель:
-Сделать набор настоящих объёмных форм.
-
-Формы:
-
-1. Classic Diamond
-2. Octagon
-3. Hexagon
-4. Drop / Pear
-5. Marquise
-6. Cushion
-
-Требования:
-- MeshFilter + MeshRenderer;
-- настоящая толщина;
-- side faces;
-- front/back separation;
-- silhouette меняется при вращении;
-- форма не является plane/quad/billboard.
-
-Критерий готовности:
-каждая форма выглядит объёмной даже с простым solid material.
-
----
-
-## STAGE 04 — Размер и кадрирование
-
-Цель:
-Сделать кристалл главным объектом кадра.
-
-Требования:
-- кристалл занимает 35–55% высоты кадра;
-- центрирован;
-- не обрезается;
-- не превращается в миниатюру;
-- background не становится гигантской простынёй;
-- масштабируется вся stage-diorama, а не отдельная плоскость.
-
-Критерий готовности:
-кристалл читается как центральный premium-объект.
-
----
-
-## STAGE 05 — Crystal Light Rig
-
-Цель:
-Создать сценический свет как на глянцевом рендере.
+все клавиши работают как раньше
 
 Нужно:
-- key light;
-- rim lights;
-- fill light;
-- small moving glint lights;
-- optional circular light rig;
-- выключаемые режимы света: 1 / 2 / 4 / 8 sources.
 
-Правила:
-- свет должен работать на кристалл;
-- не создавать хаотичные пересветы;
-- не ломать фон;
-- не включать дорогие realtime shadows по умолчанию.
+найти текущую систему InputModule;
+определить состояние CrystalVisible / CrystalActive / Premium3DActive;
+добавить проверку перед обработкой crystal-specific hotkeys;
+не перехватывать клавиши глобально без необходимости.
 
 Критерий готовности:
-грани ловят свет, видны блики и рёбра.
+при выключенном кристалле старое управление не меняется.
 
----
+STAGE 02 — Crystal Spotlight Rig
 
-## STAGE 06 — Оптический материал
+Цель: добавить управляемый прожектор, который работает только в Premium3D / Crystal mode.
 
-Цель:
-Создать материал “дорогого стекла / бриллианта”.
+Структура:
 
-Свойства:
-- transparency;
-- Fresnel;
-- specular highlights;
-- internal reflection;
-- controlled refraction;
-- chromatic dispersion;
-- edge glints;
-- minimum visibility floor, чтобы кристалл не проваливался в чёрное.
+CrystalSpotlightRig
+├── MainSpotlight
+├── Target / AimPoint
+└── SpotlightSettings
 
-Важно:
-не рисовать калейдоскоп как albedo по всей поверхности.
+Прожектор должен:
 
-Правильно:
-кристалл не “показывает картинку”,
-а “преломляет и отражает окружение”.
+светить на кристалл;
+помогать читать грани;
+создавать сценический акцент;
+не заменять фон;
+не делать сцену чёрной.
 
 Критерий готовности:
-даже без подписей понятно, что это стекло/кристалл, а не тёмный камень.
+при включённом кристалле видно, что spotlight усиливает кристалл.
 
----
+STAGE 03 — Shadow / Light Receiver
 
-## STAGE 07 — Kaleidoscope Texture Inside Crystal
+Цель: сделать фон участником световой сцены.
 
-Цель:
-Подключить итоговую текстуру калейдоскопа как оптический источник.
-
-Использовать FinalKaleidoscopeTexture как:
-- environment/refraction input;
-- internal optical texture;
-- background behind crystal;
-- controlled reflection source.
-
-Запрещено:
-- клеить texture как плоскую картинку на грани;
-- превращать кристалл в экран;
-- делать fullscreen projection.
-
-Критерий готовности:
-картинка видна внутри/через кристалл, но кристалл остаётся объёмным объектом.
-
----
-
-## STAGE 08 — Background / Optical Hall
-
-Цель:
-Сделать фон как премиальную сцену-витрину.
-
-Варианты:
-- dark optical hall;
-- cinematic lab;
-- abstract black glass room;
-- circular pedestal;
-- light columns;
-- subtle volumetric haze.
-
-Требования:
-- фон позади кристалла;
-- не спорит с кристаллом;
-- не выглядит как Unity test plane;
-- можно заменить на простую тёмную сцену для performance mode.
-
-Критерий готовности:
-сцена выглядит как коммерческий premium render, а не debug preview.
-
----
-
-## STAGE 09 — Поворот и управление
-
-Цель:
-Сделать управление кристаллом.
-
-Управление:
-- П / G — переключение Classic2D ↔ Premium3D;
-- Numpad +/- — переключение формы;
-- отдельные клавиши — скорость вращения;
-- F5/F6/F7/F8 — количество источников света;
-- Reset — вернуть сцену к дефолту.
-
-Требования:
-- вращается кристалл, не камера;
-- камера остаётся стабильной;
-- debug orbit только для проверки.
-
-Критерий готовности:
-режимом можно управлять без разрушения сцены.
-
----
-
-## STAGE 10 — UI Overlay / Информационная панель
-
-Цель:
-Добавить подписи как на концепте, но без вмешательства в rendering core.
-
-Блоки:
-- Объёмная гранёная геометрия;
-- Оптический материал;
-- Kaleidoscope Texture;
-- Crystal Light Rig;
-- Поворот кристалла;
-- Варианты форм.
-
-Правила:
-- UI отдельным Canvas/Panel;
-- TextMeshPro;
-- не baked text на фоне;
-- можно выключить overlay;
-- UI не меняет shader/camera напрямую.
-
-Критерий готовности:
-режим можно показать как презентационный экран.
-
----
-
-## STAGE 11 — Shape Selector Strip
-
-Цель:
-Сделать нижнюю панель выбора форм.
+Идея:
+фон остаётся красивым, но становится “поверхностью”, на которую кристалл влияет светом.
 
 Нужно:
-- 6 thumbnails форм;
-- active selected state;
-- hover/pressed state;
-- подписи:
-  - Classic Diamond
-  - Octagon
-  - Hexagon
-  - Drop
-  - Marquise
-  - Cushion
+
+использовать BackgroundGeometry как receiver;
+добавить управляемую тень / световое пятно;
+не ломать выбранное пользователем изображение;
+не превращать фон в чёрную стену.
 
 Критерий готовности:
-форма переключается визуально и понятно.
+видно, что свет и тень связаны с кристаллом.
 
----
+STAGE 04 — Fake Caustics Layer
 
-## STAGE 12 — Diagnostics & Proof
+Цель: добавить художественную имитацию каустики.
 
-Цель:
-Не потерять контроль над архитектурой.
-
-Диагностика должна показывать:
-- active mode: Classic2D / Premium3D;
-- active crystal shape;
-- crystal screen coverage;
-- camera → crystal distance;
-- crystal → background distance;
-- stage RT size;
-- physical stage visible to Main Camera: false;
-- Layer 1 modified: false.
-
-Критерий готовности:
-если что-то снова станет “простынёй”, это видно сразу.
-
----
-
-## STAGE 13 — Performance Profiles
-
-Цель:
-Разделить качество.
-
-Профили:
-- Preview;
-- High;
-- Ultra;
-- Offline Render.
-
-Preview:
-- меньше lights;
-- проще material;
-- без дорогих эффектов.
-
-Ultra:
-- больше glints;
-- сильнее dispersion;
-- higher RT;
-- cinematic background.
-
-Критерий готовности:
-режим можно запустить не только на сильной машине.
-
----
-
-## STAGE 14 — Commercial Polish
-
-Цель:
-Довести до уровня “глянцевого журнала”.
-
-Добавить:
-- мягкую камеру;
-- controlled bloom;
-- subtle lens flare;
-- vignette;
-- тонкую хроматическую аберрацию;
-- cinematic color grading;
-- intro transition.
-
-Критерий готовности:
-скриншот режима можно использовать как промо-материал.
-
----
-
-## STAGE 15 — Freeze Stable Baseline
-
-Цель:
-Зафиксировать рабочий Premium3D.
+Каустика — это узоры света, возникающие после прохождения света через стекло/кристалл.
 
 Нужно:
-- Unity compile;
-- Play Mode test;
-- переключение Classic2D ↔ Premium3D;
-- проверка всех форм;
-- проверка lights;
-- git commit;
-- больше не трогать spatial core без отдельной причины.
+
+добавить отдельный caustic overlay / projector / shader layer;
+привязать эффект к позиции кристалла и прожектора;
+не использовать его как fullscreen-шум;
+сделать эффект управляемым.
 
 Критерий готовности:
-Premium3D стал стабильной базой для дальнейшей оптики.
+на фоне появляются красивые световые узоры, будто свет прошёл через кристалл.
+
+STAGE 05 — Prism / Rainbow Projection
+
+Цель: добавить радужное разложение света.
+
+Нужно:
+
+добавить мягкие цветные лучи / спектральные полосы;
+привязать их к граням или направлению spotlight;
+сделать эффект дозированным;
+не закрывать весь фон кислотной радугой.
+
+Критерий готовности:
+появляется ощущение призмы: свет прошёл через кристалл и дал спектр.
+
+STAGE 06 — Spotlight Controls
+
+Цель: сделать управление прожектором только в crystal mode.
+
+Примерная логика клавиш:
+
+Backspace — показать/скрыть кристалл
+
+если кристалл виден:
+    F1 — spotlight on/off
+    F2 — caustics on/off
+    F3 — prism/rainbow on/off
+    F4 — cycle spotlight preset
+    [ / ] — spotlight cone angle
+    - / = — spotlight intensity
+    I / K — spotlight вверх/вниз
+    J / L — spotlight влево/вправо
+    U / O — spotlight ближе/дальше
+
+если кристалл не виден:
+    все эти клавиши работают по старой логике проекта
+
+Важно: если какие-то клавиши уже заняты, Codex должен не перезаписывать их напрямую, а встроить их через gated crystal input layer.
+
+Критерий готовности:
+управление прожектором не конфликтует с основным режимом.
+
+STAGE 07 — Presets
+
+Цель: сделать несколько готовых световых настроек.
+
+Пресеты:
+
+1. Soft Jewel
+2. Strong Prism
+3. Dark Hall Spotlight
+4. Rainbow Caustics
+5. Clean Product Shot
+
+Критерий готовности:
+можно быстро переключать характер Premium3D без ручной настройки.
+
+STAGE 08 — Visual Balance Pass
+
+Цель: довести картинку до состояния “смотреть приятно”.
+
+Проверить:
+
+кристалл не маленький;
+фон не погашен;
+блики не пересвечены;
+радуга не превращает всё в кашу;
+тень не делает сцену грязной;
+кристалл стал интереснее 2D-версии.
+
+Критерий готовности:
+Premium3D выглядит как отдельная ценная фича, а не слабая копия Classic2D.
+
+STAGE 09 — Freeze Stable Spotlight Baseline
+
+Цель: зафиксировать рабочий результат.
+
+Нужно:
+
+git status
+git add .
+git commit -m "Add gated Premium3D crystal spotlight baseline"
+git push
+
+Критерий готовности:
+есть стабильная версия перед дальнейшей оптикой.
