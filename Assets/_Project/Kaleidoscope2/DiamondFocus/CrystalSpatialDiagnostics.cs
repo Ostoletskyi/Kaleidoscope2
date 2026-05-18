@@ -8,9 +8,9 @@ namespace Kaleidoscope2.DiamondFocus
         public const float BillboardTargetMaxCoverage = 0.30f;
         public const float BillboardTargetCoverage = 0.26f;
 
-        public const float RealMeshTargetMinCoverage = 0.35f;
-        public const float RealMeshTargetMaxCoverage = 0.45f;
-        public const float RealMeshTargetCoverage = 0.40f;
+        public const float RealMeshTargetMinCoverage = 0.42f;
+        public const float RealMeshTargetMaxCoverage = 0.48f;
+        public const float RealMeshTargetCoverage = 0.45f;
 
         public static float ClampBillboardCoverage(float value)
         {

@@ -11,15 +11,44 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
         private const string SpatialStageLayerName = "SpatialStage3D";
         private const string StageLayerSemanticName = "CrystalStage3D";
         private const string StageModeLabel = "Premium3D CrystalStage3D spatial baseline";
+        private const string CrystalOpticsShaderName = "Kaleidoscope2/RealCrystalOptics";
+        private const string PremiumBackgroundShaderName = "Kaleidoscope2/CrystalStage3D/PremiumOpticalBackground";
         private const float CameraDistance = 10f;
         private const float BackgroundDistance = 3.5f;
         private const float CameraFieldOfView = 35f;
         private const float TargetCrystalScreenCoverage = CrystalSpatialDiagnostics.RealMeshTargetCoverage;
         private const float DioramaCrystalScale = 0.72f;
-        private const float DioramaBackgroundHeight = 2.75f;
+        private const float BackgroundViewFillMargin = 1.08f;
         private const float MinimumStageViewScale = 0.2f;
         private const float MaximumStageViewScale = 8f;
         private const float MinimumMeshDimension = 0.001f;
+        private static readonly int StageMainTexId = Shader.PropertyToID("_MainTex");
+        private static readonly int StageGlowStrengthId = Shader.PropertyToID("_GlowStrength");
+        private static readonly int StageRingStrengthId = Shader.PropertyToID("_RingStrength");
+        private static readonly int StageSparkleStrengthId = Shader.PropertyToID("_SparkleStrength");
+        private static readonly int StageVignetteStrengthId = Shader.PropertyToID("_VignetteStrength");
+        private static readonly int StagePrismStrengthId = Shader.PropertyToID("_PrismStrength");
+        private static readonly int StageViewAspectId = Shader.PropertyToID("_ViewAspect");
+        private static readonly int StageTextureAspectId = Shader.PropertyToID("_TextureAspect");
+        private static readonly int CrystalKaleidoscopeTexId = Shader.PropertyToID("_KaleidoscopeTex");
+        private static readonly int CrystalTintId = Shader.PropertyToID("_Tint");
+        private static readonly int CrystalIntensityId = Shader.PropertyToID("_Intensity");
+        private static readonly int CrystalAlphaId = Shader.PropertyToID("_Alpha");
+        private static readonly int CrystalMetallicId = Shader.PropertyToID("_Metallic");
+        private static readonly int CrystalSmoothnessId = Shader.PropertyToID("_Smoothness");
+        private static readonly int CrystalTransparencyId = Shader.PropertyToID("_Transparency");
+        private static readonly int CrystalRefractionStrengthId = Shader.PropertyToID("_RefractionStrength");
+        private static readonly int CrystalFresnelPowerId = Shader.PropertyToID("_FresnelPower");
+        private static readonly int CrystalReflectionStrengthId = Shader.PropertyToID("_ReflectionStrength");
+        private static readonly int CrystalInternalBrightnessId = Shader.PropertyToID("_InternalBrightness");
+        private static readonly int CrystalMinimumTransmissionId = Shader.PropertyToID("_MinimumTransmission");
+        private static readonly int CrystalSpecularStrengthId = Shader.PropertyToID("_SpecularStrength");
+        private static readonly int CrystalDispersionStrengthId = Shader.PropertyToID("_DispersionStrength");
+        private static readonly int CrystalRimStrengthId = Shader.PropertyToID("_RimStrength");
+        private static readonly int CrystalBrightnessFloorId = Shader.PropertyToID("_BrightnessFloor");
+        private static readonly int CrystalGlintStrengthId = Shader.PropertyToID("_GlintStrength");
+        private static readonly int CrystalFacetContrastId = Shader.PropertyToID("_FacetContrast");
+        private static readonly int CrystalInternalScatterId = Shader.PropertyToID("_InternalScatter");
 
         private Transform owner;
         private GameObject root;
@@ -33,6 +62,10 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
         private Light keyLight;
         private Light rimLight;
         private Light fillLight;
+        private Light glintLightA;
+        private Light glintLightB;
+        private Light glintLightC;
+        private Light glintLightD;
         private MeshFilter crystalMeshFilter;
         private MeshRenderer crystalMeshRenderer;
         private MeshFilter backgroundMeshFilter;
@@ -54,6 +87,9 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
         private string directViewCameraNames = "none";
         private string activeCameraDiagnostics = "none";
         private string crystalCameraTargetTextureStatus = "none";
+        private string opticalStageDiagnostics = "premium optical layers inactive";
+        private string sourceTextureDiagnostics = "source texture none";
+        private string activePremiumShapeLabel = "none";
         private float validationOrbitPhase;
         private float stageViewScale = 1f;
         private bool stageRenderedThisFrame;
@@ -165,6 +201,8 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
                 SetVisible(false);
                 physicalStageUsesStageOutputTexture = false;
                 crystalCameraTargetTextureStatus = "none";
+                opticalStageDiagnostics = "premium optical layers inactive";
+                sourceTextureDiagnostics = "source texture none";
                 UpdateCameraDiagnostics();
                 UpdateDiagnostics(null, null, 0f, 0f, 0f, 0f, false, debugMode, false);
                 return false;
@@ -226,6 +264,10 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
             keyLight = null;
             rimLight = null;
             fillLight = null;
+            glintLightA = null;
+            glintLightB = null;
+            glintLightC = null;
+            glintLightD = null;
             crystalMeshFilter = null;
             crystalMeshRenderer = null;
             backgroundMeshFilter = null;
@@ -239,6 +281,9 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
             activeShape = (CrystalShape)(-1);
             stageRenderedThisFrame = false;
             physicalStageUsesStageOutputTexture = false;
+            opticalStageDiagnostics = "premium optical layers inactive";
+            sourceTextureDiagnostics = "source texture none";
+            activePremiumShapeLabel = "none";
             diagnosticsLabel = StageModeLabel + ": shutdown";
         }
 
@@ -297,8 +342,31 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
                 keyLight = CreateLight("KeyLight", LightType.Directional, new Vector3(34f, -28f, 0f));
                 rimLight = CreateLight("RimLight", LightType.Directional, new Vector3(-22f, 146f, 0f));
                 fillLight = CreateLight("FillLight", LightType.Point, Vector3.zero);
+                glintLightA = CreateLight("GlintLightA", LightType.Point, Vector3.zero);
+                glintLightB = CreateLight("GlintLightB", LightType.Point, Vector3.zero);
+                glintLightC = CreateLight("GlintLightC", LightType.Point, Vector3.zero);
+                glintLightD = CreateLight("GlintLightD", LightType.Point, Vector3.zero);
             }
             lightRigObject.transform.SetParent(dioramaObject.transform, false);
+            if (glintLightA == null)
+            {
+                glintLightA = CreateLight("GlintLightA", LightType.Point, Vector3.zero);
+            }
+
+            if (glintLightB == null)
+            {
+                glintLightB = CreateLight("GlintLightB", LightType.Point, Vector3.zero);
+            }
+
+            if (glintLightC == null)
+            {
+                glintLightC = CreateLight("GlintLightC", LightType.Point, Vector3.zero);
+            }
+
+            if (glintLightD == null)
+            {
+                glintLightD = CreateLight("GlintLightD", LightType.Point, Vector3.zero);
+            }
 
             if (crystalObject == null)
             {
@@ -355,7 +423,7 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
             lightObject.transform.localRotation = Quaternion.Euler(eulerAngles);
             Light light = lightObject.AddComponent<Light>();
             light.type = type;
-            light.shadows = LightShadows.Soft;
+            light.shadows = type == LightType.Point ? LightShadows.None : LightShadows.Soft;
             light.cullingMask = stageLayerMask;
             return light;
         }
@@ -412,17 +480,40 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
 
         private void EnsureCrystalMesh(CrystalShape shape)
         {
-            if (crystalMesh != null && activeShape == shape)
+            CrystalShape premiumShape = ResolvePremiumShape(shape);
+            if (crystalMesh != null && activeShape == premiumShape)
             {
                 return;
             }
 
             DestroyRuntimeObject(crystalMesh);
-            crystalMesh = RealCrystalShapeLibrary.CreateMesh(shape);
-            activeShape = shape;
+            crystalMesh = RealCrystalShapeLibrary.CreateMesh(premiumShape);
+            activeShape = premiumShape;
+            activePremiumShapeLabel = shape.ToString() + " -> " + premiumShape.ToString();
             if (crystalMeshFilter != null)
             {
                 crystalMeshFilter.sharedMesh = crystalMesh;
+            }
+        }
+
+        private static CrystalShape ResolvePremiumShape(CrystalShape shape)
+        {
+            switch (shape)
+            {
+                case CrystalShape.ClassicDiamond:
+                    return CrystalShape.BrilliantCut;
+                case CrystalShape.FacetedCube:
+                    return CrystalShape.PrincessCut;
+                case CrystalShape.DiscoBall:
+                    return CrystalShape.CushionCut;
+                case CrystalShape.TetrahedralCrystal:
+                    return CrystalShape.PearCut;
+                case CrystalShape.RhombicCrystal:
+                    return CrystalShape.MarquiseCut;
+                case CrystalShape.OvalRingGem:
+                    return CrystalShape.EmeraldCut;
+                default:
+                    return shape;
             }
         }
 
@@ -522,9 +613,12 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
 
             backgroundObject.transform.localPosition = new Vector3(0f, 0f, BackgroundDistance);
             backgroundObject.transform.localRotation = Quaternion.identity;
+            Vector2 backgroundWorldSize = ResolveBackgroundWorldSize(aspect) * BackgroundViewFillMargin;
+            float backgroundLocalWidth = backgroundWorldSize.x / Mathf.Max(MinimumMeshDimension, stageViewScale);
+            float backgroundLocalHeight = backgroundWorldSize.y / Mathf.Max(MinimumMeshDimension, stageViewScale);
             backgroundObject.transform.localScale = new Vector3(
-                DioramaBackgroundHeight * aspect,
-                DioramaBackgroundHeight,
+                backgroundLocalWidth,
+                backgroundLocalHeight,
                 1f);
         }
 
@@ -546,19 +640,92 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
             return Mathf.Tan(halfFovRadians) * Mathf.Max(MinimumMeshDimension, distance) * 2f;
         }
 
+        private Vector2 ResolveBackgroundWorldSize(float stageAspect)
+        {
+            float backgroundCameraDistance = CameraDistance + BackgroundDistance * stageViewScale;
+            float requiredHeight = ResolveViewHeight(backgroundCameraDistance);
+            float requiredWidth = requiredHeight * Mathf.Max(0.1f, stageAspect);
+            int cameraCount = Camera.allCamerasCount;
+            EnsureCameraCacheCapacity(cameraCount);
+            int resolvedCount = Camera.GetAllCameras(cameraCache);
+            Vector3 backgroundWorld = backgroundObject != null ? backgroundObject.transform.position : Vector3.zero;
+            for (int index = 0; index < resolvedCount; index++)
+            {
+                Camera camera = cameraCache[index];
+                if (camera == null || ReferenceEquals(camera, stageCamera) || !IsDirectViewCamera(camera))
+                {
+                    continue;
+                }
+
+                if ((camera.cullingMask & stageLayerMask) == 0)
+                {
+                    continue;
+                }
+
+                float distance = Vector3.Dot(camera.transform.forward, backgroundWorld - camera.transform.position);
+                if (distance <= camera.nearClipPlane)
+                {
+                    continue;
+                }
+
+                float viewHeight = ResolveCameraViewHeight(camera, distance);
+                requiredHeight = Mathf.Max(requiredHeight, viewHeight);
+                requiredWidth = Mathf.Max(requiredWidth, viewHeight * Mathf.Max(0.1f, camera.aspect));
+            }
+
+            return new Vector2(requiredWidth, requiredHeight);
+        }
+
+        private static float ResolveCameraViewHeight(Camera camera, float distance)
+        {
+            if (camera == null)
+            {
+                return 0f;
+            }
+
+            if (camera.orthographic)
+            {
+                return Mathf.Max(MinimumMeshDimension, camera.orthographicSize * 2f);
+            }
+
+            float halfFovRadians = Mathf.Clamp(camera.fieldOfView, 1f, 179f) * 0.5f * Mathf.Deg2Rad;
+            return Mathf.Tan(halfFovRadians) * Mathf.Max(MinimumMeshDimension, distance) * 2f;
+        }
+
         private void ConfigureLights(CrystalSharedSettings settings, float intensity)
         {
             bool enabled = settings == null || settings.CrystalLightRigEnabled;
             int activeCount = enabled && settings != null ? settings.RealMeshLightCount : 3;
             float resolvedIntensity = Mathf.Clamp(intensity, 0f, 20f);
+            float time = Time.time;
+            Vector3 glintPositionA = new Vector3(
+                Mathf.Sin(time * 0.82f) * 2.35f,
+                1.35f + Mathf.Sin(time * 1.12f) * 0.42f,
+                -1.35f + Mathf.Cos(time * 0.67f) * 0.45f);
+            Vector3 glintPositionB = new Vector3(
+                Mathf.Cos(time * 0.71f + 1.4f) * 2.65f,
+                -0.85f + Mathf.Sin(time * 0.94f + 0.6f) * 0.35f,
+                -1.05f + Mathf.Sin(time * 0.53f) * 0.5f);
+            Vector3 glintPositionC = new Vector3(
+                Mathf.Sin(time * 1.08f + 2.1f) * 2.1f,
+                0.25f + Mathf.Cos(time * 0.88f) * 1.35f,
+                -1.75f + Mathf.Sin(time * 0.79f + 1.2f) * 0.38f);
+            Vector3 glintPositionD = new Vector3(
+                Mathf.Cos(time * 1.22f + 3.4f) * 2.85f,
+                0.85f + Mathf.Sin(time * 1.17f + 2.4f) * 0.72f,
+                -0.72f + Mathf.Cos(time * 0.58f + 0.9f) * 0.62f);
 
-            ConfigureLight(keyLight, enabled && activeCount >= 1, resolvedIntensity * 0.9f, new Vector3(-1.8f, 2.4f, -3.2f));
-            ConfigureLight(rimLight, enabled && activeCount >= 2, resolvedIntensity * 0.58f, new Vector3(2.2f, 1.8f, -1.4f));
-            ConfigureLight(fillLight, enabled && activeCount >= 3, resolvedIntensity * 0.38f, new Vector3(0f, -1.2f, -2f));
+            ConfigureLight(keyLight, enabled && activeCount >= 1, resolvedIntensity * 1.32f, new Color(1f, 0.94f, 0.78f, 1f), new Vector3(-2.15f, 2.75f, -3.45f));
+            ConfigureLight(rimLight, enabled && activeCount >= 2, resolvedIntensity * 0.98f, new Color(0.5f, 0.78f, 1f, 1f), new Vector3(2.55f, 2.08f, -1.35f));
+            ConfigureLight(fillLight, enabled && activeCount >= 3, resolvedIntensity * 0.52f, new Color(0.78f, 0.94f, 1f, 1f), new Vector3(0f, -1.28f, -2.35f));
+            ConfigureLight(glintLightA, enabled && activeCount >= 4, resolvedIntensity * 0.34f, new Color(1f, 0.78f, 0.36f, 1f), glintPositionA);
+            ConfigureLight(glintLightB, enabled && activeCount >= 5, resolvedIntensity * 0.28f, new Color(0.38f, 0.92f, 1f, 1f), glintPositionB);
+            ConfigureLight(glintLightC, enabled && activeCount >= 6, resolvedIntensity * 0.24f, new Color(0.86f, 0.46f, 1f, 1f), glintPositionC);
+            ConfigureLight(glintLightD, enabled && activeCount >= 7, resolvedIntensity * 0.22f, new Color(1f, 0.32f, 0.22f, 1f), glintPositionD);
             lastActiveLightCount = CountActiveLights();
         }
 
-        private static void ConfigureLight(Light light, bool active, float intensity, Vector3 localPosition)
+        private static void ConfigureLight(Light light, bool active, float intensity, Color color, Vector3 localPosition)
         {
             if (light == null)
             {
@@ -567,7 +734,8 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
 
             light.gameObject.SetActive(active);
             light.intensity = Mathf.Max(0f, intensity);
-            light.range = 18f;
+            light.color = color;
+            light.range = light.type == LightType.Point ? 7.5f : 18f;
             light.transform.localPosition = localPosition;
         }
 
@@ -647,25 +815,76 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
         {
             if (backgroundMaterial == null)
             {
-                Shader shader = Shader.Find("Unlit/Texture");
+                Shader shader = Shader.Find(PremiumBackgroundShaderName);
+                if (shader == null)
+                {
+                    shader = Shader.Find("Unlit/Texture");
+                }
+
                 backgroundMaterial = new Material(shader)
                 {
                     name = "Kaleidoscope2_CrystalStage3D_BackgroundMaterial",
                     hideFlags = HideFlags.HideAndDontSave
                 };
             }
+            else
+            {
+                Shader premiumShader = Shader.Find(PremiumBackgroundShaderName);
+                if (premiumShader != null && backgroundMaterial.shader != premiumShader)
+                {
+                    backgroundMaterial.shader = premiumShader;
+                }
+            }
 
             backgroundMaterial.mainTexture = sourceTexture;
+            ConfigurePremiumBackgroundMaterial(backgroundMaterial, sourceTexture);
             backgroundMeshRenderer.sharedMaterial = backgroundMaterial;
             backgroundMeshRenderer.shadowCastingMode = ShadowCastingMode.Off;
             backgroundMeshRenderer.receiveShadows = false;
 
             Material crystalMaterial = solidGeometryValidation
                 ? EnsureSolidCrystalMaterial()
-                : EnsureTransparentCrystalMaterial(settings, materialMode, intensity);
+                : EnsureTransparentCrystalMaterial(sourceTexture, settings, materialMode, intensity);
             crystalMeshRenderer.sharedMaterial = crystalMaterial;
             crystalMeshRenderer.shadowCastingMode = ShadowCastingMode.On;
             crystalMeshRenderer.receiveShadows = true;
+        }
+
+        private void ConfigurePremiumBackgroundMaterial(Material material, RenderTexture sourceTexture)
+        {
+            if (material == null)
+            {
+                opticalStageDiagnostics = "premium optical layers inactive, background material missing";
+                sourceTextureDiagnostics = "source texture none";
+                return;
+            }
+
+            sourceTextureDiagnostics = sourceTexture != null
+                ? "source texture " + FormatTexture(sourceTexture)
+                : "source texture none";
+            float geometryAspect = backgroundObject != null && Mathf.Abs(backgroundObject.transform.localScale.y) > MinimumMeshDimension
+                ? Mathf.Abs(backgroundObject.transform.localScale.x / backgroundObject.transform.localScale.y)
+                : 0f;
+            float viewAspect = geometryAspect > 0f
+                ? geometryAspect
+                : stageCamera != null && stageCamera.aspect > 0f
+                ? stageCamera.aspect
+                : (sourceTexture != null && sourceTexture.height > 0 ? sourceTexture.width / (float)sourceTexture.height : 1f);
+            float textureAspect = sourceTexture != null && sourceTexture.height > 0
+                ? sourceTexture.width / (float)sourceTexture.height
+                : viewAspect;
+
+            SetMaterialTextureIfPresent(material, StageMainTexId, sourceTexture);
+            SetMaterialFloatIfPresent(material, StageGlowStrengthId, 0.34f);
+            SetMaterialFloatIfPresent(material, StageRingStrengthId, 0.3f);
+            SetMaterialFloatIfPresent(material, StageSparkleStrengthId, 0.18f);
+            SetMaterialFloatIfPresent(material, StageVignetteStrengthId, 0.38f);
+            SetMaterialFloatIfPresent(material, StagePrismStrengthId, 0.2f);
+            SetMaterialFloatIfPresent(material, StageViewAspectId, viewAspect);
+            SetMaterialFloatIfPresent(material, StageTextureAspectId, textureAspect);
+            opticalStageDiagnostics = material.shader != null && material.shader.name == PremiumBackgroundShaderName
+                ? "premium optical layers active, fixed background false, selected source fill-cover true, background fills camera view true, radial glow true, golden rings true, sparkle true, vignette true, prism flare true"
+                : "premium optical layers fallback shader";
         }
 
         private Material EnsureSolidCrystalMaterial()
@@ -686,26 +905,109 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
         }
 
         private Material EnsureTransparentCrystalMaterial(
+            RenderTexture sourceTexture,
             CrystalSharedSettings settings,
             CrystalMaterialMode materialMode,
             float intensity)
         {
             if (transparentCrystalMaterial == null)
             {
-                Shader shader = Shader.Find("Standard");
+                Shader shader = Shader.Find(CrystalOpticsShaderName);
+                if (shader == null)
+                {
+                    shader = Shader.Find("Standard");
+                }
+
                 transparentCrystalMaterial = new Material(shader)
                 {
                     name = "Kaleidoscope2_CrystalStage3D_TransparentCrystalMaterial",
                     hideFlags = HideFlags.HideAndDontSave
                 };
             }
+            else
+            {
+                Shader opticsShader = Shader.Find(CrystalOpticsShaderName);
+                if (opticsShader != null && transparentCrystalMaterial.shader != opticsShader)
+                {
+                    transparentCrystalMaterial.shader = opticsShader;
+                }
+            }
 
             Color color = ResolveCrystalColor(materialMode);
             float alpha = settings != null ? settings.RealMeshAlpha : 0.58f;
-            color.a = Mathf.Clamp(alpha + Mathf.Clamp01(intensity / 20f) * 0.12f, 0.22f, 0.82f);
+            color.a = Mathf.Clamp(alpha + 0.08f + Mathf.Clamp01(intensity / 20f) * 0.16f, 0.38f, 0.92f);
             transparentCrystalMaterial.color = color;
-            ConfigureStandardTransparent(transparentCrystalMaterial);
+            if (transparentCrystalMaterial.shader != null && transparentCrystalMaterial.shader.name == CrystalOpticsShaderName)
+            {
+                ConfigurePremiumCrystalMaterial(transparentCrystalMaterial, sourceTexture, settings, color, materialMode, intensity);
+            }
+            else
+            {
+                ConfigureStandardTransparent(transparentCrystalMaterial);
+            }
+
             return transparentCrystalMaterial;
+        }
+
+        private static void ConfigurePremiumCrystalMaterial(
+            Material material,
+            RenderTexture sourceTexture,
+            CrystalSharedSettings settings,
+            Color color,
+            CrystalMaterialMode materialMode,
+            float intensity)
+        {
+            float intensity01 = Mathf.Clamp01(intensity / 20f);
+            float transparency = settings != null ? settings.Transparency : 0.08f;
+            float refractionStrength = settings != null ? settings.RefractionStrength : 0.085f;
+            float fresnelPower = settings != null ? settings.FresnelPower : 2.7f;
+            float reflectionStrength = settings != null ? settings.ReflectionStrength : 0.72f;
+            float internalBrightness = settings != null ? settings.InternalBrightness : 1.22f;
+            float minimumTransmission = settings != null ? settings.MinimumTransmission : 0.18f;
+            float specularStrength = settings != null ? settings.SpecularStrength : 0.86f;
+            float metallic;
+            float smoothness;
+            ResolveCrystalSurface(materialMode, out metallic, out smoothness);
+
+            SetMaterialTextureIfPresent(material, CrystalKaleidoscopeTexId, sourceTexture);
+            SetMaterialColorIfPresent(material, CrystalTintId, color);
+            SetMaterialFloatIfPresent(material, CrystalIntensityId, Mathf.Clamp(intensity, 0f, 20f));
+            SetMaterialFloatIfPresent(material, CrystalAlphaId, Mathf.Clamp(color.a, 0.42f, 0.94f));
+            SetMaterialFloatIfPresent(material, CrystalMetallicId, metallic);
+            SetMaterialFloatIfPresent(material, CrystalSmoothnessId, Mathf.Clamp01(smoothness + intensity01 * 0.04f));
+            SetMaterialFloatIfPresent(material, CrystalTransparencyId, Mathf.Clamp01(transparency * 0.72f));
+            SetMaterialFloatIfPresent(material, CrystalRefractionStrengthId, Mathf.Clamp(refractionStrength + 0.03f + intensity01 * 0.018f, 0.065f, 0.12f));
+            SetMaterialFloatIfPresent(material, CrystalFresnelPowerId, Mathf.Clamp(fresnelPower * 0.82f, 1.1f, 4.6f));
+            SetMaterialFloatIfPresent(material, CrystalReflectionStrengthId, Mathf.Clamp01(reflectionStrength + 0.18f));
+            SetMaterialFloatIfPresent(material, CrystalInternalBrightnessId, Mathf.Clamp(internalBrightness + 0.42f + intensity01 * 0.38f, 1.15f, 2.8f));
+            SetMaterialFloatIfPresent(material, CrystalMinimumTransmissionId, Mathf.Clamp01(minimumTransmission + 0.16f));
+            SetMaterialFloatIfPresent(material, CrystalSpecularStrengthId, Mathf.Clamp01(specularStrength + 0.18f));
+            SetMaterialFloatIfPresent(material, CrystalDispersionStrengthId, 0.072f + intensity01 * 0.032f);
+            SetMaterialFloatIfPresent(material, CrystalRimStrengthId, 1.02f + intensity01 * 0.28f);
+            SetMaterialFloatIfPresent(material, CrystalBrightnessFloorId, 0.13f + intensity01 * 0.045f);
+            SetMaterialFloatIfPresent(material, CrystalGlintStrengthId, 0.92f + intensity01 * 0.32f);
+            SetMaterialFloatIfPresent(material, CrystalFacetContrastId, 0.62f + intensity01 * 0.2f);
+            SetMaterialFloatIfPresent(material, CrystalInternalScatterId, 0.44f + intensity01 * 0.2f);
+            material.renderQueue = (int)RenderQueue.Transparent;
+        }
+
+        private static void ResolveCrystalSurface(CrystalMaterialMode materialMode, out float metallic, out float smoothness)
+        {
+            switch (materialMode)
+            {
+                case CrystalMaterialMode.Metal:
+                    metallic = 0.32f;
+                    smoothness = 0.94f;
+                    break;
+                case CrystalMaterialMode.FuturisticPlastic:
+                    metallic = 0f;
+                    smoothness = 0.86f;
+                    break;
+                default:
+                    metallic = 0.02f;
+                    smoothness = 0.97f;
+                    break;
+            }
         }
 
         private static Color ResolveCrystalColor(CrystalMaterialMode materialMode)
@@ -763,6 +1065,30 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
             material.SetFloat("_Glossiness", 0.96f);
         }
 
+        private static void SetMaterialTextureIfPresent(Material material, int propertyId, Texture texture)
+        {
+            if (material != null && material.HasProperty(propertyId))
+            {
+                material.SetTexture(propertyId, texture);
+            }
+        }
+
+        private static void SetMaterialFloatIfPresent(Material material, int propertyId, float value)
+        {
+            if (material != null && material.HasProperty(propertyId))
+            {
+                material.SetFloat(propertyId, value);
+            }
+        }
+
+        private static void SetMaterialColorIfPresent(Material material, int propertyId, Color value)
+        {
+            if (material != null && material.HasProperty(propertyId))
+            {
+                material.SetColor(propertyId, value);
+            }
+        }
+
         private void RenderStageCamera()
         {
             if (stageCamera == null || outputTexture == null)
@@ -804,6 +1130,30 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
             if (fillLight != null && fillLight.gameObject.activeSelf)
             {
                 fillLight.cullingMask = stageLayerMask;
+                count++;
+            }
+
+            if (glintLightA != null && glintLightA.gameObject.activeSelf)
+            {
+                glintLightA.cullingMask = stageLayerMask;
+                count++;
+            }
+
+            if (glintLightB != null && glintLightB.gameObject.activeSelf)
+            {
+                glintLightB.cullingMask = stageLayerMask;
+                count++;
+            }
+
+            if (glintLightC != null && glintLightC.gameObject.activeSelf)
+            {
+                glintLightC.cullingMask = stageLayerMask;
+                count++;
+            }
+
+            if (glintLightD != null && glintLightD.gameObject.activeSelf)
+            {
+                glintLightD.cullingMask = stageLayerMask;
                 count++;
             }
 
@@ -917,8 +1267,7 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
                 return false;
             }
 
-            return ReferenceEquals(material.mainTexture, outputTexture)
-                || TexturePropertyReferencesOutput(material, "_MainTex")
+            return TexturePropertyReferencesOutput(material, "_MainTex")
                 || TexturePropertyReferencesOutput(material, "_BaseMap")
                 || TexturePropertyReferencesOutput(material, "_KaleidoscopeTex");
         }
@@ -1031,6 +1380,8 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
                 + ", runtime stage scene visible " + (root != null && root.activeSelf ? "true" : "false")
                 + ", writes diagnostic/offline RT " + (stageRenderedThisFrame && outputTexture != null ? "true" : "false")
                 + ", stage RT " + stageTextureSize
+                + ", " + sourceTextureDiagnostics
+                + ", " + opticalStageDiagnostics
                 + ", StageDiagnostics active " + diagnosticsActive
                 + ", active cameras " + activeCameraDiagnostics
                 + ", camera projection " + cameraProjection
@@ -1056,6 +1407,7 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
                 + ", camera local " + cameraLocalPosition
                 + ", camera-crystal distance " + cameraCrystalDistance.ToString("0.00")
                 + ", crystal-background distance " + crystalBackgroundDistance.ToString("0.00")
+                + ", premium shape " + activePremiumShapeLabel
                 + ", crystal bounds " + boundsSize
                 + ", screen coverage " + CrystalSpatialDiagnostics.FormatPercent(screenCoverage)
                 + ", background screen coverage " + CrystalSpatialDiagnostics.FormatPercent(backgroundCoverage)

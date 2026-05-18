@@ -13,7 +13,16 @@ namespace Kaleidoscope2.Core
         DiscoBall = 2,
         TetrahedralCrystal = 3,
         RhombicCrystal = 4,
-        OvalRingGem = 5
+        OvalRingGem = 5,
+        BrilliantCut = 6,
+        EmeraldCut = 7,
+        PrincessCut = 8,
+        MarquiseCut = 9,
+        PearCut = 10,
+        CushionCut = 11,
+        RadiantCut = 12,
+        OctagonCut = 13,
+        HexagonCut = 14
     }
 
     public enum CrystalMaterialMode
