@@ -9,6 +9,7 @@ namespace Kaleidoscope2.DiamondFocus
         private const string CompositeShaderName = "Kaleidoscope2/DiamondComposite";
         private const string CrystalShaderName = "Kaleidoscope2/DiamondCrystal3D";
         private const string BlurShaderName = "Kaleidoscope2/DiamondBackgroundBlur";
+        private const string LegacyHybridCompositeModeLabel = "Legacy DiamondFocus Hybrid Composite";
 
         [Header("Shaders")]
         [Tooltip("Composite shader that blends the 3D crystal render over the current kaleidoscope output.")]
@@ -73,6 +74,17 @@ namespace Kaleidoscope2.DiamondFocus
         private float lastReportedCrystalLightRigIntensity = float.MinValue;
         private int lastReportedCrystalLightRigCount = int.MinValue;
         private float lastCrystalLightRigReportTime = -10f;
+        private float lastEffectiveCrystalScale;
+        private Vector3 lastCrystalLocalPosition;
+        private Bounds lastCrystalBounds;
+        private bool hasLastCrystalBounds;
+        private float lastScreenCoverageEstimate;
+        private float lastCameraCrystalDistance;
+        private float lastCrystalBackgroundDistance;
+        private Vector3 lastCrystalCameraLocalPosition;
+        private bool lastCrystalBetweenCameraAndBackground;
+        private bool lastFullscreenCompositeDominates;
+        private string lastRuntimeHierarchyPath = "not rendered";
 
         public override string ModuleId
         {
@@ -225,12 +237,14 @@ namespace Kaleidoscope2.DiamondFocus
                 || (onlyIn4DMode && runtimeState.ActiveVisualMode != KaleidoscopeVisualMode.Hose))
             {
                 SetRuntimeRendererVisible(false);
+                lastFullscreenCompositeDominates = false;
                 return sourceTexture;
             }
 
             if (settings.CrystalSimulationMode == CrystalRenderMode.RealMesh3D)
             {
                 SetRuntimeRendererVisible(false);
+                lastFullscreenCompositeDominates = false;
                 return sourceTexture;
             }
 
@@ -320,6 +334,21 @@ namespace Kaleidoscope2.DiamondFocus
             string crystalBounds = hasLastCrystalBounds
                 ? "center " + lastCrystalBounds.center.ToString("F2") + ", size " + lastCrystalBounds.size.ToString("F2")
                 : "not rendered";
+            string spatialStatus = "render mode " + LegacyHybridCompositeModeLabel
+                + ", legacy composite active " + (settings.CrystalSimulationMode != CrystalRenderMode.RealMesh3D ? "true" : "false")
+                + ", crystal stage active false"
+                + ", screen coverage " + CrystalSpatialDiagnostics.FormatPercent(lastScreenCoverageEstimate)
+                + ", effective scale " + lastEffectiveCrystalScale.ToString("0.00")
+                + ", configured world scale " + Mathf.Max(0.05f, crystalWorldScale).ToString("0.00")
+                + ", crystal local position " + crystalPosition
+                + ", camera local position " + CrystalSpatialDiagnostics.FormatVector(lastCrystalCameraLocalPosition)
+                + ", camera-crystal distance " + lastCameraCrystalDistance.ToString("0.00")
+                + ", crystal-background distance " + (lastCrystalBackgroundDistance > 0f ? lastCrystalBackgroundDistance.ToString("0.00") : "none")
+                + ", background spatial false"
+                + ", crystal between camera/background " + (lastCrystalBetweenCameraAndBackground ? "true" : "false")
+                + ", fullscreen composite dominates " + (lastFullscreenCompositeDominates ? "true" : "false")
+                + ", hierarchy " + lastRuntimeHierarchyPath
+                + ", bounds " + crystalBounds;
 
             return CreateStatus(enabled
                 + ", " + mode
@@ -343,6 +372,7 @@ namespace Kaleidoscope2.DiamondFocus
                 + ", source " + sourceBinding
                 + ", variants " + (settings.EnableRandomVariants ? "on" : "off")
                 + ", preserve classic " + (settings.PreserveClassicMode ? "on" : "off")
+                + ", " + spatialStatus
                 + ", optics " + opticsStatus + ".");
         }
 
@@ -638,19 +668,12 @@ namespace Kaleidoscope2.DiamondFocus
                 renderedShape = settings.Shape;
             }
 
-            float desiredCoverage = 0.33f;
+            float desiredCoverage = CrystalSpatialDiagnostics.ClampRealMeshCoverage(settings.ScreenScale);
             float targetHalfHeight = Mathf.Max(0.05f, renderCamera.orthographicSize * desiredCoverage);
-            float baseScale = Mathf.Max(0.05f, crystalWorldScale);
-            float settingsScale = Mathf.Max(0.1f, settings.ScreenScale);
-            float scale = Mathf.Max(0.05f, baseScale * settingsScale * 2.2f);
 
             Bounds meshBounds = mesh.bounds;
-            float maxExtent = Mathf.Max(0.001f, Mathf.Max(meshBounds.extents.x, Mathf.Max(meshBounds.extents.y, meshBounds.extents.z)));
-            float coverageFitScale = targetHalfHeight / maxExtent;
-            if (coverageFitScale > scale)
-            {
-                scale = coverageFitScale;
-            }
+            float verticalExtent = Mathf.Max(0.001f, meshBounds.extents.y);
+            float scale = Mathf.Clamp(targetHalfHeight / verticalExtent, 0.05f, 8f);
 
             crystalObject.transform.localPosition = Vector3.zero;
             crystalObject.transform.localRotation = Quaternion.Euler(settings.RotationEuler);
@@ -665,8 +688,15 @@ namespace Kaleidoscope2.DiamondFocus
             Vector3 scaledSize = Vector3.Scale(meshBounds.size, crystalObject.transform.localScale);
             lastCrystalBounds = new Bounds(crystalObject.transform.localPosition + Vector3.Scale(meshBounds.center, crystalObject.transform.localScale), scaledSize);
             hasLastCrystalBounds = true;
-            float crystalHalfHeight = Mathf.Max(0.001f, scaledSize.y * 0.5f);
-            lastScreenCoverageEstimate = Mathf.Clamp01((crystalHalfHeight / Mathf.Max(0.001f, renderCamera.orthographicSize)) * 2f);
+            lastScreenCoverageEstimate = CrystalSpatialDiagnostics.OrthographicHeightCoverage(scaledSize.y, renderCamera.orthographicSize);
+            lastCrystalCameraLocalPosition = cameraObject != null ? cameraObject.transform.localPosition : Vector3.zero;
+            lastCameraCrystalDistance = renderCamera != null
+                ? Vector3.Distance(renderCamera.transform.position, crystalObject.transform.position)
+                : 0f;
+            lastCrystalBackgroundDistance = 0f;
+            lastCrystalBetweenCameraAndBackground = false;
+            lastFullscreenCompositeDominates = true;
+            lastRuntimeHierarchyPath = CrystalSpatialDiagnostics.GetHierarchyPath(crystalObject.transform);
             crystalMeshRenderer.sharedMaterial = material;
             materialBinder.ConfigureCrystalMaterial(material, settings, kaleidoscopeTexture, kaleidoscopeTextureValid, missingKaleidoscopeWarningColor);
 

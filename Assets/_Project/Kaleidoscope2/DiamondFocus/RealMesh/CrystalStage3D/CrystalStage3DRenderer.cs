@@ -63,6 +63,26 @@ namespace Kaleidoscope2.DiamondFocus.RealMesh.CrystalStage3D
             get { return meshController.MeshBoundsSize; }
         }
 
+        public Bounds CrystalWorldBounds
+        {
+            get { return meshController.WorldBounds; }
+        }
+
+        public Vector3 CrystalWorldPosition
+        {
+            get { return meshController.WorldPosition; }
+        }
+
+        public Vector3 CrystalLocalPosition
+        {
+            get { return meshController.LocalPosition; }
+        }
+
+        public Vector3 CrystalLocalScale
+        {
+            get { return meshController.LocalScale; }
+        }
+
         public bool HasVolume
         {
             get { return meshController.HasVolume; }

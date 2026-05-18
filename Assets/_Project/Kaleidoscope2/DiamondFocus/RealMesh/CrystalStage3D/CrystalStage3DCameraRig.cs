@@ -1,3 +1,4 @@
+using Kaleidoscope2.DiamondFocus;
 using UnityEngine;
 
 namespace Kaleidoscope2.DiamondFocus.RealMesh.CrystalStage3D
@@ -9,6 +10,9 @@ namespace Kaleidoscope2.DiamondFocus.RealMesh.CrystalStage3D
         private RenderTexture stageTexture;
         private float orbitPhase;
         private string diagnosticsLabel = "camera rig not created";
+        private Vector3 lastLocalPosition;
+        private float lastCameraDistance;
+        private float lastFieldOfView;
 
         public RenderTexture StageTexture
         {
@@ -28,6 +32,21 @@ namespace Kaleidoscope2.DiamondFocus.RealMesh.CrystalStage3D
         public bool IsActive
         {
             get { return cameraObject != null && cameraObject.activeInHierarchy; }
+        }
+
+        public Vector3 LastLocalPosition
+        {
+            get { return lastLocalPosition; }
+        }
+
+        public float LastCameraDistance
+        {
+            get { return lastCameraDistance; }
+        }
+
+        public float LastFieldOfView
+        {
+            get { return lastFieldOfView; }
         }
 
         public void Ensure(Transform parent, int layer)
@@ -120,6 +139,9 @@ namespace Kaleidoscope2.DiamondFocus.RealMesh.CrystalStage3D
             LookAtLocal(target);
             camera.fieldOfView = settings.CameraFieldOfView;
             camera.farClipPlane = Mathf.Max(8f, settings.CameraDistance + settings.BackgroundDistance + 4f);
+            lastLocalPosition = position;
+            lastCameraDistance = settings.CameraDistance;
+            lastFieldOfView = camera.fieldOfView;
 
             RenderTexture previousTarget = camera.targetTexture;
             RenderTexture previousActive = RenderTexture.active;
@@ -136,6 +158,18 @@ namespace Kaleidoscope2.DiamondFocus.RealMesh.CrystalStage3D
                 + ", base distance " + settings.BaseCameraDistance.ToString("0.00")
                 + ", target frame " + (settings.TargetFrameHeight * 100f).ToString("0") + "%";
             return true;
+        }
+
+        public float MeasureViewportHeightCoverage(Bounds worldBounds)
+        {
+            return CrystalSpatialDiagnostics.ViewportHeightCoverage(camera, worldBounds);
+        }
+
+        public float MeasureDistanceTo(Vector3 worldPosition)
+        {
+            return cameraObject != null
+                ? Vector3.Distance(cameraObject.transform.position, worldPosition)
+                : 0f;
         }
 
         public void SetVisible(bool visible)

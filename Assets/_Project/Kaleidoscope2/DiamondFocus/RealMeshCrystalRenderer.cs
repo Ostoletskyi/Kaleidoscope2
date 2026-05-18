@@ -1,4 +1,5 @@
 using Kaleidoscope2.Core;
+using Kaleidoscope2.DiamondFocus.CrystalStage3D;
 using Kaleidoscope2.DiamondFocus.RealMesh;
 using Kaleidoscope2.DiamondFocus.RealMesh.CrystalStage3D;
 using UnityEngine;
@@ -15,7 +16,7 @@ namespace Kaleidoscope2.DiamondFocus
         private readonly RealCrystalMeshController meshController = new RealCrystalMeshController();
         private readonly RealCrystalMaterialBinder materialBinder;
         private readonly RealMesh.CrystalLightRigModule lightRig = new RealMesh.CrystalLightRigModule();
-        private readonly CrystalStage3DModule stage3D = new CrystalStage3DModule();
+        private readonly SpatialCrystalStage3D spatialStage = new SpatialCrystalStage3D();
 
         private CrystalSharedSettings settings;
         private RenderTexture sourceTexture;
@@ -43,7 +44,7 @@ namespace Kaleidoscope2.DiamondFocus
         {
             get
             {
-                Texture stageOutput = stage3D.OutputTexture;
+                Texture stageOutput = spatialStage.OutputTexture;
                 if (stageOutput != null)
                 {
                     return stageOutput;
@@ -57,7 +58,7 @@ namespace Kaleidoscope2.DiamondFocus
         {
             get
             {
-                int stageLights = stage3D.ActiveLightCount;
+                int stageLights = spatialStage.ActiveLightCount;
                 return stageLights > 0 ? stageLights : lightRig.ActiveLightCount;
             }
         }
@@ -69,35 +70,35 @@ namespace Kaleidoscope2.DiamondFocus
 
         public int MeshVertexCount
         {
-            get { return stage3D.MeshVertexCount > 0 ? stage3D.MeshVertexCount : meshController.MeshVertexCount; }
+            get { return spatialStage.MeshVertexCount > 0 ? spatialStage.MeshVertexCount : meshController.MeshVertexCount; }
         }
 
         public int MeshTriangleCount
         {
-            get { return stage3D.MeshTriangleCount > 0 ? stage3D.MeshTriangleCount : meshController.MeshTriangleCount; }
+            get { return spatialStage.MeshTriangleCount > 0 ? spatialStage.MeshTriangleCount : meshController.MeshTriangleCount; }
         }
 
         public bool HasThickness
         {
-            get { return stage3D.MeshVertexCount > 0 ? stage3D.MeshBoundsSize.z > RealCrystalVolumetricMeshFactory.MinimumValidDepth : meshController.HasThickness; }
+            get { return spatialStage.MeshVertexCount > 0 ? spatialStage.MeshBoundsSize.z > RealCrystalVolumetricMeshFactory.MinimumValidDepth : meshController.HasThickness; }
         }
 
         public bool SideFacesDetected
         {
-            get { return stage3D.MeshVertexCount > 0 ? stage3D.SideFacesDetected : meshController.SideFacesDetected; }
+            get { return spatialStage.MeshVertexCount > 0 ? spatialStage.SideFacesDetected : meshController.SideFacesDetected; }
         }
 
         public bool HasVolume
         {
-            get { return stage3D.MeshVertexCount > 0 ? stage3D.HasVolume : meshController.HasVolume; }
+            get { return spatialStage.MeshVertexCount > 0 ? spatialStage.HasVolume : meshController.HasVolume; }
         }
 
         public string MeshDiagnosticsLabel
         {
             get
             {
-                return stage3D.MeshVertexCount > 0
-                    ? stage3D.DiagnosticsLabel
+                return spatialStage.MeshVertexCount > 0
+                    ? spatialStage.DiagnosticsLabel
                     : meshController.MeshDiagnosticsLabel;
             }
         }
@@ -129,7 +130,7 @@ namespace Kaleidoscope2.DiamondFocus
 
                 count += meshController.RuntimeObjectCount;
                 count += lightRig.RuntimeObjectCount;
-                count += stage3D.RuntimeObjectCount;
+                count += spatialStage.RuntimeObjectCount;
                 return count;
             }
         }
@@ -151,13 +152,13 @@ namespace Kaleidoscope2.DiamondFocus
 
         public string StageDiagnosticsLabel
         {
-            get { return stage3D.DiagnosticsLabel; }
+            get { return spatialStage.DiagnosticsLabel; }
         }
 
         public void Initialize(CrystalSharedSettings sharedSettings)
         {
             settings = sharedSettings;
-            stage3D.Initialize(owner, layer);
+            spatialStage.Initialize(owner, layer);
             ApplyRuntimeVisibility(visible);
         }
 
@@ -244,17 +245,26 @@ namespace Kaleidoscope2.DiamondFocus
                 return;
             }
 
-            stage3D.SetDebugMode(geometryValidationMaterialEnabled
+            CrystalStage3DDebugMode resolvedDebugMode = geometryValidationMaterialEnabled
                 ? CrystalStage3DDebugMode.SolidLitGeometry
-                : stageDebugMode);
-            if (stage3D.Render(sourceTexture, settings, shape, materialMode, rotation, intensity, visible))
+                : stageDebugMode;
+            if (spatialStage.Render(
+                sourceTexture,
+                settings,
+                shape,
+                materialMode,
+                rotation,
+                intensity,
+                visible,
+                geometryValidationMaterialEnabled,
+                resolvedDebugMode))
             {
                 ReleaseOutput();
                 ApplyFallbackRuntimeVisibility(false);
                 return;
             }
 
-            stage3D.SetVisible(false);
+            spatialStage.SetVisible(false);
             ApplyFallbackRuntimeVisibility(false);
             ReleaseOutput();
         }
@@ -262,7 +272,7 @@ namespace Kaleidoscope2.DiamondFocus
         public void Shutdown()
         {
             visible = false;
-            stage3D.Shutdown();
+            spatialStage.Shutdown();
             ReleaseOutput();
             meshController.Shutdown();
             lightRig.Shutdown();
@@ -277,7 +287,7 @@ namespace Kaleidoscope2.DiamondFocus
 
         private void ApplyRuntimeVisibility(bool value)
         {
-            stage3D.SetVisible(value);
+            spatialStage.SetVisible(value);
             ApplyFallbackRuntimeVisibility(false);
         }
 

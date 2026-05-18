@@ -9,6 +9,8 @@ Shader "Kaleidoscope2/BillboardCrystal"
         _Shape ("Shape", Float) = 0
         _MaterialMode ("Material Mode", Float) = 1
         _Rotation ("Rotation", Vector) = (0,0,0,0)
+        _CrystalRadius ("Crystal Radius", Range(0.05,0.5)) = 0.13
+        _CrystalFeather ("Crystal Feather", Range(0.01,0.2)) = 0.047
     }
     SubShader
     {
@@ -28,6 +30,8 @@ Shader "Kaleidoscope2/BillboardCrystal"
             float _Shape;
             float _MaterialMode;
             float4 _Rotation;
+            float _CrystalRadius;
+            float _CrystalFeather;
 
             fixed4 frag(v2f_img i) : SV_Target
             {
@@ -37,7 +41,9 @@ Shader "Kaleidoscope2/BillboardCrystal"
                 float radius = length(p);
                 float facets = _Shape < 2.5 ? 8.0 : 12.0;
                 float edge = pow(saturate(1.0 - abs(frac(angle * facets * 0.15915494) - 0.5) * 2.0), 6.0);
-                float mask = smoothstep(0.32, 0.16, radius) * saturate(0.7 + edge * 0.55);
+                float outerRadius = max(0.001, _CrystalRadius);
+                float innerRadius = max(0.0005, outerRadius - max(0.001, _CrystalFeather));
+                float mask = smoothstep(outerRadius, innerRadius, radius) * saturate(0.7 + edge * 0.55);
                 fixed3 crystal = tex2D(_KaleidoscopeTex, saturate(i.uv + normalize(p + 0.0001) * 0.012)).rgb;
                 crystal += fixed3(0.72, 0.92, 1.0) * edge * saturate(_Intensity / 20.0);
                 fixed3 composite = lerp(source, crystal, mask * saturate(_OverlayAmount));

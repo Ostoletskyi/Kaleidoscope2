@@ -96,12 +96,14 @@ namespace Kaleidoscope2.Control
 
         public override KaleidoscopeModuleStatus GetStatus()
         {
-            string outputPreviewActive = outputImage != null && outputImage.gameObject.activeInHierarchy ? "yes" : "no";
+            bool previewSuppressed = ShouldSuppressOutputPreviewForPremium3D();
+            string outputPreviewActive = outputImage != null && outputImage.enabled && outputImage.gameObject.activeInHierarchy ? "yes" : "no";
             Texture texture = outputImage != null ? outputImage.texture : null;
             string textureStatus = texture != null
                 ? texture.width.ToString() + "x" + texture.height.ToString()
                 : "none";
             return CreateStatus("OutputPreview active " + outputPreviewActive
+                + ", active view path " + (previewSuppressed ? "DirectPhysicalPremium3D" : "Classic2DOutputPreview")
                 + ", output texture " + textureStatus
                 + ", menu " + (menuRoot != null && menuRoot.activeSelf ? "visible" : "hidden") + ".");
         }
@@ -190,10 +192,41 @@ namespace Kaleidoscope2.Control
 
         private void UpdateOutputTexture()
         {
+            bool outputPreviewVisible = !ShouldSuppressOutputPreviewForPremium3D();
+            ApplyOutputPreviewVisible(outputPreviewVisible);
+            if (!outputPreviewVisible)
+            {
+                if (outputImage.texture != null)
+                {
+                    outputImage.texture = null;
+                }
+
+                return;
+            }
+
             Texture output = director.FinalOutputTexture;
             if (outputImage.texture != output)
             {
                 outputImage.texture = output;
+            }
+        }
+
+        private bool ShouldSuppressOutputPreviewForPremium3D()
+        {
+            if (director == null || director.State == null || director.State.DiamondFocusSettings == null)
+            {
+                return false;
+            }
+
+            DiamondFocusSettings settings = director.State.DiamondFocusSettings;
+            return settings.Enabled && settings.CrystalSimulationMode == CrystalRenderMode.RealMesh3D;
+        }
+
+        private void ApplyOutputPreviewVisible(bool visible)
+        {
+            if (outputImage != null && outputImage.enabled != visible)
+            {
+                outputImage.enabled = visible;
             }
         }
 

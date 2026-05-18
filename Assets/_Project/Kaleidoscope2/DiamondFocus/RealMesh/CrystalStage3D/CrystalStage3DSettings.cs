@@ -1,5 +1,6 @@
 using System;
 using Kaleidoscope2.Core;
+using Kaleidoscope2.DiamondFocus;
 using UnityEngine;
 
 namespace Kaleidoscope2.DiamondFocus.RealMesh.CrystalStage3D
@@ -22,7 +23,7 @@ namespace Kaleidoscope2.DiamondFocus.RealMesh.CrystalStage3D
         [SerializeField] private Vector2 crystalScreenCenterOffset;
         [SerializeField, Range(20f, 60f)] private float cameraFieldOfView = 34f;
         [SerializeField, Range(4f, 64f)] private float cameraDistance = 14f;
-        [SerializeField, Range(0.25f, 0.4f)] private float targetFrameHeight = 0.34f;
+        [SerializeField, Range(CrystalSpatialDiagnostics.RealMeshTargetMinCoverage, CrystalSpatialDiagnostics.RealMeshTargetMaxCoverage)] private float targetFrameHeight = CrystalSpatialDiagnostics.RealMeshTargetCoverage;
         [SerializeField, Range(-1f, 1f)] private float cameraHeight = 0.05f;
         [SerializeField, Range(0f, 0.8f)] private float cameraOrbitRadius = 0.22f;
         [SerializeField, Range(0f, 1.5f)] private float cameraOrbitSpeed = 0.18f;
@@ -75,7 +76,7 @@ namespace Kaleidoscope2.DiamondFocus.RealMesh.CrystalStage3D
 
         public float TargetFrameHeight
         {
-            get { return Mathf.Clamp(targetFrameHeight, 0.25f, 0.4f); }
+            get { return CrystalSpatialDiagnostics.ClampRealMeshCoverage(targetFrameHeight); }
         }
 
         public float CameraHeight

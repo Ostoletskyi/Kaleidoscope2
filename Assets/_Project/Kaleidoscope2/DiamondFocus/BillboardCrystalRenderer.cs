@@ -6,6 +6,14 @@ namespace Kaleidoscope2.DiamondFocus
     public sealed class BillboardCrystalRenderer : ICrystalRenderer
     {
         private const string ShaderName = "Kaleidoscope2/BillboardCrystal";
+        private static readonly int KaleidoscopeTexId = Shader.PropertyToID("_KaleidoscopeTex");
+        private static readonly int ShapeId = Shader.PropertyToID("_Shape");
+        private static readonly int MaterialModeId = Shader.PropertyToID("_MaterialMode");
+        private static readonly int RotationId = Shader.PropertyToID("_Rotation");
+        private static readonly int IntensityId = Shader.PropertyToID("_Intensity");
+        private static readonly int OverlayAmountId = Shader.PropertyToID("_OverlayAmount");
+        private static readonly int CrystalRadiusId = Shader.PropertyToID("_CrystalRadius");
+        private static readonly int CrystalFeatherId = Shader.PropertyToID("_CrystalFeather");
 
         private readonly Transform owner;
         private readonly Shader assignedShader;
@@ -18,6 +26,7 @@ namespace Kaleidoscope2.DiamondFocus
         private Vector3 rotation;
         private float intensity;
         private bool visible;
+        private string spatialDiagnostics = "Billboard2D not measured";
 
         public BillboardCrystalRenderer(Transform ownerTransform, Shader shader)
         {
@@ -65,7 +74,8 @@ namespace Kaleidoscope2.DiamondFocus
             {
                 return (visible ? "visible" : "inactive")
                     + ", root " + ResolveRootState()
-                    + ", runtime objects " + RuntimeObjectCount.ToString();
+                    + ", runtime objects " + RuntimeObjectCount.ToString()
+                    + ", " + spatialDiagnostics;
             }
         }
 
@@ -149,16 +159,30 @@ namespace Kaleidoscope2.DiamondFocus
             Material activeMaterial = EnsureMaterial();
             if (activeMaterial == null || !visible)
             {
+                spatialDiagnostics = activeMaterial == null
+                    ? "Billboard2D material missing, effective screen coverage 0.0%"
+                    : "Billboard2D inactive, effective screen coverage 0.0%";
                 Graphics.Blit(sourceTexture, outputTexture);
                 return;
             }
 
-            activeMaterial.SetTexture("_KaleidoscopeTex", sourceTexture);
-            activeMaterial.SetFloat("_Shape", (float)shape);
-            activeMaterial.SetFloat("_MaterialMode", (float)materialMode);
-            activeMaterial.SetVector("_Rotation", rotation);
-            activeMaterial.SetFloat("_Intensity", intensity);
-            activeMaterial.SetFloat("_OverlayAmount", 0f);
+            float screenCoverage = CrystalSpatialDiagnostics.ClampBillboardCoverage(CrystalSpatialDiagnostics.BillboardTargetCoverage);
+            activeMaterial.SetTexture(KaleidoscopeTexId, sourceTexture);
+            activeMaterial.SetFloat(ShapeId, (float)shape);
+            activeMaterial.SetFloat(MaterialModeId, (float)materialMode);
+            activeMaterial.SetVector(RotationId, rotation);
+            activeMaterial.SetFloat(IntensityId, intensity);
+            activeMaterial.SetFloat(OverlayAmountId, visible ? 1f : 0f);
+            activeMaterial.SetFloat(CrystalRadiusId, screenCoverage * 0.5f);
+            activeMaterial.SetFloat(CrystalFeatherId, screenCoverage * 0.18f);
+            spatialDiagnostics = "Billboard2D measured screen coverage "
+                + CrystalSpatialDiagnostics.FormatPercent(screenCoverage)
+                + ", transform scale " + (root != null ? CrystalSpatialDiagnostics.FormatVector(root.transform.localScale) : "none")
+                + ", render bounds " + sourceTexture.width.ToString() + "x" + sourceTexture.height.ToString()
+                + ", apparent screen size " + CrystalSpatialDiagnostics.FormatPercent(screenCoverage) + " height"
+                + ", composition fullscreen-space masked blit"
+                + ", object-space false"
+                + ", hierarchy " + (root != null ? CrystalSpatialDiagnostics.GetHierarchyPath(root.transform) : "none");
             Graphics.Blit(sourceTexture, outputTexture, activeMaterial);
         }
 

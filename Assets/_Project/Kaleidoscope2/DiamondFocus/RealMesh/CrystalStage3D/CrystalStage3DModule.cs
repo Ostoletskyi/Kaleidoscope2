@@ -1,4 +1,5 @@
 using Kaleidoscope2.Core;
+using Kaleidoscope2.DiamondFocus;
 using UnityEngine;
 
 namespace Kaleidoscope2.DiamondFocus.RealMesh.CrystalStage3D
@@ -18,6 +19,15 @@ namespace Kaleidoscope2.DiamondFocus.RealMesh.CrystalStage3D
         private int layer = 31;
         private bool visible;
         private string diagnosticsLabel = "CrystalStage3D not initialized";
+        private float lastScreenCoverageEstimate;
+        private float lastCameraCrystalDistance;
+        private float lastCrystalBackgroundDistance;
+        private Vector3 lastStageCameraLocalPosition;
+        private Vector3 lastCrystalWorldPosition;
+        private Vector3 lastCrystalLocalScale;
+        private Vector3 lastBackgroundLocalPosition;
+        private bool lastCrystalBetweenCameraAndBackground;
+        private bool lastFullscreenCompositeDominates;
 
         public Texture OutputTexture
         {
@@ -91,6 +101,15 @@ namespace Kaleidoscope2.DiamondFocus.RealMesh.CrystalStage3D
                     + ", vertices " + MeshVertexCount.ToString()
                     + ", triangles " + MeshTriangleCount.ToString()
                     + ", bounds " + bounds.x.ToString("0.00") + "x" + bounds.y.ToString("0.00") + "x" + bounds.z.ToString("0.00")
+                    + ", measured screen coverage " + CrystalSpatialDiagnostics.FormatPercent(lastScreenCoverageEstimate)
+                    + ", stage camera position " + CrystalSpatialDiagnostics.FormatVector(lastStageCameraLocalPosition)
+                    + ", crystal world position " + CrystalSpatialDiagnostics.FormatVector(lastCrystalWorldPosition)
+                    + ", crystal world scale " + CrystalSpatialDiagnostics.FormatVector(lastCrystalLocalScale)
+                    + ", camera-crystal distance " + lastCameraCrystalDistance.ToString("0.00")
+                    + ", background plane position " + CrystalSpatialDiagnostics.FormatVector(lastBackgroundLocalPosition)
+                    + ", crystal-background distance " + lastCrystalBackgroundDistance.ToString("0.00")
+                    + ", crystal between camera/background " + (lastCrystalBetweenCameraAndBackground ? "true" : "false")
+                    + ", fullscreen composite dominates " + (lastFullscreenCompositeDominates ? "true" : "false")
                     + ", hasVolume " + (HasVolume ? "true" : "false")
                     + ", sideFacesDetected " + (SideFacesDetected ? "true" : "false")
                     + ", camera orbit " + (settings.CameraOrbitEnabled ? "enabled" : "disabled")
@@ -184,10 +203,12 @@ namespace Kaleidoscope2.DiamondFocus.RealMesh.CrystalStage3D
                 return false;
             }
 
+            MeasureSpatialState(settings);
             bool composited = composite.Composite(sourceTexture, cameraRig.StageTexture);
             diagnosticsLabel = composited
                 ? "CrystalStage3D active independent 3D stage"
                 : "CrystalStage3D composite failed";
+            lastFullscreenCompositeDominates = composited;
             return composited;
         }
 
@@ -275,6 +296,36 @@ namespace Kaleidoscope2.DiamondFocus.RealMesh.CrystalStage3D
                 : new Vector3(offset.x, offset.y, 0f);
             realMeshRoot.transform.localRotation = Quaternion.identity;
             realMeshRoot.transform.localScale = Vector3.one;
+        }
+
+        private void MeasureSpatialState(CrystalStage3DSettings stageSettings)
+        {
+            if (stageSettings == null)
+            {
+                return;
+            }
+
+            Bounds worldBounds = renderer.CrystalWorldBounds;
+            lastScreenCoverageEstimate = cameraRig.MeasureViewportHeightCoverage(worldBounds);
+            if (lastScreenCoverageEstimate <= 0.0001f)
+            {
+                lastScreenCoverageEstimate = CrystalSpatialDiagnostics.PerspectiveHeightCoverage(
+                    worldBounds.size.y,
+                    Mathf.Max(0.0001f, cameraRig.MeasureDistanceTo(renderer.CrystalWorldPosition)),
+                    cameraRig.LastFieldOfView);
+            }
+
+            lastStageCameraLocalPosition = cameraRig.LastLocalPosition;
+            lastCrystalWorldPosition = renderer.CrystalWorldPosition;
+            lastCrystalLocalScale = renderer.CrystalLocalScale;
+            lastCameraCrystalDistance = cameraRig.MeasureDistanceTo(renderer.CrystalWorldPosition);
+            lastBackgroundLocalPosition = environmentBinder.IsActive
+                ? environmentBinder.LastBackgroundLocalPosition
+                : new Vector3(0f, 0f, stageSettings.BackgroundDistance);
+            lastCrystalBackgroundDistance = Mathf.Abs(lastBackgroundLocalPosition.z - renderer.CrystalLocalPosition.z);
+            lastCrystalBetweenCameraAndBackground = environmentBinder.IsActive
+                && lastStageCameraLocalPosition.z < renderer.CrystalLocalPosition.z
+                && renderer.CrystalLocalPosition.z < lastBackgroundLocalPosition.z;
         }
 
         private static float ResolveRotation01(Vector3 rotation)

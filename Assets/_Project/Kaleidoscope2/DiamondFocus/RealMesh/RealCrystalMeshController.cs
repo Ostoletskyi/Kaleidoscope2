@@ -81,6 +81,36 @@ namespace Kaleidoscope2.DiamondFocus.RealMesh
             get { return activeMesh != null ? activeMesh.bounds.size : Vector3.zero; }
         }
 
+        public Bounds WorldBounds
+        {
+            get
+            {
+                if (meshRenderer != null)
+                {
+                    return meshRenderer.bounds;
+                }
+
+                return activeMesh != null && crystalObject != null
+                    ? CrystalSpatialDiagnostics.TransformBounds(activeMesh.bounds, crystalObject.transform)
+                    : new Bounds(Vector3.zero, Vector3.zero);
+            }
+        }
+
+        public Vector3 WorldPosition
+        {
+            get { return crystalObject != null ? crystalObject.transform.position : Vector3.zero; }
+        }
+
+        public Vector3 LocalPosition
+        {
+            get { return crystalObject != null ? crystalObject.transform.localPosition : Vector3.zero; }
+        }
+
+        public Vector3 LocalScale
+        {
+            get { return crystalObject != null ? crystalObject.transform.localScale : Vector3.zero; }
+        }
+
         public string MeshDiagnosticsLabel
         {
             get

@@ -9,6 +9,8 @@ namespace Kaleidoscope2.DiamondFocus
     {
         private const string BillboardShaderName = "Kaleidoscope2/BillboardCrystal";
         private const string RealMeshShaderName = "Kaleidoscope2/RealCrystalOptics";
+        private const string LegacyCompositeModeLabel = "LegacyComposite";
+        private const string SpatialStage3DModeLabel = "SpatialStage3D";
 
         [Header("Shaders")]
         [SerializeField] private Shader billboardShader;
@@ -30,6 +32,8 @@ namespace Kaleidoscope2.DiamondFocus
         private RenderTexture sourceCopyTexture;
         private Texture outputTexture;
         private bool realMeshScaleMigrationReported;
+        private bool spatialStageWritesFinalOutput;
+        private string renderModeDiagnostics = "active view path Classic2DOutputPreview, final output source Layer1, CrystalStage3D direct view false, Stage RT displayed false, wrong background plane active false";
 
         public override string ModuleId
         {
@@ -76,6 +80,7 @@ namespace Kaleidoscope2.DiamondFocus
             string realMeshDiagnostics = realMeshRenderer != null
                 ? realMeshRenderer.StageDiagnosticsLabel
                 : "stage diagnostics not created";
+            string stageWriteStatus = spatialStageWritesFinalOutput ? "true" : "false";
             int runtimeObjects = 0;
             if (billboardRenderer != null)
             {
@@ -95,6 +100,8 @@ namespace Kaleidoscope2.DiamondFocus
                 + ", real mesh " + realMeshState
                 + ", " + realMeshVolume
                 + ", " + realMeshPlacement
+                + ", " + renderModeDiagnostics
+                + ", CrystalStage3D direct view active " + stageWriteStatus
                 + ", " + realMeshDiagnostics
                 + ", runtime objects " + runtimeObjects.ToString()
                 + ", real mesh lights " + activeLights.ToString() + ".");
@@ -105,6 +112,8 @@ namespace Kaleidoscope2.DiamondFocus
             if (!moduleEnabled || runtimeState == null)
             {
                 outputTexture = sourceTexture;
+                spatialStageWritesFinalOutput = false;
+                renderModeDiagnostics = "active view path Classic2DOutputPreview, final output source Layer1, CrystalStage3D direct view false, Stage RT displayed false, wrong background plane active false";
                 DeactivateAllRenderers(false);
                 return sourceTexture;
             }
@@ -122,6 +131,24 @@ namespace Kaleidoscope2.DiamondFocus
             if (diamondSettings == null || !diamondSettings.Enabled || sourceTexture == null)
             {
                 outputTexture = sourceTexture;
+                spatialStageWritesFinalOutput = false;
+                renderModeDiagnostics = "active view path Classic2DOutputPreview, final output source Layer1, CrystalStage3D direct view false, Stage RT displayed false, wrong background plane active false";
+                DeactivateAllRenderers(false);
+                return sourceTexture;
+            }
+
+            if (sharedSettings.RenderMode != CrystalRenderMode.RealMesh3D)
+            {
+                outputTexture = sourceTexture;
+                spatialStageWritesFinalOutput = false;
+                renderModeDiagnostics = "active view path Classic2DOutputPreview"
+                    + ", final output source Layer1"
+                    + ", render mode " + LegacyCompositeModeLabel
+                    + ", legacy composite active true"
+                    + ", SpatialStage3D active false"
+                    + ", CrystalStage3D direct view false"
+                    + ", Stage RT displayed false"
+                    + ", wrong background plane active false";
                 DeactivateAllRenderers(false);
                 return sourceTexture;
             }
@@ -130,6 +157,15 @@ namespace Kaleidoscope2.DiamondFocus
             if (sourceRenderTexture == null)
             {
                 outputTexture = sourceTexture;
+                spatialStageWritesFinalOutput = false;
+                renderModeDiagnostics = "active view path DirectPhysicalPremium3D"
+                    + ", final output source Layer1 fallback"
+                    + ", render mode " + SpatialStage3DModeLabel
+                    + ", SpatialStage3D active false"
+                    + ", CrystalStage3D direct view false"
+                    + ", Stage RT displayed false"
+                    + ", wrong background plane active false"
+                    + ", source RenderTexture missing";
                 DeactivateAllRenderers(false);
                 return sourceTexture;
             }
@@ -138,6 +174,15 @@ namespace Kaleidoscope2.DiamondFocus
             if (renderer == null)
             {
                 outputTexture = sourceTexture;
+                spatialStageWritesFinalOutput = false;
+                renderModeDiagnostics = "active view path DirectPhysicalPremium3D"
+                    + ", final output source Layer1 fallback"
+                    + ", render mode " + SpatialStage3DModeLabel
+                    + ", SpatialStage3D active false"
+                    + ", CrystalStage3D direct view false"
+                    + ", Stage RT displayed false"
+                    + ", wrong background plane active false"
+                    + ", renderer missing";
                 return sourceTexture;
             }
 
@@ -150,7 +195,16 @@ namespace Kaleidoscope2.DiamondFocus
             DeactivateAllRendererRoots();
             ApplyRendererState(renderer, sourceRenderTexture, sharedSettings);
             renderer.Render();
-            outputTexture = ResolveOutputTexture(renderer, sourceTexture);
+            outputTexture = sourceTexture;
+            spatialStageWritesFinalOutput = realMeshRenderer != null && realMeshRenderer.OutputTexture != null;
+            renderModeDiagnostics = "active view path DirectPhysicalPremium3D"
+                + ", final output source Layer1 hidden"
+                + ", render mode " + SpatialStage3DModeLabel
+                + ", legacy composite active false"
+                + ", SpatialStage3D active true"
+                + ", CrystalStage3D direct view true"
+                + ", Stage RT displayed false"
+                + ", wrong background plane active false";
             return outputTexture;
         }
 
@@ -289,6 +343,7 @@ namespace Kaleidoscope2.DiamondFocus
             DeactivateRenderer(realMeshRenderer, shutdownRuntimeObjects);
             activeRenderer = null;
             activeRenderMode = (CrystalRenderMode)(-1);
+            spatialStageWritesFinalOutput = false;
         }
 
         private static void DeactivateRenderer(ICrystalRenderer renderer, bool shutdownRuntimeObjects)

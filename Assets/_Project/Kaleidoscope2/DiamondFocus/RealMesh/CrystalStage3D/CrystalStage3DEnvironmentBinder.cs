@@ -15,6 +15,8 @@ namespace Kaleidoscope2.DiamondFocus.RealMesh.CrystalStage3D
         private MeshRenderer[] environmentRenderers;
         private MeshFilter[] environmentFilters;
         private string diagnosticsLabel = "environment not created";
+        private Vector3 lastBackgroundLocalPosition;
+        private float lastBackgroundDistance;
 
         public int RuntimeObjectCount
         {
@@ -49,6 +51,16 @@ namespace Kaleidoscope2.DiamondFocus.RealMesh.CrystalStage3D
         public bool IsActive
         {
             get { return root != null && root.activeInHierarchy; }
+        }
+
+        public Vector3 LastBackgroundLocalPosition
+        {
+            get { return lastBackgroundLocalPosition; }
+        }
+
+        public float LastBackgroundDistance
+        {
+            get { return lastBackgroundDistance; }
         }
 
         public void Ensure(Transform parent, int layer)
@@ -91,6 +103,8 @@ namespace Kaleidoscope2.DiamondFocus.RealMesh.CrystalStage3D
                 backgroundTransform.localPosition = new Vector3(0f, 0f, settings.BackgroundDistance);
                 backgroundTransform.localRotation = Quaternion.identity;
                 backgroundTransform.localScale = new Vector3(scale, scale, 1f);
+                lastBackgroundLocalPosition = backgroundTransform.localPosition;
+                lastBackgroundDistance = settings.BackgroundDistance;
             }
 
             ApplySidePanelTransform(0, new Vector3(-scale * 0.58f, 0f, settings.BackgroundDistance * 0.58f), Quaternion.Euler(0f, 58f, 0f), scale * 0.82f);

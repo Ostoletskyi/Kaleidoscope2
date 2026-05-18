@@ -36,7 +36,7 @@ TagManager:
   - 
   - 
   - 
-  - 
+  - SpatialStage3D
   m_SortingLayers:
   - name: Default
     uniqueID: 0
