@@ -1,180 +1,395 @@
-# MINI ROADMAP — Premium3D Crystal Spotlight & Caustics
-STAGE 00 — Safety Checkpoint
+# ROADMAP.md — KAELIS Premium3D Recovery
 
-Цель: зафиксировать текущее состояние Premium3D перед новой фичей.
+## Main Goal
 
-Нужно:
+Build a stable, modular cinematic kaleidoscope engine with:
 
-проверить git status;
-сделать commit;
-сделать push;
-убедиться, что рабочее дерево чистое.
+- protected Classic2D / Layer 1;
+- real Premium3D / Layer 2;
+- strong crystal size and shape;
+- optical effects only after the crystal itself is accepted;
+- premium UI later, not during core rendering fixes.
 
-Критерий готовности:
-есть точка отката перед прожектором.
+---
 
-STAGE 01 — Input Gating / Безопасное управление клавишами
+## Current Priority
 
-Цель: не ломать существующее управление калейдоскопом.
+The current priority is NOT caustics, prism effects, spotlight polish, or menu work.
 
-Правило:
+Current priority:
 
-Crystal hotkeys активны только если:
-Backspace включил кристалл
-и
-Crystal visible == true
+```text
+Premium3D Size & Shape Gate
+```
 
-Если кристалл выключен:
+The crystal must become:
 
-все клавиши работают как раньше
+- large enough;
+- centered;
+- beautiful;
+- premium-looking;
+- not a deformed small low-poly object.
 
-Нужно:
+Until this passes, no new visual effects are allowed.
 
-найти текущую систему InputModule;
-определить состояние CrystalVisible / CrystalActive / Premium3DActive;
-добавить проверку перед обработкой crystal-specific hotkeys;
-не перехватывать клавиши глобально без необходимости.
+---
 
-Критерий готовности:
-при выключенном кристалле старое управление не меняется.
+# STAGE 00 — Safety Checkpoint
 
-STAGE 02 — Crystal Spotlight Rig
+Goal: freeze current state before changes.
 
-Цель: добавить управляемый прожектор, который работает только в Premium3D / Crystal mode.
+Tasks:
 
-Структура:
+- run `git status`;
+- commit or stash current work;
+- push if needed;
+- verify working tree state.
 
-CrystalSpotlightRig
-├── MainSpotlight
-├── Target / AimPoint
-└── SpotlightSettings
+Acceptance:
 
-Прожектор должен:
+There is a safe rollback point.
 
-светить на кристалл;
-помогать читать грани;
-создавать сценический акцент;
-не заменять фон;
-не делать сцену чёрной.
+---
 
-Критерий готовности:
-при включённом кристалле видно, что spotlight усиливает кристалл.
+# STAGE 01 — Regression Cleanup
 
-STAGE 03 — Shadow / Light Receiver
+Goal:
 
-Цель: сделать фон участником световой сцены.
+Remove accidental visual regressions introduced by premature effects.
 
-Идея:
-фон остаётся красивым, но становится “поверхностью”, на которую кристалл влияет светом.
+Remove/disable if present:
 
-Нужно:
+- background pulsing;
+- expanding rings;
+- unwanted radial waves;
+- accidental global distortion;
+- premature caustics/prism overlays;
+- effects that were added before Size & Shape Gate passed.
 
-использовать BackgroundGeometry как receiver;
-добавить управляемую тень / световое пятно;
-не ломать выбранное пользователем изображение;
-не превращать фон в чёрную стену.
+Rules:
 
-Критерий готовности:
-видно, что свет и тень связаны с кристаллом.
+- do not modify MirrorModule;
+- do not modify SourceModule;
+- do not change Classic2D behavior;
+- do not add new effects.
 
-STAGE 04 — Fake Caustics Layer
+Acceptance:
 
-Цель: добавить художественную имитацию каустики.
+Premium3D returns to a clean baseline without unwanted pulsing/rings/waves.
 
-Каустика — это узоры света, возникающие после прохождения света через стекло/кристалл.
+---
 
-Нужно:
+# STAGE 02 — Crystal Size Gate
 
-добавить отдельный caustic overlay / projector / shader layer;
-привязать эффект к позиции кристалла и прожектора;
-не использовать его как fullscreen-шум;
-сделать эффект управляемым.
+Goal:
 
-Критерий готовности:
-на фоне появляются красивые световые узоры, будто свет прошёл через кристалл.
+Make Premium3D crystal visibly large enough.
 
-STAGE 05 — Prism / Rainbow Projection
+Target:
 
-Цель: добавить радужное разложение света.
+```text
+42–48% of final visible Game View height
+```
 
-Нужно:
+Preferred target:
 
-добавить мягкие цветные лучи / спектральные полосы;
-привязать их к граням или направлению spotlight;
-сделать эффект дозированным;
-не закрывать весь фон кислотной радугой.
+```text
+45%
+```
 
-Критерий готовности:
-появляется ощущение призмы: свет прошёл через кристалл и дал спектр.
+Rules:
 
-STAGE 06 — Spotlight Controls
+- measure final visible Game View coverage;
+- do not rely only on internal RenderTexture coverage;
+- do not scale only the background;
+- do not hide size problems with effects;
+- keep crystal centered;
+- no tiny/corner/duplicate crystal.
 
-Цель: сделать управление прожектором только в crystal mode.
+Acceptance:
 
-Примерная логика клавиш:
+- final visible coverage is reported;
+- crystal is centered;
+- crystal is visibly large enough;
+- Classic2D unchanged.
 
-Backspace — показать/скрыть кристалл
+---
 
-если кристалл виден:
-    F1 — spotlight on/off
-    F2 — caustics on/off
-    F3 — prism/rainbow on/off
-    F4 — cycle spotlight preset
-    [ / ] — spotlight cone angle
-    - / = — spotlight intensity
-    I / K — spotlight вверх/вниз
-    J / L — spotlight влево/вправо
-    U / O — spotlight ближе/дальше
+# STAGE 03 — Crystal Shape Gate
 
-если кристалл не виден:
-    все эти клавиши работают по старой логике проекта
+Goal:
 
-Важно: если какие-то клавиши уже заняты, Codex должен не перезаписывать их напрямую, а встроить их через gated crystal input layer.
+Replace/refine the default Premium3D crystal shape.
 
-Критерий готовности:
-управление прожектором не конфликтует с основным режимом.
+Default required shape:
 
-STAGE 07 — Presets
+```text
+Classic Brilliant / Premium Diamond
+```
 
-Цель: сделать несколько готовых световых настроек.
+Shape requirements:
 
-Пресеты:
+- clear crown;
+- clear girdle;
+- clear pavilion;
+- readable table facet;
+- symmetrical silhouette;
+- strong facet structure;
+- attractive gemstone-like form;
+- no broken shard look;
+- no weak random low-poly object.
 
-1. Soft Jewel
-2. Strong Prism
-3. Dark Hall Spotlight
-4. Rainbow Caustics
-5. Clean Product Shot
+Optional shape library preparation:
 
-Критерий готовности:
-можно быстро переключать характер Premium3D без ручной настройки.
+- Classic Brilliant
+- Octagon
+- Emerald Cut
+- Marquise
+- Pear / Drop
+- Cushion
 
-STAGE 08 — Visual Balance Pass
+But only Classic Brilliant must be visually correct in this stage.
 
-Цель: довести картинку до состояния “смотреть приятно”.
+Acceptance:
 
-Проверить:
+- default shape is visually acceptable;
+- mesh remains volumetric;
+- side faces visible;
+- vertex/triangle/bounds reported.
 
-кристалл не маленький;
-фон не погашен;
-блики не пересвечены;
-радуга не превращает всё в кашу;
-тень не делает сцену грязной;
-кристалл стал интереснее 2D-версии.
+---
 
-Критерий готовности:
-Premium3D выглядит как отдельная ценная фича, а не слабая копия Classic2D.
+# STAGE 04 — Freeze Size & Shape Baseline
 
-STAGE 09 — Freeze Stable Spotlight Baseline
+Goal:
 
-Цель: зафиксировать рабочий результат.
+Lock the first good Premium3D crystal baseline.
 
-Нужно:
+Tasks:
 
-git status
-git add .
-git commit -m "Add gated Premium3D crystal spotlight baseline"
-git push
+- Unity compile;
+- Play Mode check;
+- Classic2D ↔ Premium3D switch check;
+- commit;
+- push.
 
-Критерий готовности:
-есть стабильная версия перед дальнейшей оптикой.
+Acceptance:
+
+There is a stable baseline where the Premium3D crystal is large and has an acceptable default shape.
+
+No effects work starts before this stage is accepted.
+
+---
+
+# STAGE 05 — Crystal Spotlight Baseline
+
+Goal:
+
+Add controlled spotlight only after crystal size and shape are accepted.
+
+Rules:
+
+- crystal hotkeys active only when Backspace has enabled crystal visibility;
+- when crystal is hidden, old project hotkeys keep their original behavior;
+- spotlight must not globally steal keys;
+- spotlight must not replace the background;
+- no caustics/rainbow yet.
+
+Acceptance:
+
+- spotlight helps reveal facets;
+- existing controls remain safe;
+- background remains beautiful.
+
+---
+
+# STAGE 06 — Shadow / Light Receiver
+
+Goal:
+
+Make BackgroundGeometry react to crystal lighting.
+
+Tasks:
+
+- use background as receiver;
+- add basic controlled light spot or shadow;
+- keep selected/kaleidoscope background visible and attractive;
+- avoid making the scene black.
+
+Acceptance:
+
+Light feels connected to crystal/background.
+
+---
+
+# STAGE 07 — Caustics Prototype
+
+Goal:
+
+Add a simple controlled caustics layer.
+
+Rules:
+
+- caustics must be crystal-driven;
+- no fullscreen random noise;
+- no pulsing/radial waves unless explicitly requested;
+- effect must be optional/toggleable.
+
+Acceptance:
+
+Background receives beautiful light patterns that appear caused by the crystal.
+
+---
+
+# STAGE 08 — Prism / Rainbow Projection
+
+Goal:
+
+Add controlled spectral/prismatic effects.
+
+Rules:
+
+- prism/rainbow must attach visually to crystal, facets, or light direction;
+- no acidic fullscreen rainbow;
+- no background destruction;
+- effect must be optional/toggleable.
+
+Acceptance:
+
+Crystal produces visible prism/rainbow beauty without overwhelming the scene.
+
+---
+
+# STAGE 09 — Visual Balance Pass
+
+Goal:
+
+Make Premium3D feel like a valuable mode, not a weak copy of Classic2D.
+
+Check:
+
+- crystal is still 42–48%;
+- shape still reads as premium;
+- background remains beautiful;
+- effects support the crystal;
+- no pulsing/ring regressions;
+- no duplicates;
+- no screen-inside-screen;
+- Classic2D unchanged.
+
+Acceptance:
+
+Premium3D is visually pleasing and stable.
+
+---
+
+# STAGE 10 — Premium3D Shape Library Expansion
+
+Goal:
+
+Add polished shape variety after the default shape works.
+
+Shapes:
+
+- Classic Brilliant;
+- Octagon;
+- Emerald Cut;
+- Marquise;
+- Pear / Drop;
+- Cushion.
+
+Acceptance:
+
+Each shape is volumetric, attractive, and switchable without breaking framing.
+
+---
+
+# STAGE 11 — Presets
+
+Goal:
+
+Create curated Premium3D looks.
+
+Examples:
+
+- Soft Jewel;
+- Strong Prism;
+- Dark Hall Spotlight;
+- Rainbow Caustics;
+- Clean Product Shot.
+
+Acceptance:
+
+Presets change Premium3D character without breaking size/shape.
+
+---
+
+# STAGE 12 — Premium Menu
+
+Goal:
+
+Build commercial-grade menu later.
+
+Before menu work, inspect:
+
+```text
+Assets/_Project/Kaleidoscope2/Menu/
+```
+
+Rules:
+
+- do not build the whole menu at once;
+- implement one polished button/panel first;
+- UI must not directly mutate rendering internals.
+
+Acceptance:
+
+Menu feels premium, not debug/prototype.
+
+---
+
+# Development Rules
+
+Forbidden:
+
+- changing Layer 1 during Premium3D work without explicit approval;
+- calling a flat plane a 3D crystal;
+- adding effects before Size & Shape Gate passes;
+- using effects to hide bad crystal geometry;
+- giant rewrites;
+- unrelated refactoring;
+- global hotkey stealing.
+
+Required:
+
+- small stages;
+- small commits;
+- Unity compile validation;
+- report measured values;
+- protect Classic2D;
+- protect Billboard2D.
+
+---
+
+# Execution Rules For Codex
+
+Before every task:
+
+1. Read `AGENTS.md`.
+2. Read `ROADMAP.md`.
+3. Run `git status`.
+4. Work only on the requested stage.
+5. Do not touch unrelated modules.
+6. Stop and report if a requested change requires forbidden files.
+7. Do not proceed to effects unless Size & Shape Gate is accepted.
+
+---
+
+# Current Active Stage
+
+```text
+STAGE 01 → STAGE 03
+Regression Cleanup + Crystal Size Gate + Crystal Shape Gate
+```
+
+Do not implement spotlight, caustics, prism, rainbow, presets, menu, or polish until the crystal is large and visually accepted.

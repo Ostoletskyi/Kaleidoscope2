@@ -16,18 +16,21 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
         private const float CameraDistance = 10f;
         private const float BackgroundDistance = 3.5f;
         private const float CameraFieldOfView = 35f;
-        private const float TargetCrystalScreenCoverage = CrystalSpatialDiagnostics.RealMeshTargetCoverage;
+        private const float TargetCrystalScreenCoverage = 0.55f;
+        private const float MinimumCrystalScreenCoverage = 0.52f;
+        private const float MaximumCrystalScreenCoverage = 0.58f;
         private const float DioramaCrystalScale = 0.72f;
         private const float BackgroundViewFillMargin = 1.08f;
         private const float MinimumStageViewScale = 0.2f;
-        private const float MaximumStageViewScale = 8f;
+        private const float MaximumStageViewScale = 16f;
         private const float MinimumMeshDimension = 0.001f;
+        private const float StableValueTolerance = 0.0005f;
+        private const bool BackgroundPulseEnabled = false;
+        private const bool RadialWavesEnabled = false;
+        private const bool CrystalScalePulseEnabled = false;
+        private const bool CameraBreathingEnabled = false;
+        private const bool AnimatedCoverageCorrectionEnabled = false;
         private static readonly int StageMainTexId = Shader.PropertyToID("_MainTex");
-        private static readonly int StageGlowStrengthId = Shader.PropertyToID("_GlowStrength");
-        private static readonly int StageRingStrengthId = Shader.PropertyToID("_RingStrength");
-        private static readonly int StageSparkleStrengthId = Shader.PropertyToID("_SparkleStrength");
-        private static readonly int StageVignetteStrengthId = Shader.PropertyToID("_VignetteStrength");
-        private static readonly int StagePrismStrengthId = Shader.PropertyToID("_PrismStrength");
         private static readonly int StageViewAspectId = Shader.PropertyToID("_ViewAspect");
         private static readonly int StageTextureAspectId = Shader.PropertyToID("_TextureAspect");
         private static readonly int CrystalKaleidoscopeTexId = Shader.PropertyToID("_KaleidoscopeTex");
@@ -92,6 +95,23 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
         private string activePremiumShapeLabel = "none";
         private float validationOrbitPhase;
         private float stageViewScale = 1f;
+        private float finalVisibleScreenCoverage;
+        private string finalVisibleCoverageDiagnostics = "final visible coverage not measured";
+        private bool stabilityBaselineCaptured;
+        private int stabilitySampleCount;
+        private Vector3 baselineDioramaScale;
+        private Vector3 baselineCrystalLocalScale;
+        private Vector3 baselineBackgroundLocalScale;
+        private Vector3 baselineStageCameraLocalPosition;
+        private float baselineStageViewScale;
+        private float baselineStageCameraFieldOfView;
+        private float baselineStageCameraOrthographicSize;
+        private float baselineStageCameraDistance;
+        private float minFinalVisibleCoverage;
+        private float maxFinalVisibleCoverage;
+        private float minBackgroundApparentScale;
+        private float maxBackgroundApparentScale;
+        private string staticBaselineDiagnostics = "static baseline not sampled";
         private bool stageRenderedThisFrame;
         private bool physicalStageUsesStageOutputTexture;
         private string diagnosticsLabel = StageModeLabel + ": not initialized";
@@ -116,7 +136,7 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
 
         public int MeshTriangleCount
         {
-            get { return crystalMesh != null && crystalMesh.triangles != null ? crystalMesh.triangles.Length / 3 : 0; }
+            get { return crystalMesh != null && crystalMesh.subMeshCount > 0 ? (int)(crystalMesh.GetIndexCount(0) / 3) : 0; }
         }
 
         public Vector3 MeshBoundsSize
@@ -202,9 +222,12 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
                 physicalStageUsesStageOutputTexture = false;
                 crystalCameraTargetTextureStatus = "none";
                 opticalStageDiagnostics = "premium optical layers inactive";
+                finalVisibleScreenCoverage = 0f;
+                finalVisibleCoverageDiagnostics = "final visible coverage not measured, stage hidden";
+                ResetStaticBaselineTracking("stage hidden");
                 sourceTextureDiagnostics = "source texture none";
                 UpdateCameraDiagnostics();
-                UpdateDiagnostics(null, null, 0f, 0f, 0f, 0f, false, debugMode, false);
+                UpdateDiagnostics(null, null, null, 0f, 0f, 0f, 0f, false, debugMode, false);
                 return false;
             }
 
@@ -215,8 +238,12 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
             ConfigureStage(sourceTexture, settings, materialMode, rotation, intensity, solidGeometryValidation, debugMode);
             RenderStageCamera();
 
-            Bounds crystalBounds = crystalMeshRenderer != null ? crystalMeshRenderer.bounds : new Bounds();
-            Bounds backgroundBounds = backgroundMeshRenderer != null ? backgroundMeshRenderer.bounds : new Bounds();
+            Bounds crystalBounds = crystalMesh != null && crystalObject != null
+                ? CrystalSpatialDiagnostics.TransformBounds(crystalMesh.bounds, crystalObject.transform)
+                : crystalMeshRenderer != null ? crystalMeshRenderer.bounds : new Bounds();
+            Bounds backgroundBounds = backgroundMesh != null && backgroundObject != null
+                ? CrystalSpatialDiagnostics.TransformBounds(backgroundMesh.bounds, backgroundObject.transform)
+                : backgroundMeshRenderer != null ? backgroundMeshRenderer.bounds : new Bounds();
             float screenCoverage = CrystalSpatialDiagnostics.ViewportHeightCoverage(stageCamera, crystalBounds);
             float backgroundCoverage = CrystalSpatialDiagnostics.ViewportHeightCoverage(stageCamera, backgroundBounds);
             float cameraCrystalDistance = stageCamera != null && crystalObject != null
@@ -232,6 +259,7 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
             UpdateCameraDiagnostics();
             UpdateDiagnostics(
                 crystalBounds,
+                backgroundBounds,
                 stageCamera,
                 screenCoverage,
                 backgroundCoverage,
@@ -282,6 +310,9 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
             stageRenderedThisFrame = false;
             physicalStageUsesStageOutputTexture = false;
             opticalStageDiagnostics = "premium optical layers inactive";
+            finalVisibleScreenCoverage = 0f;
+            finalVisibleCoverageDiagnostics = "final visible coverage not measured";
+            ResetStaticBaselineTracking("shutdown");
             sourceTextureDiagnostics = "source texture none";
             activePremiumShapeLabel = "none";
             diagnosticsLabel = StageModeLabel + ": shutdown";
@@ -388,7 +419,7 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
                 backgroundMeshFilter = backgroundObject.AddComponent<MeshFilter>();
                 backgroundMeshRenderer = backgroundObject.AddComponent<MeshRenderer>();
             }
-            backgroundObject.transform.SetParent(dioramaObject.transform, false);
+            backgroundObject.transform.SetParent(root.transform, false);
 
             if (diagnosticsObject == null)
             {
@@ -405,7 +436,8 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
 
             cameraObject.transform.SetSiblingIndex(0);
             dioramaObject.transform.SetSiblingIndex(1);
-            diagnosticsObject.transform.SetSiblingIndex(2);
+            backgroundObject.transform.SetSiblingIndex(2);
+            diagnosticsObject.transform.SetSiblingIndex(3);
 
             AssignLayerRecursive(root.transform);
             ConfigureCamera();
@@ -458,6 +490,7 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
             }
 
             ReleaseOutputTexture();
+            ResetStaticBaselineTracking("output texture resized");
             RenderTextureDescriptor descriptor = new RenderTextureDescriptor(width, height, RenderTextureFormat.ARGB32, 24)
             {
                 msaaSamples = 1,
@@ -489,11 +522,22 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
             DestroyRuntimeObject(crystalMesh);
             crystalMesh = RealCrystalShapeLibrary.CreateMesh(premiumShape);
             activeShape = premiumShape;
-            activePremiumShapeLabel = shape.ToString() + " -> " + premiumShape.ToString();
+            activePremiumShapeLabel = ResolvePremiumShapeLabel(shape, premiumShape);
+            ResetStaticBaselineTracking("crystal mesh changed");
             if (crystalMeshFilter != null)
             {
                 crystalMeshFilter.sharedMesh = crystalMesh;
             }
+        }
+
+        private static string ResolvePremiumShapeLabel(CrystalShape requestedShape, CrystalShape premiumShape)
+        {
+            if (premiumShape == CrystalShape.BrilliantCut)
+            {
+                return "Classic Brilliant / Premium Diamond (" + requestedShape.ToString() + " -> " + premiumShape.ToString() + ")";
+            }
+
+            return requestedShape.ToString() + " -> " + premiumShape.ToString();
         }
 
         private static CrystalShape ResolvePremiumShape(CrystalShape shape)
@@ -591,9 +635,12 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
             Vector3 cameraPosition = ResolveCameraPosition(validationOrbit);
             cameraObject.transform.localPosition = cameraPosition;
             cameraObject.transform.LookAt(root.transform.TransformPoint(Vector3.zero), Vector3.up);
+            dioramaObject.transform.localPosition = Vector3.zero;
+            dioramaObject.transform.localRotation = Quaternion.identity;
 
-            float viewHeightAtCrystal = ResolveViewHeight(CameraDistance);
-            float targetCoverage = CrystalSpatialDiagnostics.ClampRealMeshCoverage(TargetCrystalScreenCoverage);
+            Camera framingCamera = ResolveFinalVisibleCamera();
+            float viewHeightAtCrystal = ResolveViewHeightForFramingCamera(framingCamera, root.transform.TransformPoint(Vector3.zero), CameraDistance);
+            float targetCoverage = ClampFinalVisibleCoverage(TargetCrystalScreenCoverage);
             float desiredCrystalWorldHeight = viewHeightAtCrystal * targetCoverage;
             float meshHeight = crystalMesh != null ? Mathf.Max(MinimumMeshDimension, crystalMesh.bounds.size.y) : 1f;
             stageViewScale = Mathf.Clamp(
@@ -603,7 +650,8 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
             dioramaObject.transform.localScale = Vector3.one * stageViewScale;
 
             Vector2 centerOffset = settings != null ? settings.CrystalScreenCenterOffset : Vector2.zero;
-            float viewWidthAtCrystal = viewHeightAtCrystal * aspect;
+            float framingAspect = framingCamera != null && framingCamera.aspect > 0f ? framingCamera.aspect : aspect;
+            float viewWidthAtCrystal = viewHeightAtCrystal * Mathf.Max(0.1f, framingAspect);
             crystalObject.transform.localPosition = new Vector3(
                 centerOffset.x * viewWidthAtCrystal * 0.25f,
                 centerOffset.y * viewHeightAtCrystal * 0.25f,
@@ -611,15 +659,16 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
             crystalObject.transform.localScale = Vector3.one * DioramaCrystalScale;
             crystalObject.transform.localRotation = Quaternion.Euler(rotation);
 
+            ApplyDeterministicFinalVisibleScaleCorrection(framingCamera, targetCoverage);
+
             backgroundObject.transform.localPosition = new Vector3(0f, 0f, BackgroundDistance);
             backgroundObject.transform.localRotation = Quaternion.identity;
             Vector2 backgroundWorldSize = ResolveBackgroundWorldSize(aspect) * BackgroundViewFillMargin;
-            float backgroundLocalWidth = backgroundWorldSize.x / Mathf.Max(MinimumMeshDimension, stageViewScale);
-            float backgroundLocalHeight = backgroundWorldSize.y / Mathf.Max(MinimumMeshDimension, stageViewScale);
             backgroundObject.transform.localScale = new Vector3(
-                backgroundLocalWidth,
-                backgroundLocalHeight,
+                backgroundWorldSize.x,
+                backgroundWorldSize.y,
                 1f);
+            ApplyFinalVisibleCentering(framingCamera);
         }
 
         private Vector3 ResolveCameraPosition(bool validationOrbit)
@@ -640,9 +689,83 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
             return Mathf.Tan(halfFovRadians) * Mathf.Max(MinimumMeshDimension, distance) * 2f;
         }
 
+        private static float ClampFinalVisibleCoverage(float value)
+        {
+            return Mathf.Clamp(value, MinimumCrystalScreenCoverage, MaximumCrystalScreenCoverage);
+        }
+
+        private float ResolveViewHeightForFramingCamera(Camera framingCamera, Vector3 crystalWorldPosition, float fallbackDistance)
+        {
+            if (framingCamera == null)
+            {
+                return ResolveViewHeight(fallbackDistance);
+            }
+
+            float distance;
+            if (!TryResolveCameraDepth(framingCamera, crystalWorldPosition, out distance))
+            {
+                return ResolveViewHeight(fallbackDistance);
+            }
+
+            return ResolveCameraViewHeight(framingCamera, distance);
+        }
+
+        private void ApplyDeterministicFinalVisibleScaleCorrection(Camera framingCamera, float targetCoverage)
+        {
+            if (framingCamera == null || crystalMesh == null || crystalObject == null || dioramaObject == null)
+            {
+                return;
+            }
+
+            for (int pass = 0; pass < 2; pass++)
+            {
+                Bounds bounds = CrystalSpatialDiagnostics.TransformBounds(crystalMesh.bounds, crystalObject.transform);
+                float currentCoverage = CrystalSpatialDiagnostics.ViewportHeightCoverage(framingCamera, bounds);
+                if (currentCoverage <= 0.0001f)
+                {
+                    return;
+                }
+
+                float correction = targetCoverage / currentCoverage;
+                if (Mathf.Abs(correction - 1f) <= StableValueTolerance)
+                {
+                    return;
+                }
+
+                stageViewScale = Mathf.Clamp(stageViewScale * correction, MinimumStageViewScale, MaximumStageViewScale);
+                dioramaObject.transform.localScale = Vector3.one * stageViewScale;
+            }
+        }
+
+        private void ApplyFinalVisibleCentering(Camera framingCamera)
+        {
+            if (framingCamera == null || crystalObject == null || dioramaObject == null)
+            {
+                return;
+            }
+
+            Vector3 crystalWorld = crystalMesh != null
+                ? CrystalSpatialDiagnostics.TransformBounds(crystalMesh.bounds, crystalObject.transform).center
+                : crystalObject.transform.position;
+            Vector3 viewport = framingCamera.WorldToViewportPoint(crystalWorld);
+            if (viewport.z <= framingCamera.nearClipPlane)
+            {
+                return;
+            }
+
+            Vector3 desiredWorld = framingCamera.ViewportToWorldPoint(new Vector3(0.5f, 0.5f, viewport.z));
+            Vector3 worldDelta = desiredWorld - crystalWorld;
+            if (!IsFinite(worldDelta) || worldDelta.sqrMagnitude > 10000f)
+            {
+                return;
+            }
+
+            dioramaObject.transform.position += worldDelta;
+        }
+
         private Vector2 ResolveBackgroundWorldSize(float stageAspect)
         {
-            float backgroundCameraDistance = CameraDistance + BackgroundDistance * stageViewScale;
+            float backgroundCameraDistance = CameraDistance + BackgroundDistance;
             float requiredHeight = ResolveViewHeight(backgroundCameraDistance);
             float requiredWidth = requiredHeight * Mathf.Max(0.1f, stageAspect);
             int cameraCount = Camera.allCamerasCount;
@@ -798,6 +921,58 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
                     || cameraName.IndexOf("Main", System.StringComparison.OrdinalIgnoreCase) >= 0);
         }
 
+        private Camera ResolveFinalVisibleCamera()
+        {
+            int cameraCount = Camera.allCamerasCount;
+            EnsureCameraCacheCapacity(cameraCount);
+            int resolvedCount = Camera.GetAllCameras(cameraCache);
+            Camera bestCamera = null;
+            float bestDepth = float.NegativeInfinity;
+            for (int index = 0; index < resolvedCount; index++)
+            {
+                Camera camera = cameraCache[index];
+                if (camera == null || ReferenceEquals(camera, stageCamera) || !camera.enabled || !IsDirectViewCamera(camera))
+                {
+                    continue;
+                }
+
+                if ((camera.cullingMask & stageLayerMask) == 0)
+                {
+                    continue;
+                }
+
+                if (bestCamera == null || camera.depth >= bestDepth)
+                {
+                    bestCamera = camera;
+                    bestDepth = camera.depth;
+                }
+            }
+
+            return bestCamera;
+        }
+
+        private static bool TryResolveCameraDepth(Camera camera, Vector3 worldPosition, out float depth)
+        {
+            depth = 0f;
+            if (camera == null)
+            {
+                return false;
+            }
+
+            depth = Vector3.Dot(camera.transform.forward, worldPosition - camera.transform.position);
+            return depth > camera.nearClipPlane;
+        }
+
+        private static bool IsFinite(Vector3 value)
+        {
+            return IsFinite(value.x) && IsFinite(value.y) && IsFinite(value.z);
+        }
+
+        private static bool IsFinite(float value)
+        {
+            return !float.IsNaN(value) && !float.IsInfinity(value);
+        }
+
         private void EnsureCameraCacheCapacity(int cameraCount)
         {
             if (cameraCache == null || cameraCache.Length < cameraCount)
@@ -875,15 +1050,10 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
                 : viewAspect;
 
             SetMaterialTextureIfPresent(material, StageMainTexId, sourceTexture);
-            SetMaterialFloatIfPresent(material, StageGlowStrengthId, 0.34f);
-            SetMaterialFloatIfPresent(material, StageRingStrengthId, 0.3f);
-            SetMaterialFloatIfPresent(material, StageSparkleStrengthId, 0.18f);
-            SetMaterialFloatIfPresent(material, StageVignetteStrengthId, 0.38f);
-            SetMaterialFloatIfPresent(material, StagePrismStrengthId, 0.2f);
             SetMaterialFloatIfPresent(material, StageViewAspectId, viewAspect);
             SetMaterialFloatIfPresent(material, StageTextureAspectId, textureAspect);
             opticalStageDiagnostics = material.shader != null && material.shader.name == PremiumBackgroundShaderName
-                ? "premium optical layers active, fixed background false, selected source fill-cover true, background fills camera view true, radial glow true, golden rings true, sparkle true, vignette true, prism flare true"
+                ? "premium background clean, selected source fill-cover true, background fills camera view true, pulsing false, rings false, radial waves false, caustics false, prism false"
                 : "premium optical layers fallback shader";
         }
 
@@ -1162,7 +1332,8 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
 
         private bool ResolveValidationOrbit(CrystalSharedSettings settings, CrystalStage3DDebugMode debugMode)
         {
-            return settings != null
+            return CameraBreathingEnabled
+                && settings != null
                 && settings.CameraOrbitEnabled
                 && debugMode != CrystalStage3DDebugMode.FinalPremiumComposite;
         }
@@ -1307,8 +1478,225 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
             }
         }
 
+        private void UpdateFinalVisibleCoverageDiagnostics(Bounds? crystalBounds)
+        {
+            finalVisibleScreenCoverage = 0f;
+            if (!crystalBounds.HasValue || crystalBounds.Value.size == Vector3.zero)
+            {
+                finalVisibleCoverageDiagnostics = "final visible coverage measured false, crystal bounds unavailable";
+                return;
+            }
+
+            Camera finalCamera = ResolveFinalVisibleCamera();
+            if (finalCamera == null)
+            {
+                finalVisibleCoverageDiagnostics = "final visible coverage measured false, no enabled Main/View screen camera";
+                return;
+            }
+
+            Rect viewportBounds;
+            if (!TryMeasureViewportBounds(finalCamera, crystalBounds.Value, out viewportBounds))
+            {
+                finalVisibleCoverageDiagnostics = "final visible coverage measured false, crystal outside " + finalCamera.name;
+                return;
+            }
+
+            finalVisibleScreenCoverage = Mathf.Clamp01(viewportBounds.height);
+            Vector2 center = viewportBounds.center;
+            float centerOffset = Vector2.Distance(center, new Vector2(0.5f, 0.5f));
+            bool coverageInRange = finalVisibleScreenCoverage >= MinimumCrystalScreenCoverage
+                && finalVisibleScreenCoverage <= MaximumCrystalScreenCoverage;
+            bool centered = centerOffset <= 0.035f;
+            finalVisibleCoverageDiagnostics = "final visible coverage measured true"
+                + ", final camera " + finalCamera.name
+                + ", final visible screen coverage " + CrystalSpatialDiagnostics.FormatPercent(finalVisibleScreenCoverage)
+                + ", target " + FormatPercentUnclamped(TargetCrystalScreenCoverage)
+                + ", allowed " + FormatPercentUnclamped(MinimumCrystalScreenCoverage) + "-" + FormatPercentUnclamped(MaximumCrystalScreenCoverage)
+                + ", coverage in range " + (coverageInRange ? "true" : "false")
+                + ", viewport center " + center.x.ToString("0.000") + "," + center.y.ToString("0.000")
+                + ", centered " + (centered ? "true" : "false");
+        }
+
+        private void ResetStaticBaselineTracking(string reason)
+        {
+            stabilityBaselineCaptured = false;
+            stabilitySampleCount = 0;
+            baselineDioramaScale = Vector3.zero;
+            baselineCrystalLocalScale = Vector3.zero;
+            baselineBackgroundLocalScale = Vector3.zero;
+            baselineStageCameraLocalPosition = Vector3.zero;
+            baselineStageViewScale = 0f;
+            baselineStageCameraFieldOfView = 0f;
+            baselineStageCameraOrthographicSize = 0f;
+            baselineStageCameraDistance = 0f;
+            minFinalVisibleCoverage = float.PositiveInfinity;
+            maxFinalVisibleCoverage = float.NegativeInfinity;
+            minBackgroundApparentScale = float.PositiveInfinity;
+            maxBackgroundApparentScale = float.NegativeInfinity;
+            staticBaselineDiagnostics = "static baseline tracking reset, reason " + reason;
+        }
+
+        private void UpdateStaticBaselineDiagnostics(Bounds? backgroundBounds, Camera camera)
+        {
+            if (dioramaObject == null || crystalObject == null || backgroundObject == null || camera == null)
+            {
+                staticBaselineDiagnostics = "static baseline sampled false, missing stage object or camera";
+                return;
+            }
+
+            float cameraDistance = Vector3.Distance(camera.transform.position, root != null ? root.transform.TransformPoint(Vector3.zero) : Vector3.zero);
+            if (!stabilityBaselineCaptured)
+            {
+                stabilityBaselineCaptured = true;
+                baselineStageViewScale = stageViewScale;
+                baselineDioramaScale = dioramaObject.transform.localScale;
+                baselineCrystalLocalScale = crystalObject.transform.localScale;
+                baselineBackgroundLocalScale = backgroundObject.transform.localScale;
+                baselineStageCameraLocalPosition = camera.transform.localPosition;
+                baselineStageCameraFieldOfView = camera.fieldOfView;
+                baselineStageCameraOrthographicSize = camera.orthographicSize;
+                baselineStageCameraDistance = cameraDistance;
+            }
+
+            float backgroundApparentScale = MeasureFinalCameraViewportHeight(backgroundBounds);
+            if (finalVisibleScreenCoverage > 0f)
+            {
+                ExpandRange(ref minFinalVisibleCoverage, ref maxFinalVisibleCoverage, finalVisibleScreenCoverage);
+            }
+
+            if (backgroundApparentScale > 0f)
+            {
+                ExpandRange(ref minBackgroundApparentScale, ref maxBackgroundApparentScale, backgroundApparentScale);
+            }
+
+            stabilitySampleCount++;
+
+            bool dioramaScaleStable = NearlyEqual(dioramaObject.transform.localScale, baselineDioramaScale);
+            bool crystalLocalScaleStable = NearlyEqual(crystalObject.transform.localScale, baselineCrystalLocalScale);
+            bool backgroundLocalScaleStable = NearlyEqual(backgroundObject.transform.localScale, baselineBackgroundLocalScale);
+            bool stageViewScaleStable = NearlyEqual(stageViewScale, baselineStageViewScale);
+            bool cameraPositionStable = NearlyEqual(camera.transform.localPosition, baselineStageCameraLocalPosition);
+            bool cameraFovStable = NearlyEqual(camera.fieldOfView, baselineStageCameraFieldOfView);
+            bool cameraOrthoStable = NearlyEqual(camera.orthographicSize, baselineStageCameraOrthographicSize);
+            bool cameraDistanceStable = NearlyEqual(cameraDistance, baselineStageCameraDistance);
+            bool crystalScaleStable = dioramaScaleStable && crystalLocalScaleStable && stageViewScaleStable && !CrystalScalePulseEnabled;
+            bool backgroundScaleStable = backgroundLocalScaleStable && !BackgroundPulseEnabled && !RadialWavesEnabled;
+            bool cameraFramingStable = cameraPositionStable && cameraFovStable && cameraOrthoStable && cameraDistanceStable && !CameraBreathingEnabled;
+
+            staticBaselineDiagnostics = "static baseline locked true"
+                + ", static samples " + stabilitySampleCount.ToString()
+                + ", background scale stable " + (backgroundScaleStable ? "true" : "false")
+                + ", crystal scale stable " + (crystalScaleStable ? "true" : "false")
+                + ", camera framing stable " + (cameraFramingStable ? "true" : "false")
+                + ", backgroundPulseEnabled " + (BackgroundPulseEnabled ? "true" : "false")
+                + ", radialWavesEnabled " + (RadialWavesEnabled ? "true" : "false")
+                + ", crystalScalePulseEnabled " + (CrystalScalePulseEnabled ? "true" : "false")
+                + ", cameraBreathingEnabled " + (CameraBreathingEnabled ? "true" : "false")
+                + ", animatedCoverageCorrectionEnabled " + (AnimatedCoverageCorrectionEnabled ? "true" : "false")
+                + ", final coverage min/max " + FormatPercentRange(minFinalVisibleCoverage, maxFinalVisibleCoverage, stabilitySampleCount)
+                + ", background apparent scale min/max " + FormatPercentRange(minBackgroundApparentScale, maxBackgroundApparentScale, stabilitySampleCount);
+        }
+
+        private float MeasureFinalCameraViewportHeight(Bounds? bounds)
+        {
+            if (!bounds.HasValue || bounds.Value.size == Vector3.zero)
+            {
+                return 0f;
+            }
+
+            Camera finalCamera = ResolveFinalVisibleCamera();
+            if (finalCamera == null)
+            {
+                return 0f;
+            }
+
+            Rect viewportBounds;
+            return TryMeasureViewportBounds(finalCamera, bounds.Value, out viewportBounds)
+                ? Mathf.Max(0f, viewportBounds.height)
+                : 0f;
+        }
+
+        private static void ExpandRange(ref float min, ref float max, float value)
+        {
+            min = Mathf.Min(min, value);
+            max = Mathf.Max(max, value);
+        }
+
+        private static bool NearlyEqual(Vector3 a, Vector3 b)
+        {
+            return NearlyEqual(a.x, b.x) && NearlyEqual(a.y, b.y) && NearlyEqual(a.z, b.z);
+        }
+
+        private static bool NearlyEqual(float a, float b)
+        {
+            return Mathf.Abs(a - b) <= StableValueTolerance;
+        }
+
+        private static string FormatPercentRange(float min, float max, int sampleCount)
+        {
+            if (sampleCount <= 0 || float.IsInfinity(min) || float.IsInfinity(max))
+            {
+                return "none";
+            }
+
+            return FormatPercentUnclamped(min) + "-" + FormatPercentUnclamped(max);
+        }
+
+        private static string FormatPercentUnclamped(float value)
+        {
+            return (Mathf.Max(0f, value) * 100f).ToString("0.0") + "%";
+        }
+
+        private static bool TryMeasureViewportBounds(Camera camera, Bounds worldBounds, out Rect viewportBounds)
+        {
+            viewportBounds = new Rect(0f, 0f, 0f, 0f);
+            if (camera == null || worldBounds.size == Vector3.zero)
+            {
+                return false;
+            }
+
+            Vector3 center = worldBounds.center;
+            Vector3 extents = worldBounds.extents;
+            float minX = float.PositiveInfinity;
+            float maxX = float.NegativeInfinity;
+            float minY = float.PositiveInfinity;
+            float maxY = float.NegativeInfinity;
+            bool hasVisibleCorner = false;
+
+            for (int x = -1; x <= 1; x += 2)
+            {
+                for (int y = -1; y <= 1; y += 2)
+                {
+                    for (int z = -1; z <= 1; z += 2)
+                    {
+                        Vector3 corner = center + Vector3.Scale(extents, new Vector3(x, y, z));
+                        Vector3 viewport = camera.WorldToViewportPoint(corner);
+                        if (viewport.z <= camera.nearClipPlane)
+                        {
+                            continue;
+                        }
+
+                        hasVisibleCorner = true;
+                        minX = Mathf.Min(minX, viewport.x);
+                        maxX = Mathf.Max(maxX, viewport.x);
+                        minY = Mathf.Min(minY, viewport.y);
+                        maxY = Mathf.Max(maxY, viewport.y);
+                    }
+                }
+            }
+
+            if (!hasVisibleCorner)
+            {
+                return false;
+            }
+
+            viewportBounds = Rect.MinMaxRect(minX, minY, maxX, maxY);
+            return true;
+        }
+
         private void UpdateDiagnostics(
             Bounds? crystalBounds,
+            Bounds? backgroundBounds,
             Camera camera,
             float screenCoverage,
             float backgroundCoverage,
@@ -1351,6 +1739,10 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
             string boundsSize = crystalBounds.HasValue
                 ? CrystalSpatialDiagnostics.FormatVector(crystalBounds.Value.size)
                 : "none";
+            string meshStats = "mesh vertices " + MeshVertexCount.ToString()
+                + ", mesh triangles " + MeshTriangleCount.ToString()
+                + ", hasVolume " + (HasVolume ? "true" : "false")
+                + ", sideFaces " + (SideFacesDetected ? "true" : "false");
             string hierarchy = root != null
                 ? CrystalSpatialDiagnostics.GetHierarchyPath(root.transform)
                 : "none";
@@ -1362,6 +1754,10 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
                 ? (camera.orthographic ? "orthographic" : "perspective")
                 : "none";
             string cameraFov = camera != null ? camera.fieldOfView.ToString("0.0") : "none";
+            string cameraOrthoSize = camera != null ? camera.orthographicSize.ToString("0.00") : "none";
+            string cameraDistanceFromStage = camera != null && root != null
+                ? Vector3.Distance(camera.transform.position, root.transform.TransformPoint(Vector3.zero)).ToString("0.00")
+                : "none";
             string stageMask = FormatMask(stageLayerMask);
             string crystalCameraMask = camera != null ? FormatMask(camera.cullingMask) : "none";
             bool stageVisibleToNonStageCamera = IsPhysicalStageVisibleToNonStageCamera();
@@ -1370,6 +1766,8 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
             bool crystalVisibleToDirectView = IsRendererVisibleToDirectView(crystalMeshRenderer);
             bool backgroundVisibleToDirectView = IsRendererVisibleToDirectView(backgroundMeshRenderer);
             string diagnosticsActive = diagnosticsObject != null && diagnosticsObject.activeInHierarchy ? "true" : "false";
+            UpdateFinalVisibleCoverageDiagnostics(crystalBounds);
+            UpdateStaticBaselineDiagnostics(backgroundBounds, camera);
 
             diagnosticsLabel = StageModeLabel
                 + ", mode " + debugMode.ToString()
@@ -1386,6 +1784,8 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
                 + ", active cameras " + activeCameraDiagnostics
                 + ", camera projection " + cameraProjection
                 + ", camera FOV " + cameraFov
+                + ", camera ortho size " + cameraOrthoSize
+                + ", camera distance " + cameraDistanceFromStage
                 + ", stage layer " + StageLayerSemanticName + " physical layer " + SpatialStageLayerName + "(" + layer.ToString() + ")"
                 + ", CrystalCamera culling mask " + crystalCameraMask
                 + ", CrystalCamera targetTexture " + crystalCameraTargetTextureStatus
@@ -1409,7 +1809,10 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
                 + ", crystal-background distance " + crystalBackgroundDistance.ToString("0.00")
                 + ", premium shape " + activePremiumShapeLabel
                 + ", crystal bounds " + boundsSize
+                + ", " + meshStats
                 + ", screen coverage " + CrystalSpatialDiagnostics.FormatPercent(screenCoverage)
+                + ", " + finalVisibleCoverageDiagnostics
+                + ", " + staticBaselineDiagnostics
                 + ", background screen coverage " + CrystalSpatialDiagnostics.FormatPercent(backgroundCoverage)
                 + ", crystalBetweenCameraAndBackground " + (crystalBetweenCameraAndBackground ? "true" : "false")
                 + ", validation orbit " + (validationOrbitActive ? "on" : "off")
