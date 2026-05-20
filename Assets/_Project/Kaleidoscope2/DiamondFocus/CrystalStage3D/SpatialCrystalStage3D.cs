@@ -1,6 +1,7 @@
 using Kaleidoscope2.Core;
 using Kaleidoscope2.DiamondFocus.RealMesh;
 using Kaleidoscope2.DiamondFocus.RealMesh.CrystalStage3D;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering;
 
@@ -16,9 +17,9 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
         private const float CameraDistance = 10f;
         private const float BackgroundDistance = 3.5f;
         private const float CameraFieldOfView = 35f;
-        private const float TargetCrystalScreenCoverage = 0.55f;
+        private const float TargetCrystalScreenCoverage = 0.58f;
         private const float MinimumCrystalScreenCoverage = 0.52f;
-        private const float MaximumCrystalScreenCoverage = 0.58f;
+        private const float MaximumCrystalScreenCoverage = 0.6f;
         private const float DioramaCrystalScale = 0.72f;
         private const float BackgroundViewFillMargin = 1.08f;
         private const float MinimumStageViewScale = 0.2f;
@@ -46,12 +47,29 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
         private static readonly int CrystalInternalBrightnessId = Shader.PropertyToID("_InternalBrightness");
         private static readonly int CrystalMinimumTransmissionId = Shader.PropertyToID("_MinimumTransmission");
         private static readonly int CrystalSpecularStrengthId = Shader.PropertyToID("_SpecularStrength");
-        private static readonly int CrystalDispersionStrengthId = Shader.PropertyToID("_DispersionStrength");
         private static readonly int CrystalRimStrengthId = Shader.PropertyToID("_RimStrength");
         private static readonly int CrystalBrightnessFloorId = Shader.PropertyToID("_BrightnessFloor");
-        private static readonly int CrystalGlintStrengthId = Shader.PropertyToID("_GlintStrength");
+        private static readonly int CrystalScreenRefractionStrengthId = Shader.PropertyToID("_ScreenRefractionStrength");
+        private static readonly int CrystalGemCoreColorId = Shader.PropertyToID("_GemCoreColor");
+        private static readonly int CrystalGemFireColorId = Shader.PropertyToID("_GemFireColor");
+        private static readonly int CrystalGemTintStrengthId = Shader.PropertyToID("_GemTintStrength");
+        private static readonly int CrystalOpticalDensityId = Shader.PropertyToID("_OpticalDensity");
+        private static readonly int CrystalFacetRefractionId = Shader.PropertyToID("_FacetRefraction");
+        private static readonly int CrystalThicknessRefractionId = Shader.PropertyToID("_ThicknessRefraction");
+        private static readonly int CrystalInternalReflectionStrengthId = Shader.PropertyToID("_InternalReflectionStrength");
+        private static readonly int CrystalDispersionStrengthId = Shader.PropertyToID("_DispersionStrength");
+        private static readonly int CrystalFacetFireId = Shader.PropertyToID("_FacetFire");
+        private static readonly int CrystalDepthAbsorptionId = Shader.PropertyToID("_DepthAbsorption");
+        private static readonly int CrystalClarityId = Shader.PropertyToID("_Clarity");
         private static readonly int CrystalFacetContrastId = Shader.PropertyToID("_FacetContrast");
-        private static readonly int CrystalInternalScatterId = Shader.PropertyToID("_InternalScatter");
+        private static readonly int CrystalRefractiveIndexId = Shader.PropertyToID("_RefractiveIndex");
+        private static readonly int CrystalPhysicalDispersionId = Shader.PropertyToID("_PhysicalDispersion");
+        private static readonly int CrystalAbsorptionStrengthId = Shader.PropertyToID("_AbsorptionStrength");
+        private static readonly int CrystalFresnelStrengthId = Shader.PropertyToID("_FresnelStrength");
+        private static readonly int CrystalBackgroundDistortionStrengthId = Shader.PropertyToID("_BackgroundDistortionStrength");
+        private static readonly int CrystalSaturationBoostId = Shader.PropertyToID("_SaturationBoost");
+        private static readonly int CrystalContrastBoostId = Shader.PropertyToID("_ContrastBoost");
+        private static readonly int CrystalOpalIridescenceId = Shader.PropertyToID("_OpalIridescence");
 
         private Transform owner;
         private GameObject root;
@@ -74,6 +92,9 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
         private MeshFilter backgroundMeshFilter;
         private MeshRenderer backgroundMeshRenderer;
         private Mesh crystalMesh;
+        private readonly List<Vector3> crystalTransitionVertices = new List<Vector3>(RealCrystalVolumetricMeshFactory.SegmentCount * 30);
+        private readonly List<Vector2> crystalTransitionUvs = new List<Vector2>(RealCrystalVolumetricMeshFactory.SegmentCount * 30);
+        private readonly List<int> crystalTransitionTriangles = new List<int>(RealCrystalVolumetricMeshFactory.SegmentCount * 30);
         private Mesh backgroundMesh;
         private Material transparentCrystalMaterial;
         private Material solidCrystalMaterial;
@@ -93,8 +114,22 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
         private string opticalStageDiagnostics = "premium optical layers inactive";
         private string sourceTextureDiagnostics = "source texture none";
         private string activePremiumShapeLabel = "none";
+        private string activePremiumMaterialDiagnostics = "premium material none";
+        private bool activeShapeTransition;
+        private CrystalShape activeTransitionFromShape = (CrystalShape)(-1);
+        private CrystalShape activeTransitionToShape = (CrystalShape)(-1);
+        private float activeTransitionProgress = -1f;
+        private Bounds activeLocalShapeFramingBounds = new Bounds(Vector3.zero, Vector3.one);
+        private string activeShapeTransitionDiagnostics = "shape transition inactive";
         private float validationOrbitPhase;
         private float stageViewScale = 1f;
+        private bool framingLocked;
+        private int framingLockKey;
+        private float lockedStageViewScale = 1f;
+        private Vector3 lockedDioramaLocalPosition;
+        private Vector3 lockedCrystalLocalPosition;
+        private Bounds lockedLocalFramingBounds;
+        private string framingLockDiagnostics = "framing lock not sampled";
         private float finalVisibleScreenCoverage;
         private string finalVisibleCoverageDiagnostics = "final visible coverage not measured";
         private bool stabilityBaselineCaptured;
@@ -224,27 +259,29 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
                 opticalStageDiagnostics = "premium optical layers inactive";
                 finalVisibleScreenCoverage = 0f;
                 finalVisibleCoverageDiagnostics = "final visible coverage not measured, stage hidden";
+                ResetFramingLock("stage hidden");
                 ResetStaticBaselineTracking("stage hidden");
                 sourceTextureDiagnostics = "source texture none";
                 UpdateCameraDiagnostics();
-                UpdateDiagnostics(null, null, null, 0f, 0f, 0f, 0f, false, debugMode, false);
+                UpdateDiagnostics(null, null, null, null, 0f, 0f, 0f, 0f, false, debugMode, false);
                 return false;
             }
 
             EnsureRuntimeObjects();
             ConfigureDirectViewCameras();
             EnsureOutputTexture(sourceTexture.width, sourceTexture.height);
-            EnsureCrystalMesh(shape);
+            EnsureCrystalMesh(settings, shape);
             ConfigureStage(sourceTexture, settings, materialMode, rotation, intensity, solidGeometryValidation, debugMode);
             RenderStageCamera();
 
             Bounds crystalBounds = crystalMesh != null && crystalObject != null
                 ? CrystalSpatialDiagnostics.TransformBounds(crystalMesh.bounds, crystalObject.transform)
                 : crystalMeshRenderer != null ? crystalMeshRenderer.bounds : new Bounds();
+            Bounds framingBounds = ResolveLockedFramingWorldBounds();
             Bounds backgroundBounds = backgroundMesh != null && backgroundObject != null
                 ? CrystalSpatialDiagnostics.TransformBounds(backgroundMesh.bounds, backgroundObject.transform)
                 : backgroundMeshRenderer != null ? backgroundMeshRenderer.bounds : new Bounds();
-            float screenCoverage = CrystalSpatialDiagnostics.ViewportHeightCoverage(stageCamera, crystalBounds);
+            float screenCoverage = CrystalSpatialDiagnostics.ViewportHeightCoverage(stageCamera, framingBounds);
             float backgroundCoverage = CrystalSpatialDiagnostics.ViewportHeightCoverage(stageCamera, backgroundBounds);
             float cameraCrystalDistance = stageCamera != null && crystalObject != null
                 ? Vector3.Distance(stageCamera.transform.position, crystalObject.transform.position)
@@ -259,6 +296,7 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
             UpdateCameraDiagnostics();
             UpdateDiagnostics(
                 crystalBounds,
+                framingBounds,
                 backgroundBounds,
                 stageCamera,
                 screenCoverage,
@@ -312,6 +350,7 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
             opticalStageDiagnostics = "premium optical layers inactive";
             finalVisibleScreenCoverage = 0f;
             finalVisibleCoverageDiagnostics = "final visible coverage not measured";
+            ResetFramingLock("shutdown");
             ResetStaticBaselineTracking("shutdown");
             sourceTextureDiagnostics = "source texture none";
             activePremiumShapeLabel = "none";
@@ -490,6 +529,7 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
             }
 
             ReleaseOutputTexture();
+            ResetFramingLock("output texture resized");
             ResetStaticBaselineTracking("output texture resized");
             RenderTextureDescriptor descriptor = new RenderTextureDescriptor(width, height, RenderTextureFormat.ARGB32, 24)
             {
@@ -511,19 +551,93 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
             }
         }
 
-        private void EnsureCrystalMesh(CrystalShape shape)
+        private void EnsureCrystalMesh(CrystalSharedSettings settings, CrystalShape shape)
         {
-            CrystalShape premiumShape = ResolvePremiumShape(shape);
-            if (crystalMesh != null && activeShape == premiumShape)
+            CrystalShape requestedShape = shape;
+            CrystalShape premiumShape = ResolvePremiumShape(requestedShape);
+            bool transitionActive = settings != null && settings.ShapeTransitionActive;
+            CrystalShape fromPremiumShape = transitionActive
+                ? ResolvePremiumShape(settings.ShapeTransitionFromShape)
+                : premiumShape;
+            CrystalShape toPremiumShape = transitionActive
+                ? ResolvePremiumShape(settings.ShapeTransitionToShape)
+                : premiumShape;
+            float transitionProgress = transitionActive ? settings.ShapeTransitionProgress : 1f;
+            bool rebuildTransition = transitionActive
+                && (crystalMesh == null
+                    || !activeShapeTransition
+                    || activeTransitionFromShape != fromPremiumShape
+                    || activeTransitionToShape != toPremiumShape
+                    || Mathf.Abs(activeTransitionProgress - transitionProgress) > 0.0001f);
+
+            if (!transitionActive && crystalMesh != null && !activeShapeTransition && activeShape == premiumShape)
             {
                 return;
             }
 
-            DestroyRuntimeObject(crystalMesh);
-            crystalMesh = RealCrystalShapeLibrary.CreateMesh(premiumShape);
-            activeShape = premiumShape;
-            activePremiumShapeLabel = ResolvePremiumShapeLabel(shape, premiumShape);
-            ResetStaticBaselineTracking("crystal mesh changed");
+            if (transitionActive)
+            {
+                if (crystalMesh == null || !activeShapeTransition)
+                {
+                    DestroyRuntimeObject(crystalMesh);
+                    crystalMesh = new Mesh
+                    {
+                        name = "Kaleidoscope2_RuntimeVolumetricCrystal_Transition",
+                        hideFlags = HideFlags.HideAndDontSave
+                    };
+                    ResetFramingLock("crystal transition mesh changed");
+                    ResetStaticBaselineTracking("crystal transition mesh changed");
+                }
+
+                if (rebuildTransition)
+                {
+                    RealCrystalVolumetricMeshFactory.UpdateMorphedMesh(
+                        crystalMesh,
+                        fromPremiumShape,
+                        toPremiumShape,
+                        transitionProgress,
+                        crystalTransitionVertices,
+                        crystalTransitionUvs,
+                        crystalTransitionTriangles);
+                }
+
+                activeShape = toPremiumShape;
+                activeShapeTransition = true;
+                activeTransitionFromShape = fromPremiumShape;
+                activeTransitionToShape = toPremiumShape;
+                activeTransitionProgress = transitionProgress;
+                activePremiumShapeLabel = ResolvePremiumShapeLabel(requestedShape, toPremiumShape);
+                activeLocalShapeFramingBounds = RealCrystalVolumetricMeshFactory.ResolveMaximumProfileBounds(fromPremiumShape, toPremiumShape);
+                activeShapeTransitionDiagnostics = "shape transition active true"
+                    + ", from " + fromPremiumShape.ToString()
+                    + ", to " + toPremiumShape.ToString()
+                    + ", progress " + transitionProgress.ToString("0.00")
+                    + ", smooth premium morph true";
+            }
+            else
+            {
+                bool completingTransition = activeShapeTransition && activeTransitionToShape == premiumShape;
+                Bounds transitionFramingBounds = activeLocalShapeFramingBounds;
+                DestroyRuntimeObject(crystalMesh);
+                crystalMesh = RealCrystalShapeLibrary.CreateMesh(premiumShape);
+                activeShape = premiumShape;
+                activeShapeTransition = false;
+                activeTransitionFromShape = premiumShape;
+                activeTransitionToShape = premiumShape;
+                activeTransitionProgress = 1f;
+                activePremiumShapeLabel = ResolvePremiumShapeLabel(requestedShape, premiumShape);
+                activeLocalShapeFramingBounds = completingTransition && transitionFramingBounds.size != Vector3.zero
+                    ? transitionFramingBounds
+                    : RealCrystalVolumetricMeshFactory.ResolveMaximumProfileBounds(premiumShape, premiumShape);
+                activeShapeTransitionDiagnostics = "shape transition active false, smooth premium morph ready true"
+                    + ", completed without framing snap " + (completingTransition ? "true" : "false");
+                if (!completingTransition)
+                {
+                    ResetFramingLock("crystal mesh changed");
+                    ResetStaticBaselineTracking("crystal mesh changed");
+                }
+            }
+
             if (crystalMeshFilter != null)
             {
                 crystalMeshFilter.sharedMesh = crystalMesh;
@@ -547,7 +661,7 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
                 case CrystalShape.ClassicDiamond:
                     return CrystalShape.BrilliantCut;
                 case CrystalShape.FacetedCube:
-                    return CrystalShape.PrincessCut;
+                    return CrystalShape.OctagonCut;
                 case CrystalShape.DiscoBall:
                     return CrystalShape.CushionCut;
                 case CrystalShape.TetrahedralCrystal:
@@ -639,27 +753,19 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
             dioramaObject.transform.localRotation = Quaternion.identity;
 
             Camera framingCamera = ResolveFinalVisibleCamera();
-            float viewHeightAtCrystal = ResolveViewHeightForFramingCamera(framingCamera, root.transform.TransformPoint(Vector3.zero), CameraDistance);
-            float targetCoverage = ClampFinalVisibleCoverage(TargetCrystalScreenCoverage);
-            float desiredCrystalWorldHeight = viewHeightAtCrystal * targetCoverage;
-            float meshHeight = crystalMesh != null ? Mathf.Max(MinimumMeshDimension, crystalMesh.bounds.size.y) : 1f;
-            stageViewScale = Mathf.Clamp(
-                desiredCrystalWorldHeight / Mathf.Max(MinimumMeshDimension, meshHeight * DioramaCrystalScale),
-                MinimumStageViewScale,
-                MaximumStageViewScale);
-            dioramaObject.transform.localScale = Vector3.one * stageViewScale;
-
             Vector2 centerOffset = settings != null ? settings.CrystalScreenCenterOffset : Vector2.zero;
-            float framingAspect = framingCamera != null && framingCamera.aspect > 0f ? framingCamera.aspect : aspect;
-            float viewWidthAtCrystal = viewHeightAtCrystal * Mathf.Max(0.1f, framingAspect);
-            crystalObject.transform.localPosition = new Vector3(
-                centerOffset.x * viewWidthAtCrystal * 0.25f,
-                centerOffset.y * viewHeightAtCrystal * 0.25f,
-                0f);
+            int nextFramingLockKey = BuildFramingLockKey(sourceTexture, framingCamera, centerOffset);
+            if (!framingLocked || framingLockKey != nextFramingLockKey)
+            {
+                FitAndLockFraming(sourceTexture, framingCamera, centerOffset, aspect, nextFramingLockKey);
+            }
+
+            stageViewScale = lockedStageViewScale;
+            dioramaObject.transform.localPosition = lockedDioramaLocalPosition;
+            dioramaObject.transform.localScale = Vector3.one * lockedStageViewScale;
+            crystalObject.transform.localPosition = lockedCrystalLocalPosition;
             crystalObject.transform.localScale = Vector3.one * DioramaCrystalScale;
             crystalObject.transform.localRotation = Quaternion.Euler(rotation);
-
-            ApplyDeterministicFinalVisibleScaleCorrection(framingCamera, targetCoverage);
 
             backgroundObject.transform.localPosition = new Vector3(0f, 0f, BackgroundDistance);
             backgroundObject.transform.localRotation = Quaternion.identity;
@@ -668,7 +774,6 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
                 backgroundWorldSize.x,
                 backgroundWorldSize.y,
                 1f);
-            ApplyFinalVisibleCentering(framingCamera);
         }
 
         private Vector3 ResolveCameraPosition(bool validationOrbit)
@@ -710,57 +815,225 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
             return ResolveCameraViewHeight(framingCamera, distance);
         }
 
-        private void ApplyDeterministicFinalVisibleScaleCorrection(Camera framingCamera, float targetCoverage)
+        private void FitAndLockFraming(
+            RenderTexture sourceTexture,
+            Camera framingCamera,
+            Vector2 centerOffset,
+            float sourceAspect,
+            int nextFramingLockKey)
         {
             if (framingCamera == null || crystalMesh == null || crystalObject == null || dioramaObject == null)
             {
+                lockedStageViewScale = 1f;
+                lockedDioramaLocalPosition = Vector3.zero;
+                lockedCrystalLocalPosition = Vector3.zero;
+                lockedLocalFramingBounds = ResolveLocalMaximumShapeBounds();
+                framingLocked = false;
+                framingLockDiagnostics = "framing locked false, missing final camera or crystal mesh";
                 return;
             }
 
-            for (int pass = 0; pass < 2; pass++)
+            Bounds localFramingBounds = ResolveLocalMaximumShapeBounds();
+            float viewHeightAtCrystal = ResolveViewHeightForFramingCamera(framingCamera, root.transform.TransformPoint(Vector3.zero), CameraDistance);
+            float targetCoverage = ClampFinalVisibleCoverage(TargetCrystalScreenCoverage);
+            float desiredCrystalWorldHeight = viewHeightAtCrystal * targetCoverage;
+            float framingHeight = Mathf.Max(MinimumMeshDimension, localFramingBounds.size.y);
+            float resolvedStageViewScale = Mathf.Clamp(
+                desiredCrystalWorldHeight / Mathf.Max(MinimumMeshDimension, framingHeight * DioramaCrystalScale),
+                MinimumStageViewScale,
+                MaximumStageViewScale);
+
+            float framingAspect = framingCamera.aspect > 0f ? framingCamera.aspect : sourceAspect;
+            float viewWidthAtCrystal = viewHeightAtCrystal * Mathf.Max(0.1f, framingAspect);
+            Vector3 crystalLocalPosition = new Vector3(
+                centerOffset.x * viewWidthAtCrystal * 0.25f,
+                centerOffset.y * viewHeightAtCrystal * 0.25f,
+                0f);
+
+            for (int iteration = 0; iteration < 4; iteration++)
             {
-                Bounds bounds = CrystalSpatialDiagnostics.TransformBounds(crystalMesh.bounds, crystalObject.transform);
-                float currentCoverage = CrystalSpatialDiagnostics.ViewportHeightCoverage(framingCamera, bounds);
-                if (currentCoverage <= 0.0001f)
+                dioramaObject.transform.localPosition = Vector3.zero;
+                dioramaObject.transform.localScale = Vector3.one * resolvedStageViewScale;
+                crystalObject.transform.localPosition = crystalLocalPosition;
+                crystalObject.transform.localScale = Vector3.one * DioramaCrystalScale;
+                crystalObject.transform.localRotation = Quaternion.identity;
+
+                Bounds projectedFramingBounds = ResolveRotationIndependentFramingWorldBounds(localFramingBounds);
+                Rect viewportBounds;
+                if (!TryMeasureViewportBounds(framingCamera, projectedFramingBounds, out viewportBounds) || viewportBounds.height <= 0f)
                 {
-                    return;
+                    break;
                 }
 
-                float correction = targetCoverage / currentCoverage;
-                if (Mathf.Abs(correction - 1f) <= StableValueTolerance)
+                float projectionCorrection = targetCoverage / Mathf.Max(0.0001f, viewportBounds.height);
+                if (Mathf.Abs(1f - projectionCorrection) <= 0.0005f)
                 {
-                    return;
+                    break;
                 }
 
-                stageViewScale = Mathf.Clamp(stageViewScale * correction, MinimumStageViewScale, MaximumStageViewScale);
-                dioramaObject.transform.localScale = Vector3.one * stageViewScale;
+                resolvedStageViewScale = Mathf.Clamp(
+                    resolvedStageViewScale * projectionCorrection,
+                    MinimumStageViewScale,
+                    MaximumStageViewScale);
+            }
+
+            dioramaObject.transform.localPosition = Vector3.zero;
+            dioramaObject.transform.localScale = Vector3.one * resolvedStageViewScale;
+            crystalObject.transform.localPosition = crystalLocalPosition;
+            crystalObject.transform.localScale = Vector3.one * DioramaCrystalScale;
+            crystalObject.transform.localRotation = Quaternion.identity;
+
+            Bounds framingWorldBounds = ResolveRotationIndependentFramingWorldBounds(localFramingBounds);
+            Vector3 viewport = framingCamera.WorldToViewportPoint(framingWorldBounds.center);
+            Vector3 resolvedDioramaLocalPosition = Vector3.zero;
+            if (viewport.z > framingCamera.nearClipPlane)
+            {
+                Vector3 desiredWorld = framingCamera.ViewportToWorldPoint(new Vector3(0.5f, 0.5f, viewport.z));
+                Vector3 worldDelta = desiredWorld - framingWorldBounds.center;
+                if (IsFinite(worldDelta) && worldDelta.sqrMagnitude <= 10000f)
+                {
+                    Vector3 adjustedWorld = dioramaObject.transform.position + worldDelta;
+                    resolvedDioramaLocalPosition = dioramaObject.transform.parent != null
+                        ? dioramaObject.transform.parent.InverseTransformPoint(adjustedWorld)
+                        : adjustedWorld;
+                }
+            }
+
+            lockedStageViewScale = resolvedStageViewScale;
+            lockedDioramaLocalPosition = resolvedDioramaLocalPosition;
+            lockedCrystalLocalPosition = crystalLocalPosition;
+            lockedLocalFramingBounds = localFramingBounds;
+            framingLockKey = nextFramingLockKey;
+            framingLocked = true;
+            stageViewScale = lockedStageViewScale;
+            ResetStaticBaselineTracking("framing lock updated");
+
+            int sourceWidth = sourceTexture != null ? sourceTexture.width : 0;
+            int sourceHeight = sourceTexture != null ? sourceTexture.height : 0;
+            framingLockDiagnostics = "framing locked true"
+                + ", rotation dependent scale correction false"
+                + ", current rotated bounds used for scale false"
+                + ", maximum shape bounds used true"
+                + ", rotation independent framing bounds true"
+                + ", projection depth fit true"
+                + ", lock key " + framingLockKey.ToString()
+                + ", source " + sourceWidth.ToString() + "x" + sourceHeight.ToString()
+                + ", locked target " + FormatPercentUnclamped(targetCoverage)
+                + ", locked stageViewScale " + lockedStageViewScale.ToString("0.00")
+                + ", locked crystal local " + CrystalSpatialDiagnostics.FormatVector(lockedCrystalLocalPosition)
+                + ", locked diorama local " + CrystalSpatialDiagnostics.FormatVector(lockedDioramaLocalPosition)
+                + ", locked max shape bounds " + CrystalSpatialDiagnostics.FormatVector(lockedLocalFramingBounds.size);
+        }
+
+        private Bounds ResolveLocalMaximumShapeBounds()
+        {
+            if (crystalMesh == null)
+            {
+                return new Bounds(Vector3.zero, Vector3.one);
+            }
+
+            Bounds meshBounds = crystalMesh.bounds;
+            if (activeLocalShapeFramingBounds.size != Vector3.zero)
+            {
+                meshBounds = activeLocalShapeFramingBounds;
+            }
+
+            Vector3 size = meshBounds.size;
+            float maxDimension = Mathf.Max(MinimumMeshDimension, Mathf.Max(size.x, Mathf.Max(size.y, size.z)));
+            return new Bounds(meshBounds.center, new Vector3(maxDimension, maxDimension, maxDimension));
+        }
+
+        private Bounds ResolveLockedFramingWorldBounds()
+        {
+            if (crystalObject == null)
+            {
+                return new Bounds();
+            }
+
+            Bounds localBounds = lockedLocalFramingBounds.size != Vector3.zero
+                ? lockedLocalFramingBounds
+                : ResolveLocalMaximumShapeBounds();
+            return ResolveRotationIndependentFramingWorldBounds(localBounds);
+        }
+
+        private Bounds ResolveRotationIndependentFramingWorldBounds(Bounds localBounds)
+        {
+            if (crystalObject == null)
+            {
+                return new Bounds();
+            }
+
+            Vector3 localScale = crystalObject.transform.lossyScale;
+            Vector3 worldSize = new Vector3(
+                Mathf.Abs(localBounds.size.x * localScale.x),
+                Mathf.Abs(localBounds.size.y * localScale.y),
+                Mathf.Abs(localBounds.size.z * localScale.z));
+            Vector3 localCenter = crystalObject.transform.localPosition + Vector3.Scale(localBounds.center, crystalObject.transform.localScale);
+            Vector3 worldCenter = crystalObject.transform.parent != null
+                ? crystalObject.transform.parent.TransformPoint(localCenter)
+                : localCenter;
+            return new Bounds(worldCenter, worldSize);
+        }
+
+        private void ResetFramingLock(string reason)
+        {
+            framingLocked = false;
+            framingLockKey = 0;
+            lockedStageViewScale = 1f;
+            lockedDioramaLocalPosition = Vector3.zero;
+            lockedCrystalLocalPosition = Vector3.zero;
+            lockedLocalFramingBounds = new Bounds(Vector3.zero, Vector3.zero);
+            framingLockDiagnostics = "framing lock reset, reason " + reason;
+        }
+
+        private int BuildFramingLockKey(RenderTexture sourceTexture, Camera framingCamera, Vector2 centerOffset)
+        {
+            unchecked
+            {
+                int hash = 17;
+                hash = CombineHash(hash, sourceTexture != null ? sourceTexture.width : 0);
+                hash = CombineHash(hash, sourceTexture != null ? sourceTexture.height : 0);
+                hash = CombineHash(hash, (int)activeShape);
+                hash = CombineHash(hash, Quantize(centerOffset.x));
+                hash = CombineHash(hash, Quantize(centerOffset.y));
+                if (framingCamera != null)
+                {
+                    hash = CombineHash(hash, framingCamera.GetInstanceID());
+                    hash = CombineHash(hash, Quantize(framingCamera.aspect));
+                    hash = CombineHash(hash, Quantize(framingCamera.fieldOfView));
+                    hash = CombineHash(hash, framingCamera.orthographic ? 1 : 0);
+                    hash = CombineHash(hash, Quantize(framingCamera.orthographicSize));
+                    hash = CombineHash(hash, QuantizeVector(framingCamera.transform.position));
+                    hash = CombineHash(hash, QuantizeVector(framingCamera.transform.forward));
+                }
+
+                return hash;
             }
         }
 
-        private void ApplyFinalVisibleCentering(Camera framingCamera)
+        private static int CombineHash(int hash, int value)
         {
-            if (framingCamera == null || crystalObject == null || dioramaObject == null)
+            unchecked
             {
-                return;
+                return hash * 31 + value;
             }
+        }
 
-            Vector3 crystalWorld = crystalMesh != null
-                ? CrystalSpatialDiagnostics.TransformBounds(crystalMesh.bounds, crystalObject.transform).center
-                : crystalObject.transform.position;
-            Vector3 viewport = framingCamera.WorldToViewportPoint(crystalWorld);
-            if (viewport.z <= framingCamera.nearClipPlane)
+        private static int QuantizeVector(Vector3 value)
+        {
+            unchecked
             {
-                return;
+                int hash = 17;
+                hash = CombineHash(hash, Quantize(value.x));
+                hash = CombineHash(hash, Quantize(value.y));
+                hash = CombineHash(hash, Quantize(value.z));
+                return hash;
             }
+        }
 
-            Vector3 desiredWorld = framingCamera.ViewportToWorldPoint(new Vector3(0.5f, 0.5f, viewport.z));
-            Vector3 worldDelta = desiredWorld - crystalWorld;
-            if (!IsFinite(worldDelta) || worldDelta.sqrMagnitude > 10000f)
-            {
-                return;
-            }
-
-            dioramaObject.transform.position += worldDelta;
+        private static int Quantize(float value)
+        {
+            return Mathf.RoundToInt(value * 1000f);
         }
 
         private Vector2 ResolveBackgroundWorldSize(float stageAspect)
@@ -1103,10 +1376,28 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
                 }
             }
 
-            Color color = ResolveCrystalColor(materialMode);
+            Color color = settings != null ? settings.GemBaseColor : ResolveCrystalColor(materialMode);
             float alpha = settings != null ? settings.RealMeshAlpha : 0.58f;
-            color.a = Mathf.Clamp(alpha + 0.08f + Mathf.Clamp01(intensity / 20f) * 0.16f, 0.38f, 0.92f);
+            float clarity = settings != null ? settings.GemClarity : 0.9f;
+            color.a = Mathf.Clamp(alpha + 0.1f + clarity * 0.08f + Mathf.Clamp01(intensity / 20f) * 0.14f, 0.42f, 0.94f);
             transparentCrystalMaterial.color = color;
+            activePremiumMaterialDiagnostics = settings != null
+                ? "premium gem material " + settings.PremiumMaterialName
+                    + ", base color " + CrystalSpatialDiagnostics.FormatVector(new Vector3(settings.GemBaseColor.r, settings.GemBaseColor.g, settings.GemBaseColor.b))
+                    + ", core color " + CrystalSpatialDiagnostics.FormatVector(new Vector3(settings.GemCoreColor.r, settings.GemCoreColor.g, settings.GemCoreColor.b))
+                    + ", fire color " + CrystalSpatialDiagnostics.FormatVector(new Vector3(settings.GemFireColor.r, settings.GemFireColor.g, settings.GemFireColor.b))
+                    + ", IOR " + settings.RefractiveIndex.ToString("0.000")
+                    + ", spectral dispersion " + settings.SpectralDispersion.ToString("0.00")
+                    + ", physical dispersion " + settings.PhysicalDispersion.ToString("0.000")
+                    + ", absorption strength " + settings.AbsorptionStrength.ToString("0.00")
+                    + ", fresnel strength " + settings.FresnelStrength.ToString("0.00")
+                    + ", internal reflection strength " + settings.InternalReflection.ToString("0.00")
+                    + ", refraction strength " + settings.RefractionStrength.ToString("0.000")
+                    + ", background distortion strength " + settings.BackgroundDistortionStrength.ToString("0.00")
+                    + ", saturation boost " + settings.SaturationBoost.ToString("0.00")
+                    + ", contrast boost " + settings.ContrastBoost.ToString("0.00")
+                    + ", opal iridescence " + settings.OpalIridescence.ToString("0.00")
+                : "premium gem material fallback";
             if (transparentCrystalMaterial.shader != null && transparentCrystalMaterial.shader.name == CrystalOpticsShaderName)
             {
                 ConfigurePremiumCrystalMaterial(transparentCrystalMaterial, sourceTexture, settings, color, materialMode, intensity);
@@ -1135,29 +1426,62 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
             float internalBrightness = settings != null ? settings.InternalBrightness : 1.22f;
             float minimumTransmission = settings != null ? settings.MinimumTransmission : 0.18f;
             float specularStrength = settings != null ? settings.SpecularStrength : 0.86f;
+            float opticalDensity = settings != null ? settings.OpticalDensity : 0.82f;
+            float facetRefraction = settings != null ? settings.FacetRefraction : 1.12f;
+            float thicknessRefraction = settings != null ? settings.ThicknessRefraction : 1.05f;
+            float internalReflection = settings != null ? settings.InternalReflection : 1.18f;
+            float spectralDispersion = settings != null ? settings.SpectralDispersion : 1.18f;
+            float facetFire = settings != null ? settings.FacetFire : 1.08f;
+            float depthAbsorption = settings != null ? settings.DepthAbsorption : 0.42f;
+            float gemClarity = settings != null ? settings.GemClarity : 0.9f;
+            float refractiveIndex = settings != null ? settings.RefractiveIndex : 2.417f;
+            float physicalDispersion = settings != null ? settings.PhysicalDispersion : 0.044f;
+            float absorptionStrength = settings != null ? settings.AbsorptionStrength : 0.38f;
+            float fresnelStrength = settings != null ? settings.FresnelStrength : 1.35f;
+            float backgroundDistortionStrength = settings != null ? settings.BackgroundDistortionStrength : 1.15f;
+            float saturationBoost = settings != null ? settings.SaturationBoost : 1.08f;
+            float contrastBoost = settings != null ? settings.ContrastBoost : 1.08f;
+            float opalIridescence = settings != null ? settings.OpalIridescence : 0f;
             float metallic;
             float smoothness;
             ResolveCrystalSurface(materialMode, out metallic, out smoothness);
 
             SetMaterialTextureIfPresent(material, CrystalKaleidoscopeTexId, sourceTexture);
             SetMaterialColorIfPresent(material, CrystalTintId, color);
+            SetMaterialColorIfPresent(material, CrystalGemCoreColorId, settings != null ? settings.GemCoreColor : color);
+            SetMaterialColorIfPresent(material, CrystalGemFireColorId, settings != null ? settings.GemFireColor : new Color(1f, 0.86f, 0.34f, 1f));
             SetMaterialFloatIfPresent(material, CrystalIntensityId, Mathf.Clamp(intensity, 0f, 20f));
             SetMaterialFloatIfPresent(material, CrystalAlphaId, Mathf.Clamp(color.a, 0.42f, 0.94f));
             SetMaterialFloatIfPresent(material, CrystalMetallicId, metallic);
-            SetMaterialFloatIfPresent(material, CrystalSmoothnessId, Mathf.Clamp01(smoothness + intensity01 * 0.04f));
-            SetMaterialFloatIfPresent(material, CrystalTransparencyId, Mathf.Clamp01(transparency * 0.72f));
-            SetMaterialFloatIfPresent(material, CrystalRefractionStrengthId, Mathf.Clamp(refractionStrength + 0.03f + intensity01 * 0.018f, 0.065f, 0.12f));
-            SetMaterialFloatIfPresent(material, CrystalFresnelPowerId, Mathf.Clamp(fresnelPower * 0.82f, 1.1f, 4.6f));
-            SetMaterialFloatIfPresent(material, CrystalReflectionStrengthId, Mathf.Clamp01(reflectionStrength + 0.18f));
-            SetMaterialFloatIfPresent(material, CrystalInternalBrightnessId, Mathf.Clamp(internalBrightness + 0.42f + intensity01 * 0.38f, 1.15f, 2.8f));
-            SetMaterialFloatIfPresent(material, CrystalMinimumTransmissionId, Mathf.Clamp01(minimumTransmission + 0.16f));
+            SetMaterialFloatIfPresent(material, CrystalSmoothnessId, Mathf.Clamp01(smoothness + intensity01 * 0.05f));
+            SetMaterialFloatIfPresent(material, CrystalTransparencyId, Mathf.Clamp01(transparency * 0.56f));
+            SetMaterialFloatIfPresent(material, CrystalRefractionStrengthId, Mathf.Clamp(refractionStrength + 0.038f + intensity01 * 0.014f, 0.072f, 0.12f));
+            SetMaterialFloatIfPresent(material, CrystalScreenRefractionStrengthId, Mathf.Clamp((refractionStrength * 0.5f + 0.02f) * Mathf.Lerp(0.78f, 1.34f, Mathf.Clamp01(backgroundDistortionStrength / 1.4f)), 0.026f, 0.078f));
+            SetMaterialFloatIfPresent(material, CrystalFresnelPowerId, Mathf.Clamp(fresnelPower * 0.76f, 1.0f, 4.2f));
+            SetMaterialFloatIfPresent(material, CrystalReflectionStrengthId, Mathf.Clamp01(reflectionStrength + internalReflection * 0.16f + fresnelStrength * 0.08f + 0.08f));
+            SetMaterialFloatIfPresent(material, CrystalInternalBrightnessId, Mathf.Clamp(internalBrightness + 0.56f + intensity01 * 0.42f, 1.25f, 3f));
+            SetMaterialFloatIfPresent(material, CrystalMinimumTransmissionId, Mathf.Clamp01(minimumTransmission + gemClarity * 0.18f));
             SetMaterialFloatIfPresent(material, CrystalSpecularStrengthId, Mathf.Clamp01(specularStrength + 0.18f));
-            SetMaterialFloatIfPresent(material, CrystalDispersionStrengthId, 0.072f + intensity01 * 0.032f);
-            SetMaterialFloatIfPresent(material, CrystalRimStrengthId, 1.02f + intensity01 * 0.28f);
-            SetMaterialFloatIfPresent(material, CrystalBrightnessFloorId, 0.13f + intensity01 * 0.045f);
-            SetMaterialFloatIfPresent(material, CrystalGlintStrengthId, 0.92f + intensity01 * 0.32f);
-            SetMaterialFloatIfPresent(material, CrystalFacetContrastId, 0.62f + intensity01 * 0.2f);
-            SetMaterialFloatIfPresent(material, CrystalInternalScatterId, 0.44f + intensity01 * 0.2f);
+            SetMaterialFloatIfPresent(material, CrystalRimStrengthId, 1.05f + facetFire * 0.24f + intensity01 * 0.22f);
+            SetMaterialFloatIfPresent(material, CrystalBrightnessFloorId, 0.14f + gemClarity * 0.05f + intensity01 * 0.04f);
+            SetMaterialFloatIfPresent(material, CrystalGemTintStrengthId, settings != null ? settings.GemTintStrength : 0.16f);
+            SetMaterialFloatIfPresent(material, CrystalOpticalDensityId, opticalDensity);
+            SetMaterialFloatIfPresent(material, CrystalFacetRefractionId, facetRefraction);
+            SetMaterialFloatIfPresent(material, CrystalThicknessRefractionId, thicknessRefraction);
+            SetMaterialFloatIfPresent(material, CrystalInternalReflectionStrengthId, internalReflection);
+            SetMaterialFloatIfPresent(material, CrystalDispersionStrengthId, spectralDispersion);
+            SetMaterialFloatIfPresent(material, CrystalFacetFireId, facetFire);
+            SetMaterialFloatIfPresent(material, CrystalDepthAbsorptionId, depthAbsorption);
+            SetMaterialFloatIfPresent(material, CrystalClarityId, gemClarity);
+            SetMaterialFloatIfPresent(material, CrystalFacetContrastId, Mathf.Clamp(1.1f + facetRefraction * 0.42f, 0.8f, 2.2f));
+            SetMaterialFloatIfPresent(material, CrystalRefractiveIndexId, refractiveIndex);
+            SetMaterialFloatIfPresent(material, CrystalPhysicalDispersionId, physicalDispersion);
+            SetMaterialFloatIfPresent(material, CrystalAbsorptionStrengthId, absorptionStrength);
+            SetMaterialFloatIfPresent(material, CrystalFresnelStrengthId, fresnelStrength);
+            SetMaterialFloatIfPresent(material, CrystalBackgroundDistortionStrengthId, backgroundDistortionStrength);
+            SetMaterialFloatIfPresent(material, CrystalSaturationBoostId, saturationBoost);
+            SetMaterialFloatIfPresent(material, CrystalContrastBoostId, contrastBoost);
+            SetMaterialFloatIfPresent(material, CrystalOpalIridescenceId, opalIridescence);
             material.renderQueue = (int)RenderQueue.Transparent;
         }
 
@@ -1696,6 +2020,7 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
 
         private void UpdateDiagnostics(
             Bounds? crystalBounds,
+            Bounds? framingBounds,
             Bounds? backgroundBounds,
             Camera camera,
             float screenCoverage,
@@ -1739,10 +2064,20 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
             string boundsSize = crystalBounds.HasValue
                 ? CrystalSpatialDiagnostics.FormatVector(crystalBounds.Value.size)
                 : "none";
+            string framingBoundsSize = framingBounds.HasValue
+                ? CrystalSpatialDiagnostics.FormatVector(framingBounds.Value.size)
+                : "none";
             string meshStats = "mesh vertices " + MeshVertexCount.ToString()
                 + ", mesh triangles " + MeshTriangleCount.ToString()
                 + ", hasVolume " + (HasVolume ? "true" : "false")
                 + ", sideFaces " + (SideFacesDetected ? "true" : "false");
+            string premiumMaterial = activePremiumMaterialDiagnostics;
+            if (crystalMeshRenderer != null && crystalMeshRenderer.sharedMaterial != null)
+            {
+                premiumMaterial += crystalMeshRenderer.sharedMaterial.shader != null
+                    ? ", premium material shader " + crystalMeshRenderer.sharedMaterial.shader.name
+                    : "premium material shader none";
+            }
             string hierarchy = root != null
                 ? CrystalSpatialDiagnostics.GetHierarchyPath(root.transform)
                 : "none";
@@ -1766,7 +2101,7 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
             bool crystalVisibleToDirectView = IsRendererVisibleToDirectView(crystalMeshRenderer);
             bool backgroundVisibleToDirectView = IsRendererVisibleToDirectView(backgroundMeshRenderer);
             string diagnosticsActive = diagnosticsObject != null && diagnosticsObject.activeInHierarchy ? "true" : "false";
-            UpdateFinalVisibleCoverageDiagnostics(crystalBounds);
+            UpdateFinalVisibleCoverageDiagnostics(framingBounds);
             UpdateStaticBaselineDiagnostics(backgroundBounds, camera);
 
             diagnosticsLabel = StageModeLabel
@@ -1808,7 +2143,17 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
                 + ", camera-crystal distance " + cameraCrystalDistance.ToString("0.00")
                 + ", crystal-background distance " + crystalBackgroundDistance.ToString("0.00")
                 + ", premium shape " + activePremiumShapeLabel
+                + ", " + activeShapeTransitionDiagnostics
+                + ", " + premiumMaterial
                 + ", crystal bounds " + boundsSize
+                + ", framing bounds " + framingBoundsSize
+                + ", " + framingLockDiagnostics
+                + ", crystal screen-space refraction facet driven true"
+                + ", crystal thickness refraction true"
+                + ", crystal internal reflections true"
+                + ", crystal spectral dispersion true"
+                + ", crystal facet highlights true"
+                + ", crystal caustics false"
                 + ", " + meshStats
                 + ", screen coverage " + CrystalSpatialDiagnostics.FormatPercent(screenCoverage)
                 + ", " + finalVisibleCoverageDiagnostics

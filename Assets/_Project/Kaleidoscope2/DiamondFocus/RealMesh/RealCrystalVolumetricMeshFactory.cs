@@ -11,19 +11,87 @@ namespace Kaleidoscope2.DiamondFocus.RealMesh
 
         public static Mesh CreateMesh(CrystalShape shape)
         {
-            CrystalProfile profile = ResolveProfile(shape);
-            int sideCount = Mathf.Clamp(profile.SideCount, 6, SegmentCount);
+            int sideCount = Mathf.Clamp(ResolveProfile(shape).SideCount, 6, SegmentCount);
             List<Vector3> vertices = new List<Vector3>(sideCount * 30);
             List<Vector2> uvs = new List<Vector2>(sideCount * 30);
             List<int> triangles = new List<int>(sideCount * 30);
+            Mesh mesh = new Mesh
+            {
+                name = "Kaleidoscope2_RuntimeVolumetricCrystal_" + shape,
+                hideFlags = HideFlags.HideAndDontSave
+            };
+            UpdateMesh(mesh, shape, vertices, uvs, triangles);
+            return mesh;
+        }
 
-            Vector3 tableCenter = new Vector3(0f, profile.TopY, 0f);
-            Vector3 bottomApex = new Vector3(0f, profile.BottomY, 0f);
-            Vector3[] tableRing = CreateRing(profile, profile.TableRadiusX, profile.TableRadiusZ, profile.TopY, Mathf.PI / sideCount, 1f);
-            Vector3[] crownRing = CreateRing(profile, profile.CrownRadiusX, profile.CrownRadiusZ, profile.CrownY, 0f, profile.FacetAlternation);
-            Vector3[] girdleTopRing = CreateRing(profile, profile.GirdleRadiusX, profile.GirdleRadiusZ, profile.GirdleY + profile.GirdleHalfThickness, Mathf.PI / sideCount, 1f);
-            Vector3[] girdleBottomRing = CreateRing(profile, profile.GirdleRadiusX, profile.GirdleRadiusZ, profile.GirdleY - profile.GirdleHalfThickness, Mathf.PI / sideCount, 1f);
-            Vector3[] pavilionRing = CreateRing(profile, profile.PavilionRadiusX, profile.PavilionRadiusZ, profile.PavilionY, 0f, profile.FacetAlternation);
+        public static void UpdateMesh(
+            Mesh mesh,
+            CrystalShape shape,
+            List<Vector3> vertices,
+            List<Vector2> uvs,
+            List<int> triangles)
+        {
+            BuildGeometry(mesh, shape, shape, 1f, false, vertices, uvs, triangles);
+        }
+
+        public static void UpdateMorphedMesh(
+            Mesh mesh,
+            CrystalShape fromShape,
+            CrystalShape toShape,
+            float progress,
+            List<Vector3> vertices,
+            List<Vector2> uvs,
+            List<int> triangles)
+        {
+            BuildGeometry(mesh, fromShape, toShape, Mathf.Clamp01(progress), true, vertices, uvs, triangles);
+        }
+
+        public static Bounds ResolveMaximumProfileBounds(CrystalShape firstShape, CrystalShape secondShape)
+        {
+            Bounds firstBounds = EstimateProfileBounds(ResolveProfile(firstShape), SegmentCount);
+            Bounds secondBounds = EstimateProfileBounds(ResolveProfile(secondShape), SegmentCount);
+            Vector3 size = Vector3.Max(firstBounds.size, secondBounds.size);
+            return new Bounds(Vector3.zero, size);
+        }
+
+        private static void BuildGeometry(
+            Mesh mesh,
+            CrystalShape fromShape,
+            CrystalShape toShape,
+            float progress,
+            bool forceMorphTopology,
+            List<Vector3> vertices,
+            List<Vector2> uvs,
+            List<int> triangles)
+        {
+            if (mesh == null)
+            {
+                return;
+            }
+
+            CrystalProfile fromProfile = ResolveProfile(fromShape);
+            CrystalProfile toProfile = ResolveProfile(toShape);
+            int sideCount = forceMorphTopology
+                ? SegmentCount
+                : Mathf.Clamp(toProfile.SideCount, 6, SegmentCount);
+
+            vertices.Clear();
+            uvs.Clear();
+            triangles.Clear();
+
+            Vector3 tableCenter = Vector3.Lerp(
+                new Vector3(0f, fromProfile.TopY, 0f),
+                new Vector3(0f, toProfile.TopY, 0f),
+                progress);
+            Vector3 bottomApex = Vector3.Lerp(
+                new Vector3(0f, fromProfile.BottomY, 0f),
+                new Vector3(0f, toProfile.BottomY, 0f),
+                progress);
+            Vector3[] tableRing = CreateMorphedRing(fromProfile, toProfile, sideCount, RingKind.Table, Mathf.PI / sideCount, 1f, progress);
+            Vector3[] crownRing = CreateMorphedRing(fromProfile, toProfile, sideCount, RingKind.Crown, 0f, 0f, progress);
+            Vector3[] girdleTopRing = CreateMorphedRing(fromProfile, toProfile, sideCount, RingKind.GirdleTop, Mathf.PI / sideCount, 1f, progress);
+            Vector3[] girdleBottomRing = CreateMorphedRing(fromProfile, toProfile, sideCount, RingKind.GirdleBottom, Mathf.PI / sideCount, 1f, progress);
+            Vector3[] pavilionRing = CreateMorphedRing(fromProfile, toProfile, sideCount, RingKind.Pavilion, 0f, 0f, progress);
 
             for (int index = 0; index < sideCount; index++)
             {
@@ -36,18 +104,59 @@ namespace Kaleidoscope2.DiamondFocus.RealMesh
                 AddTriangle(vertices, uvs, triangles, pavilionRing[index], bottomApex, pavilionRing[next], 0.05f);
             }
 
-            Mesh mesh = new Mesh
-            {
-                name = "Kaleidoscope2_RuntimeVolumetricCrystal_" + shape,
-                hideFlags = HideFlags.HideAndDontSave
-            };
+            CenterVerticesOnBounds(vertices);
+            mesh.Clear();
             mesh.SetVertices(vertices);
             mesh.SetUVs(0, uvs);
             mesh.SetTriangles(triangles, 0);
             mesh.RecalculateBounds();
             mesh.RecalculateNormals();
             mesh.RecalculateTangents();
-            return mesh;
+        }
+
+        private static Bounds EstimateProfileBounds(CrystalProfile profile, int sideCount)
+        {
+            Vector3 tableCenter = new Vector3(0f, profile.TopY, 0f);
+            Vector3 bottomApex = new Vector3(0f, profile.BottomY, 0f);
+            Bounds bounds = new Bounds(tableCenter, Vector3.zero);
+            bounds.Encapsulate(bottomApex);
+            EncapsulateRing(ref bounds, CreateRing(profile, sideCount, profile.TableRadiusX, profile.TableRadiusZ, profile.TopY, Mathf.PI / sideCount, 1f));
+            EncapsulateRing(ref bounds, CreateRing(profile, sideCount, profile.CrownRadiusX, profile.CrownRadiusZ, profile.CrownY, 0f, profile.FacetAlternation));
+            EncapsulateRing(ref bounds, CreateRing(profile, sideCount, profile.GirdleRadiusX, profile.GirdleRadiusZ, profile.GirdleY + profile.GirdleHalfThickness, Mathf.PI / sideCount, 1f));
+            EncapsulateRing(ref bounds, CreateRing(profile, sideCount, profile.GirdleRadiusX, profile.GirdleRadiusZ, profile.GirdleY - profile.GirdleHalfThickness, Mathf.PI / sideCount, 1f));
+            EncapsulateRing(ref bounds, CreateRing(profile, sideCount, profile.PavilionRadiusX, profile.PavilionRadiusZ, profile.PavilionY, 0f, profile.FacetAlternation));
+            return bounds;
+        }
+
+        private static void EncapsulateRing(ref Bounds bounds, Vector3[] ring)
+        {
+            for (int index = 0; index < ring.Length; index++)
+            {
+                bounds.Encapsulate(ring[index]);
+            }
+        }
+
+        private static void CenterVerticesOnBounds(List<Vector3> vertices)
+        {
+            if (vertices == null || vertices.Count == 0)
+            {
+                return;
+            }
+
+            Vector3 min = vertices[0];
+            Vector3 max = vertices[0];
+            for (int index = 1; index < vertices.Count; index++)
+            {
+                Vector3 vertex = vertices[index];
+                min = Vector3.Min(min, vertex);
+                max = Vector3.Max(max, vertex);
+            }
+
+            Vector3 center = (min + max) * 0.5f;
+            for (int index = 0; index < vertices.Count; index++)
+            {
+                vertices[index] = vertices[index] - center;
+            }
         }
 
         public static bool HasVolume(Mesh mesh)
@@ -68,22 +177,105 @@ namespace Kaleidoscope2.DiamondFocus.RealMesh
             return mesh != null && mesh.bounds.size.z > MinimumValidDepth;
         }
 
-        private static Vector3[] CreateRing(CrystalProfile profile, float radiusX, float radiusZ, float height, float phaseOffset, float facetAlternation)
+        private static Vector3[] CreateMorphedRing(
+            CrystalProfile fromProfile,
+            CrystalProfile toProfile,
+            int sideCount,
+            RingKind ringKind,
+            float phaseOffset,
+            float fixedFacetAlternation,
+            float progress)
         {
-            int sideCount = Mathf.Clamp(profile.SideCount, 6, SegmentCount);
             Vector3[] ring = new Vector3[sideCount];
+            ResolveRing(fromProfile, ringKind, out float fromRadiusX, out float fromRadiusZ, out float fromHeight, out float fromFacetAlternation);
+            ResolveRing(toProfile, ringKind, out float toRadiusX, out float toRadiusZ, out float toHeight, out float toFacetAlternation);
+            if (fixedFacetAlternation > 0f)
+            {
+                fromFacetAlternation = fixedFacetAlternation;
+                toFacetAlternation = fixedFacetAlternation;
+            }
+
             for (int index = 0; index < sideCount; index++)
             {
-                float angle = (Mathf.PI * 2f * index / sideCount) + phaseOffset;
-                float alternatingFacetScale = index % 2 == 0 ? 1f : Mathf.Clamp(facetAlternation, 0.74f, 1f);
-                Vector2 silhouette = ResolveSilhouetteScale(profile, angle);
-                ring[index] = new Vector3(
-                    Mathf.Cos(angle) * radiusX * alternatingFacetScale * silhouette.x,
-                    height,
-                    Mathf.Sin(angle) * radiusZ * alternatingFacetScale * silhouette.y);
+                Vector3 fromPoint = CreateRingPoint(fromProfile, sideCount, index, fromRadiusX, fromRadiusZ, fromHeight, phaseOffset, fromFacetAlternation);
+                Vector3 toPoint = CreateRingPoint(toProfile, sideCount, index, toRadiusX, toRadiusZ, toHeight, phaseOffset, toFacetAlternation);
+                ring[index] = Vector3.Lerp(fromPoint, toPoint, progress);
             }
 
             return ring;
+        }
+
+        private static Vector3[] CreateRing(CrystalProfile profile, int sideCount, float radiusX, float radiusZ, float height, float phaseOffset, float facetAlternation)
+        {
+            Vector3[] ring = new Vector3[sideCount];
+            for (int index = 0; index < sideCount; index++)
+            {
+                ring[index] = CreateRingPoint(profile, sideCount, index, radiusX, radiusZ, height, phaseOffset, facetAlternation);
+            }
+
+            return ring;
+        }
+
+        private static Vector3 CreateRingPoint(
+            CrystalProfile profile,
+            int sideCount,
+            int index,
+            float radiusX,
+            float radiusZ,
+            float height,
+            float phaseOffset,
+            float facetAlternation)
+        {
+            float angle = (Mathf.PI * 2f * index / sideCount) + phaseOffset;
+            float alternatingFacetScale = index % 2 == 0 ? 1f : Mathf.Clamp(facetAlternation, 0.74f, 1f);
+            Vector2 silhouette = ResolveSilhouetteScale(profile, angle);
+            return new Vector3(
+                Mathf.Cos(angle) * radiusX * alternatingFacetScale * silhouette.x,
+                height,
+                Mathf.Sin(angle) * radiusZ * alternatingFacetScale * silhouette.y);
+        }
+
+        private static void ResolveRing(
+            CrystalProfile profile,
+            RingKind ringKind,
+            out float radiusX,
+            out float radiusZ,
+            out float height,
+            out float facetAlternation)
+        {
+            switch (ringKind)
+            {
+                case RingKind.Crown:
+                    radiusX = profile.CrownRadiusX;
+                    radiusZ = profile.CrownRadiusZ;
+                    height = profile.CrownY;
+                    facetAlternation = profile.FacetAlternation;
+                    return;
+                case RingKind.GirdleTop:
+                    radiusX = profile.GirdleRadiusX;
+                    radiusZ = profile.GirdleRadiusZ;
+                    height = profile.GirdleY + profile.GirdleHalfThickness;
+                    facetAlternation = 1f;
+                    return;
+                case RingKind.GirdleBottom:
+                    radiusX = profile.GirdleRadiusX;
+                    radiusZ = profile.GirdleRadiusZ;
+                    height = profile.GirdleY - profile.GirdleHalfThickness;
+                    facetAlternation = 1f;
+                    return;
+                case RingKind.Pavilion:
+                    radiusX = profile.PavilionRadiusX;
+                    radiusZ = profile.PavilionRadiusZ;
+                    height = profile.PavilionY;
+                    facetAlternation = profile.FacetAlternation;
+                    return;
+                default:
+                    radiusX = profile.TableRadiusX;
+                    radiusZ = profile.TableRadiusZ;
+                    height = profile.TopY;
+                    facetAlternation = 1f;
+                    return;
+            }
         }
 
         private static Vector2 ResolveSilhouetteScale(CrystalProfile profile, float angle)
@@ -219,16 +411,16 @@ namespace Kaleidoscope2.DiamondFocus.RealMesh
                     profile = CrystalProfile.Hexagon;
                     break;
                 case CrystalShape.FacetedCube:
-                    profile = CrystalProfile.Princess;
-                    profile.CrownRadiusX = 0.82f;
-                    profile.CrownRadiusZ = 0.78f;
-                    profile.TableRadiusX = 0.32f;
-                    profile.TableRadiusZ = 0.3f;
-                    profile.GirdleRadiusX = 1.12f;
-                    profile.GirdleRadiusZ = 1.04f;
-                    profile.PavilionRadiusX = 0.76f;
-                    profile.PavilionRadiusZ = 0.7f;
-                    profile.FacetAlternation = 0.82f;
+                    profile = CrystalProfile.Octagon;
+                    profile.CrownRadiusX = 0.86f;
+                    profile.CrownRadiusZ = 0.86f;
+                    profile.TableRadiusX = 0.34f;
+                    profile.TableRadiusZ = 0.34f;
+                    profile.GirdleRadiusX = 1.16f;
+                    profile.GirdleRadiusZ = 1.16f;
+                    profile.PavilionRadiusX = 0.66f;
+                    profile.PavilionRadiusZ = 0.66f;
+                    profile.FacetAlternation = 1f;
                     break;
                 case CrystalShape.DiscoBall:
                     profile = CrystalProfile.Cushion;
@@ -325,21 +517,21 @@ namespace Kaleidoscope2.DiamondFocus.RealMesh
                     {
                         SideCount = 32,
                         Silhouette = CrystalSilhouette.Brilliant,
-                        TopY = 0.78f,
-                        CrownY = 0.42f,
+                        TopY = 0.94f,
+                        CrownY = 0.5f,
                         GirdleY = 0f,
-                        PavilionY = -0.5f,
-                        BottomY = -1.16f,
-                        TableRadiusX = 0.3f,
-                        TableRadiusZ = 0.3f,
-                        CrownRadiusX = 0.7f,
-                        CrownRadiusZ = 0.7f,
-                        GirdleRadiusX = 1.08f,
-                        GirdleRadiusZ = 1.08f,
-                        PavilionRadiusX = 0.5f,
-                        PavilionRadiusZ = 0.5f,
-                        GirdleHalfThickness = 0.075f,
-                        FacetAlternation = 0.9f
+                        PavilionY = -0.56f,
+                        BottomY = -1.34f,
+                        TableRadiusX = 0.34f,
+                        TableRadiusZ = 0.34f,
+                        CrownRadiusX = 0.8f,
+                        CrownRadiusZ = 0.8f,
+                        GirdleRadiusX = 1.14f,
+                        GirdleRadiusZ = 1.14f,
+                        PavilionRadiusX = 0.62f,
+                        PavilionRadiusZ = 0.62f,
+                        GirdleHalfThickness = 0.095f,
+                        FacetAlternation = 0.96f
                     };
                 }
             }
@@ -352,20 +544,20 @@ namespace Kaleidoscope2.DiamondFocus.RealMesh
                     {
                         SideCount = 8,
                         Silhouette = CrystalSilhouette.Emerald,
-                        TopY = 0.92f,
-                        CrownY = 0.46f,
+                        TopY = 0.98f,
+                        CrownY = 0.48f,
                         GirdleY = 0f,
-                        PavilionY = -0.42f,
-                        BottomY = -0.96f,
-                        TableRadiusX = 0.5f,
-                        TableRadiusZ = 0.28f,
-                        CrownRadiusX = 0.9f,
-                        CrownRadiusZ = 0.5f,
-                        GirdleRadiusX = 1.28f,
-                        GirdleRadiusZ = 0.76f,
-                        PavilionRadiusX = 0.72f,
-                        PavilionRadiusZ = 0.42f,
-                        GirdleHalfThickness = 0.07f,
+                        PavilionY = -0.46f,
+                        BottomY = -1.08f,
+                        TableRadiusX = 0.54f,
+                        TableRadiusZ = 0.3f,
+                        CrownRadiusX = 0.96f,
+                        CrownRadiusZ = 0.54f,
+                        GirdleRadiusX = 1.36f,
+                        GirdleRadiusZ = 0.82f,
+                        PavilionRadiusX = 0.78f,
+                        PavilionRadiusZ = 0.46f,
+                        GirdleHalfThickness = 0.085f,
                         FacetAlternation = 0.99f
                     };
                 }
@@ -379,20 +571,20 @@ namespace Kaleidoscope2.DiamondFocus.RealMesh
                     {
                         SideCount = 8,
                         Silhouette = CrystalSilhouette.Princess,
-                        TopY = 0.92f,
-                        CrownY = 0.46f,
+                        TopY = 0.96f,
+                        CrownY = 0.48f,
                         GirdleY = 0f,
-                        PavilionY = -0.42f,
-                        BottomY = -1f,
-                        TableRadiusX = 0.34f,
-                        TableRadiusZ = 0.34f,
-                        CrownRadiusX = 0.76f,
-                        CrownRadiusZ = 0.76f,
-                        GirdleRadiusX = 1.08f,
-                        GirdleRadiusZ = 1.08f,
-                        PavilionRadiusX = 0.56f,
-                        PavilionRadiusZ = 0.56f,
-                        GirdleHalfThickness = 0.08f,
+                        PavilionY = -0.46f,
+                        BottomY = -1.12f,
+                        TableRadiusX = 0.38f,
+                        TableRadiusZ = 0.38f,
+                        CrownRadiusX = 0.82f,
+                        CrownRadiusZ = 0.82f,
+                        GirdleRadiusX = 1.14f,
+                        GirdleRadiusZ = 1.14f,
+                        PavilionRadiusX = 0.64f,
+                        PavilionRadiusZ = 0.64f,
+                        GirdleHalfThickness = 0.09f,
                         FacetAlternation = 0.96f
                     };
                 }
@@ -406,20 +598,20 @@ namespace Kaleidoscope2.DiamondFocus.RealMesh
                     {
                         SideCount = 24,
                         Silhouette = CrystalSilhouette.Marquise,
-                        TopY = 0.98f,
-                        CrownY = 0.5f,
+                        TopY = 1.04f,
+                        CrownY = 0.52f,
                         GirdleY = 0f,
-                        PavilionY = -0.44f,
-                        BottomY = -1.06f,
-                        TableRadiusX = 0.3f,
-                        TableRadiusZ = 0.16f,
-                        CrownRadiusX = 0.86f,
-                        CrownRadiusZ = 0.34f,
-                        GirdleRadiusX = 1.5f,
-                        GirdleRadiusZ = 0.56f,
-                        PavilionRadiusX = 0.72f,
-                        PavilionRadiusZ = 0.28f,
-                        GirdleHalfThickness = 0.06f,
+                        PavilionY = -0.48f,
+                        BottomY = -1.16f,
+                        TableRadiusX = 0.32f,
+                        TableRadiusZ = 0.18f,
+                        CrownRadiusX = 0.94f,
+                        CrownRadiusZ = 0.38f,
+                        GirdleRadiusX = 1.62f,
+                        GirdleRadiusZ = 0.62f,
+                        PavilionRadiusX = 0.78f,
+                        PavilionRadiusZ = 0.32f,
+                        GirdleHalfThickness = 0.075f,
                         FacetAlternation = 0.94f
                     };
                 }
@@ -433,20 +625,20 @@ namespace Kaleidoscope2.DiamondFocus.RealMesh
                     {
                         SideCount = 24,
                         Silhouette = CrystalSilhouette.Pear,
-                        TopY = 1.02f,
-                        CrownY = 0.5f,
+                        TopY = 1.08f,
+                        CrownY = 0.52f,
                         GirdleY = -0.02f,
-                        PavilionY = -0.46f,
-                        BottomY = -1.08f,
-                        TableRadiusX = 0.24f,
-                        TableRadiusZ = 0.22f,
-                        CrownRadiusX = 0.58f,
-                        CrownRadiusZ = 0.54f,
-                        GirdleRadiusX = 1.06f,
-                        GirdleRadiusZ = 0.92f,
-                        PavilionRadiusX = 0.54f,
-                        PavilionRadiusZ = 0.5f,
-                        GirdleHalfThickness = 0.06f,
+                        PavilionY = -0.5f,
+                        BottomY = -1.18f,
+                        TableRadiusX = 0.26f,
+                        TableRadiusZ = 0.24f,
+                        CrownRadiusX = 0.64f,
+                        CrownRadiusZ = 0.58f,
+                        GirdleRadiusX = 1.16f,
+                        GirdleRadiusZ = 1.0f,
+                        PavilionRadiusX = 0.6f,
+                        PavilionRadiusZ = 0.54f,
+                        GirdleHalfThickness = 0.075f,
                         FacetAlternation = 0.94f
                     };
                 }
@@ -460,20 +652,20 @@ namespace Kaleidoscope2.DiamondFocus.RealMesh
                     {
                         SideCount = 16,
                         Silhouette = CrystalSilhouette.Cushion,
-                        TopY = 0.94f,
-                        CrownY = 0.46f,
+                        TopY = 1f,
+                        CrownY = 0.5f,
                         GirdleY = 0f,
-                        PavilionY = -0.42f,
-                        BottomY = -0.98f,
-                        TableRadiusX = 0.38f,
-                        TableRadiusZ = 0.34f,
-                        CrownRadiusX = 0.78f,
-                        CrownRadiusZ = 0.72f,
-                        GirdleRadiusX = 1.1f,
-                        GirdleRadiusZ = 1f,
-                        PavilionRadiusX = 0.58f,
-                        PavilionRadiusZ = 0.52f,
-                        GirdleHalfThickness = 0.08f,
+                        PavilionY = -0.46f,
+                        BottomY = -1.1f,
+                        TableRadiusX = 0.42f,
+                        TableRadiusZ = 0.38f,
+                        CrownRadiusX = 0.84f,
+                        CrownRadiusZ = 0.78f,
+                        GirdleRadiusX = 1.18f,
+                        GirdleRadiusZ = 1.08f,
+                        PavilionRadiusX = 0.66f,
+                        PavilionRadiusZ = 0.58f,
+                        GirdleHalfThickness = 0.09f,
                         FacetAlternation = 0.96f
                     };
                 }
@@ -507,11 +699,15 @@ namespace Kaleidoscope2.DiamondFocus.RealMesh
                     CrystalProfile profile = Princess;
                     profile.Silhouette = CrystalSilhouette.Octagon;
                     profile.SideCount = 8;
-                    profile.TableRadiusX = 0.3f;
-                    profile.TableRadiusZ = 0.3f;
-                    profile.GirdleRadiusX = 1.06f;
-                    profile.GirdleRadiusZ = 1.06f;
-                    profile.GirdleHalfThickness = 0.08f;
+                    profile.TableRadiusX = 0.36f;
+                    profile.TableRadiusZ = 0.36f;
+                    profile.CrownRadiusX = 0.86f;
+                    profile.CrownRadiusZ = 0.86f;
+                    profile.GirdleRadiusX = 1.18f;
+                    profile.GirdleRadiusZ = 1.18f;
+                    profile.PavilionRadiusX = 0.66f;
+                    profile.PavilionRadiusZ = 0.66f;
+                    profile.GirdleHalfThickness = 0.09f;
                     profile.FacetAlternation = 1f;
                     return profile;
                 }
@@ -524,15 +720,15 @@ namespace Kaleidoscope2.DiamondFocus.RealMesh
                     CrystalProfile profile = Brilliant;
                     profile.Silhouette = CrystalSilhouette.Hexagon;
                     profile.SideCount = 6;
-                    profile.TableRadiusX = 0.3f;
-                    profile.TableRadiusZ = 0.28f;
-                    profile.CrownRadiusX = 0.7f;
-                    profile.CrownRadiusZ = 0.66f;
-                    profile.GirdleRadiusX = 1.08f;
-                    profile.GirdleRadiusZ = 1f;
-                    profile.PavilionRadiusX = 0.48f;
-                    profile.PavilionRadiusZ = 0.46f;
-                    profile.GirdleHalfThickness = 0.07f;
+                    profile.TableRadiusX = 0.34f;
+                    profile.TableRadiusZ = 0.32f;
+                    profile.CrownRadiusX = 0.76f;
+                    profile.CrownRadiusZ = 0.72f;
+                    profile.GirdleRadiusX = 1.16f;
+                    profile.GirdleRadiusZ = 1.08f;
+                    profile.PavilionRadiusX = 0.56f;
+                    profile.PavilionRadiusZ = 0.52f;
+                    profile.GirdleHalfThickness = 0.085f;
                     profile.FacetAlternation = 1f;
                     return profile;
                 }
@@ -550,6 +746,15 @@ namespace Kaleidoscope2.DiamondFocus.RealMesh
             Radiant,
             Octagon,
             Hexagon
+        }
+
+        private enum RingKind
+        {
+            Table,
+            Crown,
+            GirdleTop,
+            GirdleBottom,
+            Pavilion
         }
     }
 }
