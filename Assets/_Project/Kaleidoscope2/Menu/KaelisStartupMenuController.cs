@@ -2,10 +2,29 @@ using System.Collections;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.Events;
 using UnityEngine.UI;
 
 namespace Kaleidoscope2.Menu
 {
+    internal enum KaelisMenuButtonVisualKind
+    {
+        Primary,
+        Secondary,
+        Demo,
+        Exit
+    }
+
+    internal enum KaelisMenuFontRole
+    {
+        Logo,
+        Subtitle,
+        PrimaryButton,
+        SecondaryLabel,
+        PreviewLabel,
+        StatusText
+    }
+
     internal enum KaelisMenuIconKind
     {
         Diamond,
@@ -61,6 +80,7 @@ namespace Kaleidoscope2.Menu
         private Toggle demoToggle;
         private KaelisMenuButtonTransition demoToggleTransition;
         private KaelisMenuToggleVisual demoToggleVisual;
+        private KaelisMenuVisualAssets visualAssets;
         private TMP_FontAsset runtimeFontAsset;
         private bool runtimeFontAssetGenerated;
         private Texture2D solidTexture;
@@ -77,6 +97,7 @@ namespace Kaleidoscope2.Menu
         private void Awake()
         {
             EnsureGeneratedAssets();
+            visualAssets = KaelisMenuVisualAssets.Load();
             EnsureEventSystem();
             BuildMenu();
             SetVisible(startVisible);
@@ -197,44 +218,44 @@ namespace Kaleidoscope2.Menu
             layout.childForceExpandWidth = true;
             layout.childForceExpandHeight = false;
 
-            TMP_Text eyebrow = CreateText(panel, "Eyebrow", "OPTICAL EXPERIENCE ENGINE", 15f, FontStyles.Normal, TextSecondary, TextAlignmentOptions.Left);
+            TMP_Text eyebrow = CreateText(panel, "Eyebrow", "OPTICAL EXPERIENCE ENGINE", 15f, FontStyles.Normal, TextSecondary, TextAlignmentOptions.Left, KaelisMenuFontRole.SecondaryLabel);
             eyebrow.characterSpacing = 18f;
             AddLayout(eyebrow.gameObject, -1f, 26f);
 
-            TMP_Text title = CreateText(panel, "Title", "KAELIS", 64f, FontStyles.Normal, TextPrimary, TextAlignmentOptions.Left);
+            TMP_Text title = CreateText(panel, "Title", "KAELIS", 64f, FontStyles.Normal, TextPrimary, TextAlignmentOptions.Left, KaelisMenuFontRole.Logo);
             title.characterSpacing = 6f;
             AddLayout(title.gameObject, -1f, 76f);
             AddTextGlow(title.gameObject, new Color(0.9f, 0.96f, 1f, 0.18f), new Vector2(0f, -2f));
 
-            TMP_Text subtitle = CreateText(panel, "Subtitle", "BEYOND THE REFLECTION", 16f, FontStyles.Normal, TextSecondary, TextAlignmentOptions.Left);
+            TMP_Text subtitle = CreateText(panel, "Subtitle", "BEYOND THE REFLECTION", 16f, FontStyles.Normal, TextSecondary, TextAlignmentOptions.Left, KaelisMenuFontRole.Subtitle);
             subtitle.characterSpacing = 8f;
             AddLayout(subtitle.gameObject, -1f, 30f);
 
             AddSpacer(panel, 14f);
 
-            Button enterButton = CreateMenuButton(panel, "EnterExperienceButton", "ENTER EXPERIENCE", Gold, KaelisMenuIconKind.Diamond, true);
-            enterButton.onClick.AddListener(EnterExperience);
+            Button enterButton = CreateMenuButton(panel, "EnterExperienceButton", "ENTER EXPERIENCE", Gold, KaelisMenuIconKind.Diamond, true, KaelisMenuButtonVisualKind.Primary);
+            BindMenuButton(enterButton, EnterExperience);
 
             demoToggle = CreateDemoToggle(panel);
             demoToggle.onValueChanged.AddListener(UpdateDemoState);
 
-            Button modesButton = CreateMenuButton(panel, "ModesButton", "MODES", Cyan, KaelisMenuIconKind.Layers, false);
-            modesButton.onClick.AddListener(() => LogPlaceholder("Modes"));
+            Button modesButton = CreateMenuButton(panel, "ModesButton", "MODES", Cyan, KaelisMenuIconKind.Layers, false, KaelisMenuButtonVisualKind.Secondary);
+            BindMenuButton(modesButton, () => LogPlaceholder("Modes"));
 
-            Button opticsButton = CreateMenuButton(panel, "OpticsButton", "OPTICS", Cyan, KaelisMenuIconKind.Optics, false);
-            opticsButton.onClick.AddListener(() => LogPlaceholder("Optics"));
+            Button opticsButton = CreateMenuButton(panel, "OpticsButton", "OPTICS", Cyan, KaelisMenuIconKind.Optics, false, KaelisMenuButtonVisualKind.Secondary);
+            BindMenuButton(opticsButton, () => LogPlaceholder("Optics"));
 
-            Button presetsButton = CreateMenuButton(panel, "PresetsButton", "PRESETS", Cyan, KaelisMenuIconKind.Star, false);
-            presetsButton.onClick.AddListener(() => LogPlaceholder("Presets"));
+            Button presetsButton = CreateMenuButton(panel, "PresetsButton", "PRESETS", Cyan, KaelisMenuIconKind.Star, false, KaelisMenuButtonVisualKind.Secondary);
+            BindMenuButton(presetsButton, () => LogPlaceholder("Presets"));
 
-            Button settingsButton = CreateMenuButton(panel, "SettingsButton", "SETTINGS", Cyan, KaelisMenuIconKind.Settings, false);
-            settingsButton.onClick.AddListener(() => LogPlaceholder("Settings"));
+            Button settingsButton = CreateMenuButton(panel, "SettingsButton", "SETTINGS", Cyan, KaelisMenuIconKind.Settings, false, KaelisMenuButtonVisualKind.Secondary);
+            BindMenuButton(settingsButton, () => LogPlaceholder("Settings"));
 
-            Button exitButton = CreateMenuButton(panel, "ExitButton", "EXIT", RedGlow, KaelisMenuIconKind.Exit, false);
-            exitButton.onClick.AddListener(ExitApplication);
+            Button exitButton = CreateMenuButton(panel, "ExitButton", "EXIT", RedGlow, KaelisMenuIconKind.Exit, false, KaelisMenuButtonVisualKind.Exit);
+            BindMenuButton(exitButton, ExitApplication);
 
             AddSpacer(panel, 8f);
-            demoStateText = CreateText(panel, "DemoState", "DEMO MODE  OFF", 13f, FontStyles.Normal, TextSecondary, TextAlignmentOptions.Left);
+            demoStateText = CreateText(panel, "DemoState", "DEMO MODE  OFF", 13f, FontStyles.Normal, TextSecondary, TextAlignmentOptions.Left, KaelisMenuFontRole.StatusText);
             demoStateText.characterSpacing = 6f;
             AddLayout(demoStateText.gameObject, -1f, 22f);
         }
@@ -258,7 +279,7 @@ namespace Kaleidoscope2.Menu
             header.offsetMin = new Vector2(28f, -74f);
             header.offsetMax = new Vector2(-28f, -26f);
 
-            TMP_Text title = CreateText(header, "Label", "LIVE PREVIEW", 18f, FontStyles.Normal, TextSecondary, TextAlignmentOptions.Left);
+            TMP_Text title = CreateText(header, "Label", "LIVE PREVIEW", 18f, FontStyles.Normal, TextSecondary, TextAlignmentOptions.Left, KaelisMenuFontRole.PreviewLabel);
             title.characterSpacing = 10f;
             Stretch(title.rectTransform);
 
@@ -328,14 +349,14 @@ namespace Kaleidoscope2.Menu
             readyDotImage.color = GreenReady;
             readyDotImage.raycastTarget = false;
 
-            statusText = CreateText(statusBar, "StatusText", "SYSTEM READY    |    DEMO OFF    |    MODE: STARTUP", 13f, FontStyles.Normal, TextSecondary, TextAlignmentOptions.Left);
+            statusText = CreateText(statusBar, "StatusText", "SYSTEM READY    |    DEMO OFF    |    MODE: STARTUP", 13f, FontStyles.Normal, TextSecondary, TextAlignmentOptions.Left, KaelisMenuFontRole.StatusText);
             statusText.characterSpacing = 6f;
             statusText.rectTransform.anchorMin = Vector2.zero;
             statusText.rectTransform.anchorMax = Vector2.one;
             statusText.rectTransform.offsetMin = new Vector2(46f, 0f);
             statusText.rectTransform.offsetMax = new Vector2(-260f, 0f);
 
-            TMP_Text version = CreateText(statusBar, "VersionText", "v0.1.0", 12f, FontStyles.Normal, TextMuted, TextAlignmentOptions.Right);
+            TMP_Text version = CreateText(statusBar, "VersionText", "v0.1.0", 12f, FontStyles.Normal, TextMuted, TextAlignmentOptions.Right, KaelisMenuFontRole.StatusText);
             version.characterSpacing = 4f;
             version.rectTransform.anchorMin = new Vector2(1f, 0f);
             version.rectTransform.anchorMax = new Vector2(1f, 1f);
@@ -364,7 +385,7 @@ namespace Kaleidoscope2.Menu
 
             CreateStatusIcon(pill, "PillDiamond", new Vector2(-132f, 0f), KaelisMenuIconKind.Diamond, Gold);
 
-            TMP_Text label = CreateText(pill, "Label", "PREMIUM 3D", 13f, FontStyles.Normal, Gold, TextAlignmentOptions.Left);
+            TMP_Text label = CreateText(pill, "Label", "PREMIUM 3D", 13f, FontStyles.Normal, Gold, TextAlignmentOptions.Left, KaelisMenuFontRole.SecondaryLabel);
             label.characterSpacing = 4f;
             label.rectTransform.anchorMin = Vector2.zero;
             label.rectTransform.anchorMax = Vector2.one;
@@ -407,7 +428,7 @@ namespace Kaleidoscope2.Menu
             bottomBandImage.color = new Color(0f, 0.005f, 0.01f, 0.44f);
             bottomBandImage.raycastTarget = false;
 
-            TMP_Text state = CreateText(bottomBand, "StateLabel", "PREMIUM 3D READY", 12f, FontStyles.Normal, TextSecondary, TextAlignmentOptions.Left);
+            TMP_Text state = CreateText(bottomBand, "StateLabel", "PREMIUM 3D READY", 12f, FontStyles.Normal, TextSecondary, TextAlignmentOptions.Left, KaelisMenuFontRole.StatusText);
             state.characterSpacing = 5f;
             state.rectTransform.anchorMin = Vector2.zero;
             state.rectTransform.anchorMax = Vector2.one;
@@ -549,6 +570,7 @@ namespace Kaleidoscope2.Menu
                 Cyan,
                 KaelisMenuIconKind.Monitor,
                 false,
+                KaelisMenuButtonVisualKind.Demo,
                 56f,
                 out TMP_Text label,
                 out Image background,
@@ -561,7 +583,7 @@ namespace Kaleidoscope2.Menu
             toggle.targetGraphic = background;
             toggle.graphic = null;
 
-            demoToggleValueText = CreateText(row, "ToggleValue", "OFF", 14f, FontStyles.Normal, TextSecondary, TextAlignmentOptions.Right);
+            demoToggleValueText = CreateText(row, "ToggleValue", "OFF", 14f, FontStyles.Normal, TextSecondary, TextAlignmentOptions.Right, KaelisMenuFontRole.StatusText);
             demoToggleValueText.characterSpacing = 4f;
             demoToggleValueText.rectTransform.anchorMin = new Vector2(1f, 0f);
             demoToggleValueText.rectTransform.anchorMax = new Vector2(1f, 1f);
@@ -595,7 +617,7 @@ namespace Kaleidoscope2.Menu
             knobImage.raycastTarget = false;
 
             demoToggleTransition = row.gameObject.AddComponent<KaelisMenuButtonTransition>();
-            demoToggleTransition.Configure(toggle, background, glow, accentLine, label, ButtonNormal, ButtonHover, ButtonPressed, ButtonSelected, ButtonDisabled, Cyan, false);
+            demoToggleTransition.Configure(toggle, background, glow, accentLine, label, row.GetComponent<KaelisMenuGemButtonVisual>(), ButtonNormal, ButtonHover, ButtonPressed, ButtonSelected, ButtonDisabled, Cyan, false);
 
             demoToggleVisual = row.gameObject.AddComponent<KaelisMenuToggleVisual>();
             demoToggleVisual.Configure(trackImage, knob, knobImage, demoToggleValueText, Cyan, Gold);
@@ -604,7 +626,7 @@ namespace Kaleidoscope2.Menu
             return toggle;
         }
 
-        private Button CreateMenuButton(RectTransform parent, string name, string label, Color accent, KaelisMenuIconKind iconKind, bool primary)
+        private Button CreateMenuButton(RectTransform parent, string name, string label, Color accent, KaelisMenuIconKind iconKind, bool primary, KaelisMenuButtonVisualKind visualKind)
         {
             RectTransform buttonRoot = CreateButtonBase(
                 parent,
@@ -613,6 +635,7 @@ namespace Kaleidoscope2.Menu
                 accent,
                 iconKind,
                 primary,
+                visualKind,
                 primary ? 64f : 56f,
                 out TMP_Text labelText,
                 out Image background,
@@ -627,7 +650,7 @@ namespace Kaleidoscope2.Menu
             Color hover = primary ? new Color(0.18f, 0.12f, 0.035f, 0.98f) : ButtonHover;
             Color pressed = primary ? new Color(0.36f, 0.22f, 0.07f, 1f) : ButtonPressed;
             Color selected = primary ? new Color(0.14f, 0.095f, 0.034f, 0.98f) : ButtonSelected;
-            transition.Configure(button, background, glow, accentLine, labelText, normal, hover, pressed, selected, ButtonDisabled, accent, primary);
+            transition.Configure(button, background, glow, accentLine, labelText, buttonRoot.GetComponent<KaelisMenuGemButtonVisual>(), normal, hover, pressed, selected, ButtonDisabled, accent, primary);
             return button;
         }
 
@@ -638,6 +661,7 @@ namespace Kaleidoscope2.Menu
             Color accent,
             KaelisMenuIconKind iconKind,
             bool primary,
+            KaelisMenuButtonVisualKind visualKind,
             float height,
             out TMP_Text labelText,
             out Image backgroundImage,
@@ -651,6 +675,56 @@ namespace Kaleidoscope2.Menu
             backgroundImage.sprite = solidSprite;
             backgroundImage.color = primary ? new Color(0.075f, 0.055f, 0.025f, 0.92f) : ButtonNormal;
             backgroundImage.raycastTarget = true;
+
+            KaelisMenuGemButtonSprites gemSprites = visualAssets != null ? visualAssets.GetButtonSprites(visualKind) : KaelisMenuGemButtonSprites.Empty;
+            if (gemSprites.HasNormal)
+            {
+                backgroundImage.sprite = gemSprites.normal;
+                backgroundImage.type = Image.Type.Sliced;
+                backgroundImage.color = Color.white;
+            }
+
+            if (gemSprites.HasAny)
+            {
+                RectTransform hoverClip = CreateRect("GemHoverClip", buttonRoot);
+                hoverClip.anchorMin = new Vector2(0f, 0f);
+                hoverClip.anchorMax = new Vector2(0f, 1f);
+                hoverClip.pivot = new Vector2(0f, 0.5f);
+                hoverClip.sizeDelta = new Vector2(0f, 0f);
+                hoverClip.anchoredPosition = Vector2.zero;
+                hoverClip.gameObject.AddComponent<RectMask2D>();
+
+                RectTransform hoverImageRect = CreateRect("GemHoverImage", hoverClip);
+                hoverImageRect.anchorMin = new Vector2(0f, 0f);
+                hoverImageRect.anchorMax = new Vector2(0f, 1f);
+                hoverImageRect.pivot = new Vector2(0f, 0.5f);
+                hoverImageRect.sizeDelta = new Vector2(0f, 0f);
+                hoverImageRect.anchoredPosition = Vector2.zero;
+                Image hoverImage = hoverImageRect.gameObject.AddComponent<Image>();
+                hoverImage.sprite = gemSprites.hover;
+                hoverImage.type = Image.Type.Sliced;
+                hoverImage.color = Color.white;
+                hoverImage.raycastTarget = false;
+
+                RectTransform stateOverlay = CreateRect("GemStateOverlay", buttonRoot);
+                Stretch(stateOverlay);
+                Image stateImage = stateOverlay.gameObject.AddComponent<Image>();
+                stateImage.sprite = gemSprites.selected != null ? gemSprites.selected : gemSprites.pressed;
+                stateImage.type = Image.Type.Sliced;
+                stateImage.color = new Color(1f, 1f, 1f, 0f);
+                stateImage.raycastTarget = false;
+
+                RectTransform flashOverlay = CreateRect("GemActivationFlash", buttonRoot);
+                Stretch(flashOverlay);
+                Image flashImage = flashOverlay.gameObject.AddComponent<Image>();
+                flashImage.sprite = gemSprites.pressed != null ? gemSprites.pressed : gemSprites.hover;
+                flashImage.type = Image.Type.Sliced;
+                flashImage.color = new Color(1f, 0.86f, 0.08f, 0f);
+                flashImage.raycastTarget = false;
+
+                KaelisMenuGemButtonVisual gemVisual = buttonRoot.gameObject.AddComponent<KaelisMenuGemButtonVisual>();
+                gemVisual.Configure(buttonRoot, hoverClip, hoverImageRect, hoverImage, stateImage, flashImage, gemSprites, visualKind);
+            }
 
             RectTransform glow = CreateRect("SoftAccentGlow", buttonRoot);
             Stretch(glow);
@@ -679,14 +753,14 @@ namespace Kaleidoscope2.Menu
 
             CreateMenuIcon(buttonRoot, iconKind, accent, primary);
 
-            labelText = CreateText(buttonRoot, "Label", label, primary ? 16f : 15f, FontStyles.Normal, TextPrimary, TextAlignmentOptions.MidlineLeft);
+            labelText = CreateText(buttonRoot, "Label", label, primary ? 16f : 15f, FontStyles.Normal, TextPrimary, TextAlignmentOptions.MidlineLeft, primary ? KaelisMenuFontRole.PrimaryButton : KaelisMenuFontRole.SecondaryLabel);
             labelText.characterSpacing = primary ? 5f : 4f;
             labelText.rectTransform.anchorMin = Vector2.zero;
             labelText.rectTransform.anchorMax = Vector2.one;
             labelText.rectTransform.offsetMin = new Vector2(76f, 0f);
             labelText.rectTransform.offsetMax = new Vector2(-88f, 0f);
 
-            TMP_Text chevron = CreateText(buttonRoot, "Chevron", ">", primary ? 28f : 25f, FontStyles.Normal, primary ? Gold : TextSecondary, TextAlignmentOptions.Center);
+            TMP_Text chevron = CreateText(buttonRoot, "Chevron", ">", primary ? 28f : 25f, FontStyles.Normal, primary ? Gold : TextSecondary, TextAlignmentOptions.Center, KaelisMenuFontRole.SecondaryLabel);
             chevron.rectTransform.anchorMin = new Vector2(1f, 0f);
             chevron.rectTransform.anchorMax = new Vector2(1f, 1f);
             chevron.rectTransform.pivot = new Vector2(1f, 0.5f);
@@ -723,11 +797,11 @@ namespace Kaleidoscope2.Menu
             return panel;
         }
 
-        private TMP_Text CreateText(RectTransform parent, string name, string value, float size, FontStyles style, Color color, TextAlignmentOptions alignment)
+        private TMP_Text CreateText(RectTransform parent, string name, string value, float size, FontStyles style, Color color, TextAlignmentOptions alignment, KaelisMenuFontRole fontRole = KaelisMenuFontRole.SecondaryLabel)
         {
             RectTransform rect = CreateRect(name, parent);
             TextMeshProUGUI text = rect.gameObject.AddComponent<TextMeshProUGUI>();
-            TMP_FontAsset fontAsset = GetRuntimeFontAsset();
+            TMP_FontAsset fontAsset = GetFontAsset(fontRole);
             if (fontAsset != null)
             {
                 text.font = fontAsset;
@@ -753,6 +827,21 @@ namespace Kaleidoscope2.Menu
             image.color = Color.white;
             image.raycastTarget = false;
             return image;
+        }
+
+        private void BindMenuButton(Button button, UnityAction action)
+        {
+            KaelisMenuButtonTransition transition = button.GetComponent<KaelisMenuButtonTransition>();
+            button.onClick.AddListener(() =>
+            {
+                if (transition != null)
+                {
+                    transition.InvokeWithFlash(action);
+                    return;
+                }
+
+                action.Invoke();
+            });
         }
 
         private void EnterExperience()
@@ -916,6 +1005,20 @@ namespace Kaleidoscope2.Menu
             solidSprite = Sprite.Create(solidTexture, new Rect(0f, 0f, 1f, 1f), new Vector2(0.5f, 0.5f), 1f);
             solidSprite.name = "KAELIS_Menu_SolidSprite";
             solidSprite.hideFlags = HideFlags.HideAndDontSave;
+        }
+
+        private TMP_FontAsset GetFontAsset(KaelisMenuFontRole role)
+        {
+            if (visualAssets != null)
+            {
+                TMP_FontAsset roleFont = visualAssets.GetFont(role);
+                if (roleFont != null)
+                {
+                    return roleFont;
+                }
+            }
+
+            return GetRuntimeFontAsset();
         }
 
         private TMP_FontAsset GetRuntimeFontAsset()
@@ -1195,13 +1298,274 @@ namespace Kaleidoscope2.Menu
         }
     }
 
+    internal sealed class KaelisMenuVisualAssets
+    {
+        private const string GemButtonPath = "GemButtons/";
+        private const string MenuFontPath = "MenuFonts/";
+
+        private Sprite primaryNormal;
+        private Sprite primaryHover;
+        private Sprite primaryPressed;
+        private Sprite secondaryNormal;
+        private Sprite secondaryHover;
+        private Sprite secondaryPressed;
+        private Sprite secondarySelected;
+        private Sprite demoNormal;
+        private Sprite demoActive;
+        private Sprite exitNormal;
+        private Sprite exitHover;
+        private Sprite exitPressed;
+        private TMP_FontAsset cinzelRegular;
+        private TMP_FontAsset cinzelMedium;
+        private TMP_FontAsset cinzelSemiBold;
+        private TMP_FontAsset interRegular;
+        private TMP_FontAsset interMedium;
+        private TMP_FontAsset interSemiBold;
+
+        public static KaelisMenuVisualAssets Load()
+        {
+            return new KaelisMenuVisualAssets
+            {
+                primaryNormal = LoadSprite("button_primary_normal"),
+                primaryHover = LoadSprite("button_primary_hover"),
+                primaryPressed = LoadSprite("button_primary_pressed"),
+                secondaryNormal = LoadSprite("button_secondary_normal"),
+                secondaryHover = LoadSprite("button_secondary_hover"),
+                secondaryPressed = LoadSprite("button_secondary_pressed"),
+                secondarySelected = LoadSprite("button_secondary_selected"),
+                demoNormal = LoadSprite("button_demo_normal"),
+                demoActive = LoadSprite("button_demo_active"),
+                exitNormal = LoadSprite("button_exit_normal"),
+                exitHover = LoadSprite("button_exit_hover"),
+                exitPressed = LoadSprite("button_exit_pressed"),
+                cinzelRegular = LoadFont("Kaelis_Cinzel_Regular"),
+                cinzelMedium = LoadFont("Kaelis_Cinzel_Medium"),
+                cinzelSemiBold = LoadFont("Kaelis_Cinzel_SemiBold"),
+                interRegular = LoadFont("Kaelis_Inter_18pt_Regular"),
+                interMedium = LoadFont("Kaelis_Inter_18pt_Medium"),
+                interSemiBold = LoadFont("Kaelis_Inter_18pt_SemiBold")
+            };
+        }
+
+        public KaelisMenuGemButtonSprites GetButtonSprites(KaelisMenuButtonVisualKind kind)
+        {
+            switch (kind)
+            {
+                case KaelisMenuButtonVisualKind.Primary:
+                    return new KaelisMenuGemButtonSprites(primaryNormal, primaryHover, primaryPressed, primaryPressed);
+                case KaelisMenuButtonVisualKind.Demo:
+                    return new KaelisMenuGemButtonSprites(demoNormal, demoActive, demoActive, demoActive);
+                case KaelisMenuButtonVisualKind.Exit:
+                    return new KaelisMenuGemButtonSprites(exitNormal, exitHover, exitPressed, exitHover);
+                default:
+                    return new KaelisMenuGemButtonSprites(secondaryNormal, secondaryHover, secondaryPressed, secondarySelected);
+            }
+        }
+
+        public TMP_FontAsset GetFont(KaelisMenuFontRole role)
+        {
+            switch (role)
+            {
+                case KaelisMenuFontRole.Logo:
+                    return cinzelRegular != null ? cinzelRegular : cinzelMedium;
+                case KaelisMenuFontRole.Subtitle:
+                    return cinzelRegular;
+                case KaelisMenuFontRole.PrimaryButton:
+                    return cinzelSemiBold;
+                case KaelisMenuFontRole.PreviewLabel:
+                    return interMedium;
+                case KaelisMenuFontRole.StatusText:
+                    return interRegular != null ? interRegular : interMedium;
+                default:
+                    return interSemiBold;
+            }
+        }
+
+        private static Sprite LoadSprite(string assetName)
+        {
+            return Resources.Load<Sprite>(GemButtonPath + assetName);
+        }
+
+        private static TMP_FontAsset LoadFont(string assetName)
+        {
+            return Resources.Load<TMP_FontAsset>(MenuFontPath + assetName);
+        }
+    }
+
+    internal readonly struct KaelisMenuGemButtonSprites
+    {
+        public static readonly KaelisMenuGemButtonSprites Empty = new KaelisMenuGemButtonSprites(null, null, null, null);
+
+        public readonly Sprite normal;
+        public readonly Sprite hover;
+        public readonly Sprite pressed;
+        public readonly Sprite selected;
+
+        public KaelisMenuGemButtonSprites(Sprite normal, Sprite hover, Sprite pressed, Sprite selected)
+        {
+            this.normal = normal;
+            this.hover = hover;
+            this.pressed = pressed;
+            this.selected = selected;
+        }
+
+        public bool HasNormal
+        {
+            get { return normal != null; }
+        }
+
+        public bool HasAny
+        {
+            get { return normal != null || hover != null || pressed != null || selected != null; }
+        }
+    }
+
+    internal sealed class KaelisMenuGemButtonVisual : MonoBehaviour
+    {
+        private RectTransform root;
+        private RectTransform hoverClip;
+        private RectTransform hoverImageRect;
+        private Image hoverImage;
+        private Image stateImage;
+        private Image flashImage;
+        private KaelisMenuGemButtonSprites sprites;
+        private KaelisMenuButtonVisualKind kind;
+        private float hoverFill;
+        private float stateAlpha;
+        private float flashAlpha;
+        private bool configured;
+
+        public void Configure(
+            RectTransform root,
+            RectTransform hoverClip,
+            RectTransform hoverImageRect,
+            Image hoverImage,
+            Image stateImage,
+            Image flashImage,
+            KaelisMenuGemButtonSprites sprites,
+            KaelisMenuButtonVisualKind kind)
+        {
+            this.root = root;
+            this.hoverClip = hoverClip;
+            this.hoverImageRect = hoverImageRect;
+            this.hoverImage = hoverImage;
+            this.stateImage = stateImage;
+            this.flashImage = flashImage;
+            this.sprites = sprites;
+            this.kind = kind;
+            configured = true;
+            ApplyVisual(false, false, false, true, 1f);
+        }
+
+        public void TriggerFlash()
+        {
+            flashAlpha = 1f;
+        }
+
+        public void ApplyVisual(bool hovered, bool pressed, bool selected, bool interactable, float t)
+        {
+            if (!configured || root == null)
+            {
+                return;
+            }
+
+            float targetFill = 0f;
+            if (interactable)
+            {
+                if (pressed)
+                {
+                    targetFill = 1f;
+                }
+                else if (hovered)
+                {
+                    targetFill = GetHoverFill();
+                }
+                else if (selected)
+                {
+                    targetFill = 0.28f;
+                }
+            }
+
+            hoverFill = Mathf.Lerp(hoverFill, targetFill, t);
+            float rootWidth = Mathf.Max(0f, root.rect.width);
+            if (hoverClip != null)
+            {
+                hoverClip.sizeDelta = new Vector2(rootWidth * hoverFill, 0f);
+            }
+
+            if (hoverImageRect != null)
+            {
+                hoverImageRect.sizeDelta = new Vector2(rootWidth, 0f);
+            }
+
+            if (hoverImage != null)
+            {
+                hoverImage.enabled = hoverFill > 0.01f;
+                hoverImage.color = Color.Lerp(hoverImage.color, interactable ? Color.white : new Color(1f, 1f, 1f, 0.35f), t);
+            }
+
+            Sprite stateSprite = pressed ? sprites.pressed : sprites.selected;
+            if (stateSprite == null)
+            {
+                stateSprite = sprites.pressed != null ? sprites.pressed : sprites.hover;
+            }
+
+            if (stateImage != null)
+            {
+                stateImage.sprite = stateSprite;
+                float targetStateAlpha = 0f;
+                if (interactable)
+                {
+                    if (pressed)
+                    {
+                        targetStateAlpha = 0.92f;
+                    }
+                    else if (selected)
+                    {
+                        targetStateAlpha = kind == KaelisMenuButtonVisualKind.Demo ? 0.7f : 0.52f;
+                    }
+                }
+
+                stateAlpha = Mathf.Lerp(stateAlpha, targetStateAlpha, t);
+                stateImage.color = new Color(1f, 1f, 1f, stateAlpha);
+            }
+
+            flashAlpha = Mathf.MoveTowards(flashAlpha, 0f, Time.unscaledDeltaTime * 9f);
+            if (flashImage != null)
+            {
+                Color flashColor = kind == KaelisMenuButtonVisualKind.Exit
+                    ? new Color(1f, 0.28f, 0.1f, flashAlpha * 0.78f)
+                    : new Color(1f, 0.88f, 0.12f, flashAlpha * 0.82f);
+                flashImage.color = flashColor;
+            }
+        }
+
+        private float GetHoverFill()
+        {
+            switch (kind)
+            {
+                case KaelisMenuButtonVisualKind.Primary:
+                    return 0.52f;
+                case KaelisMenuButtonVisualKind.Exit:
+                    return 0.62f;
+                case KaelisMenuButtonVisualKind.Demo:
+                    return 0.45f;
+                default:
+                    return 0.5f;
+            }
+        }
+    }
+
     internal sealed class KaelisMenuButtonTransition : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler, IPointerDownHandler, IPointerUpHandler, ISelectHandler, IDeselectHandler
     {
+        private const float ActivationFlashDelay = 0.08f;
+
         private Selectable selectable;
         private Image background;
         private Image glow;
         private Image accentLine;
         private TMP_Text label;
+        private KaelisMenuGemButtonVisual gemVisual;
         private RectTransform rectTransform;
         private Color normalColor;
         private Color hoverColor;
@@ -1223,6 +1587,7 @@ namespace Kaleidoscope2.Menu
             Image glow,
             Image accentLine,
             TMP_Text label,
+            KaelisMenuGemButtonVisual gemVisual,
             Color normalColor,
             Color hoverColor,
             Color pressedColor,
@@ -1236,6 +1601,7 @@ namespace Kaleidoscope2.Menu
             this.glow = glow;
             this.accentLine = accentLine;
             this.label = label;
+            this.gemVisual = gemVisual;
             this.normalColor = normalColor;
             this.hoverColor = hoverColor;
             this.pressedColor = pressedColor;
@@ -1248,6 +1614,33 @@ namespace Kaleidoscope2.Menu
             configured = true;
 
             ApplyInstant();
+        }
+
+        public void InvokeWithFlash(UnityAction action)
+        {
+            if (gemVisual != null)
+            {
+                gemVisual.TriggerFlash();
+            }
+
+            if (action == null)
+            {
+                return;
+            }
+
+            if (Application.isPlaying && gameObject.activeInHierarchy)
+            {
+                StartCoroutine(InvokeAfterFlash(action));
+                return;
+            }
+
+            action.Invoke();
+        }
+
+        private IEnumerator InvokeAfterFlash(UnityAction action)
+        {
+            yield return new WaitForSecondsRealtime(ActivationFlashDelay);
+            action.Invoke();
         }
 
         public void SetSelectedVisual(bool selected)
@@ -1343,7 +1736,15 @@ namespace Kaleidoscope2.Menu
 
             if (background != null)
             {
-                background.color = Color.Lerp(background.color, surface, t);
+                Color target = gemVisual != null
+                    ? (interactable ? Color.white : new Color(0.55f, 0.55f, 0.55f, 0.62f))
+                    : surface;
+                background.color = Color.Lerp(background.color, target, t);
+            }
+
+            if (gemVisual != null)
+            {
+                gemVisual.ApplyVisual(hovered, pressed, selected, interactable, t);
             }
 
             if (glow != null)
