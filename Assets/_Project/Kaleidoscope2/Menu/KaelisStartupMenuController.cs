@@ -1,3 +1,4 @@
+using System.Collections;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -5,26 +6,42 @@ using UnityEngine.UI;
 
 namespace Kaleidoscope2.Menu
 {
+    internal enum KaelisMenuIconKind
+    {
+        Diamond,
+        Monitor,
+        Layers,
+        Optics,
+        Star,
+        Settings,
+        Exit
+    }
+
     [DefaultExecutionOrder(-200)]
     [DisallowMultipleComponent]
     public sealed class KaelisStartupMenuController : MonoBehaviour
     {
         private const float ReferenceWidth = 1920f;
         private const float ReferenceHeight = 1080f;
+        private const float VisibilityFadeSeconds = 0.22f;
 
         private static readonly Color BackgroundTint = new Color(0.04f, 0.05f, 0.07f, 1f);
-        private static readonly Color Scrim = new Color(0f, 0f, 0f, 0.54f);
-        private static readonly Color Panel = new Color(0.025f, 0.035f, 0.05f, 0.78f);
-        private static readonly Color PanelStrong = new Color(0.035f, 0.045f, 0.06f, 0.88f);
-        private static readonly Color ButtonNormal = new Color(0.055f, 0.07f, 0.085f, 0.92f);
-        private static readonly Color ButtonHover = new Color(0.08f, 0.13f, 0.145f, 0.96f);
-        private static readonly Color ButtonPressed = new Color(0.68f, 0.14f, 0.09f, 1f);
-        private static readonly Color ButtonSelected = new Color(0.13f, 0.18f, 0.19f, 1f);
-        private static readonly Color TextPrimary = new Color(0.95f, 0.98f, 1f, 1f);
-        private static readonly Color TextSecondary = new Color(0.66f, 0.76f, 0.82f, 1f);
-        private static readonly Color Gold = new Color(1f, 0.72f, 0.36f, 1f);
-        private static readonly Color Cyan = new Color(0.22f, 0.86f, 1f, 1f);
+        private static readonly Color Scrim = new Color(0f, 0f, 0f, 0.64f);
+        private static readonly Color Panel = new Color(0.018f, 0.027f, 0.038f, 0.82f);
+        private static readonly Color PanelSoft = new Color(0.08f, 0.12f, 0.15f, 0.24f);
+        private static readonly Color ButtonNormal = new Color(0.02f, 0.032f, 0.042f, 0.86f);
+        private static readonly Color ButtonHover = new Color(0.055f, 0.083f, 0.095f, 0.95f);
+        private static readonly Color ButtonPressed = new Color(0.24f, 0.16f, 0.055f, 1f);
+        private static readonly Color ButtonSelected = new Color(0.04f, 0.11f, 0.125f, 0.98f);
+        private static readonly Color ButtonDisabled = new Color(0.035f, 0.04f, 0.046f, 0.48f);
+        private static readonly Color TextPrimary = new Color(0.94f, 0.96f, 0.95f, 1f);
+        private static readonly Color TextSecondary = new Color(0.68f, 0.75f, 0.78f, 1f);
+        private static readonly Color TextMuted = new Color(0.44f, 0.52f, 0.56f, 1f);
+        private static readonly Color Gold = new Color(0.91f, 0.63f, 0.24f, 1f);
+        private static readonly Color GoldSoft = new Color(1f, 0.73f, 0.32f, 0.62f);
+        private static readonly Color Cyan = new Color(0.18f, 0.74f, 0.86f, 1f);
         private static readonly Color RedGlow = new Color(1f, 0.18f, 0.12f, 1f);
+        private static readonly Color GreenReady = new Color(0.56f, 1f, 0.36f, 1f);
 
         [Header("Startup")]
         [SerializeField] private bool startVisible = true;
@@ -40,11 +57,15 @@ namespace Kaleidoscope2.Menu
         private GameObject menuRoot;
         private TMP_Text statusText;
         private TMP_Text demoStateText;
+        private TMP_Text demoToggleValueText;
         private Toggle demoToggle;
+        private KaelisMenuButtonTransition demoToggleTransition;
+        private KaelisMenuToggleVisual demoToggleVisual;
         private TMP_FontAsset runtimeFontAsset;
         private bool runtimeFontAssetGenerated;
         private Texture2D solidTexture;
         private Sprite solidSprite;
+        private Coroutine visibilityRoutine;
         private bool demoModeEnabled;
         private bool visible;
 
@@ -106,18 +127,18 @@ namespace Kaleidoscope2.Menu
             RectTransform layoutRoot = CreateRect("SafeFrame", canvasRoot);
             layoutRoot.anchorMin = Vector2.zero;
             layoutRoot.anchorMax = Vector2.one;
-            layoutRoot.offsetMin = new Vector2(64f, 56f);
-            layoutRoot.offsetMax = new Vector2(-64f, -72f);
+            layoutRoot.offsetMin = new Vector2(70f, 64f);
+            layoutRoot.offsetMax = new Vector2(-70f, -72f);
 
             RectTransform leftPanel = CreateGlassPanel("LeftControlPanel", layoutRoot, new Vector2(0f, 0f), new Vector2(0f, 1f));
             leftPanel.pivot = new Vector2(0f, 0.5f);
-            leftPanel.sizeDelta = new Vector2(450f, 0f);
-            leftPanel.offsetMin = new Vector2(0f, 0f);
-            leftPanel.offsetMax = new Vector2(450f, 0f);
+            leftPanel.sizeDelta = new Vector2(440f, 0f);
+            leftPanel.offsetMin = new Vector2(0f, 58f);
+            leftPanel.offsetMax = new Vector2(440f, 0f);
 
             RectTransform previewPanel = CreatePreviewPanel(layoutRoot);
             BuildLeftPanel(leftPanel);
-            BuildBottomStatus(canvasRoot);
+            BuildBottomStatus(layoutRoot);
             BuildPreviewPanel(previewPanel);
         }
 
@@ -127,7 +148,7 @@ namespace Kaleidoscope2.Menu
 
             RawImage background = CreateRawImage("CinematicBackground", parent, selectedTexture);
             Stretch(background.rectTransform);
-            background.color = selectedTexture != null ? Color.white : BackgroundTint;
+            background.color = selectedTexture != null ? new Color(0.78f, 0.82f, 0.88f, 1f) : BackgroundTint;
             background.raycastTarget = false;
 
             if (selectedTexture == null)
@@ -148,59 +169,74 @@ namespace Kaleidoscope2.Menu
             Stretch(redWash);
             Image washImage = redWash.gameObject.AddComponent<Image>();
             washImage.sprite = solidSprite;
-            washImage.color = new Color(0.12f, 0.02f, 0.025f, 0.32f);
+            washImage.color = new Color(0.12f, 0.018f, 0.02f, 0.22f);
             washImage.raycastTarget = false;
+
+            RectTransform leftVeil = CreateRect("LeftReadabilityVeil", parent);
+            leftVeil.anchorMin = new Vector2(0f, 0f);
+            leftVeil.anchorMax = new Vector2(0.46f, 1f);
+            leftVeil.offsetMin = Vector2.zero;
+            leftVeil.offsetMax = Vector2.zero;
+
+            Image leftVeilImage = leftVeil.gameObject.AddComponent<Image>();
+            leftVeilImage.sprite = solidSprite;
+            leftVeilImage.color = new Color(0f, 0.01f, 0.015f, 0.32f);
+            leftVeilImage.raycastTarget = false;
+
+            AddAmbientLine(parent, "TopAtmosphereLine", 1f, new Color(1f, 0.75f, 0.34f, 0.14f));
+            AddAmbientLine(parent, "BottomAtmosphereLine", 0f, new Color(0.2f, 0.86f, 1f, 0.12f));
         }
 
         private void BuildLeftPanel(RectTransform panel)
         {
             VerticalLayoutGroup layout = panel.gameObject.AddComponent<VerticalLayoutGroup>();
-            layout.padding = new RectOffset(34, 34, 34, 28);
-            layout.spacing = 14f;
+            layout.padding = new RectOffset(30, 30, 30, 26);
+            layout.spacing = 12f;
             layout.childControlWidth = true;
             layout.childControlHeight = true;
             layout.childForceExpandWidth = true;
             layout.childForceExpandHeight = false;
 
-            TMP_Text eyebrow = CreateText(panel, "Eyebrow", "OPTICAL EXPERIENCE ENGINE", 17f, FontStyles.Normal, TextSecondary, TextAlignmentOptions.Left);
+            TMP_Text eyebrow = CreateText(panel, "Eyebrow", "OPTICAL EXPERIENCE ENGINE", 15f, FontStyles.Normal, TextSecondary, TextAlignmentOptions.Left);
             eyebrow.characterSpacing = 18f;
-            AddLayout(eyebrow.gameObject, -1f, 28f);
+            AddLayout(eyebrow.gameObject, -1f, 26f);
 
-            TMP_Text title = CreateText(panel, "Title", "KAELIS", 68f, FontStyles.Normal, TextPrimary, TextAlignmentOptions.Left);
+            TMP_Text title = CreateText(panel, "Title", "KAELIS", 64f, FontStyles.Normal, TextPrimary, TextAlignmentOptions.Left);
             title.characterSpacing = 6f;
-            AddLayout(title.gameObject, -1f, 82f);
+            AddLayout(title.gameObject, -1f, 76f);
+            AddTextGlow(title.gameObject, new Color(0.9f, 0.96f, 1f, 0.18f), new Vector2(0f, -2f));
 
-            TMP_Text subtitle = CreateText(panel, "Subtitle", "BEYOND THE REFLECTION", 19f, FontStyles.Normal, TextSecondary, TextAlignmentOptions.Left);
+            TMP_Text subtitle = CreateText(panel, "Subtitle", "BEYOND THE REFLECTION", 16f, FontStyles.Normal, TextSecondary, TextAlignmentOptions.Left);
             subtitle.characterSpacing = 8f;
-            AddLayout(subtitle.gameObject, -1f, 34f);
+            AddLayout(subtitle.gameObject, -1f, 30f);
 
-            AddSpacer(panel, 18f);
+            AddSpacer(panel, 14f);
 
-            Button enterButton = CreateMenuButton(panel, "EnterExperienceButton", "ENTER EXPERIENCE", Gold);
+            Button enterButton = CreateMenuButton(panel, "EnterExperienceButton", "ENTER EXPERIENCE", Gold, KaelisMenuIconKind.Diamond, true);
             enterButton.onClick.AddListener(EnterExperience);
 
             demoToggle = CreateDemoToggle(panel);
             demoToggle.onValueChanged.AddListener(UpdateDemoState);
 
-            Button modesButton = CreateMenuButton(panel, "ModesButton", "MODES", Cyan);
+            Button modesButton = CreateMenuButton(panel, "ModesButton", "MODES", Cyan, KaelisMenuIconKind.Layers, false);
             modesButton.onClick.AddListener(() => LogPlaceholder("Modes"));
 
-            Button opticsButton = CreateMenuButton(panel, "OpticsButton", "OPTICS", Cyan);
+            Button opticsButton = CreateMenuButton(panel, "OpticsButton", "OPTICS", Cyan, KaelisMenuIconKind.Optics, false);
             opticsButton.onClick.AddListener(() => LogPlaceholder("Optics"));
 
-            Button presetsButton = CreateMenuButton(panel, "PresetsButton", "PRESETS", Cyan);
+            Button presetsButton = CreateMenuButton(panel, "PresetsButton", "PRESETS", Cyan, KaelisMenuIconKind.Star, false);
             presetsButton.onClick.AddListener(() => LogPlaceholder("Presets"));
 
-            Button settingsButton = CreateMenuButton(panel, "SettingsButton", "SETTINGS", Gold);
+            Button settingsButton = CreateMenuButton(panel, "SettingsButton", "SETTINGS", Cyan, KaelisMenuIconKind.Settings, false);
             settingsButton.onClick.AddListener(() => LogPlaceholder("Settings"));
 
-            Button exitButton = CreateMenuButton(panel, "ExitButton", "EXIT", RedGlow);
+            Button exitButton = CreateMenuButton(panel, "ExitButton", "EXIT", RedGlow, KaelisMenuIconKind.Exit, false);
             exitButton.onClick.AddListener(ExitApplication);
 
-            AddSpacer(panel, 10f);
-            demoStateText = CreateText(panel, "DemoState", "DEMO MODE  OFF", 14f, FontStyles.Normal, TextSecondary, TextAlignmentOptions.Left);
+            AddSpacer(panel, 8f);
+            demoStateText = CreateText(panel, "DemoState", "DEMO MODE  OFF", 13f, FontStyles.Normal, TextSecondary, TextAlignmentOptions.Left);
             demoStateText.characterSpacing = 6f;
-            AddLayout(demoStateText.gameObject, -1f, 24f);
+            AddLayout(demoStateText.gameObject, -1f, 22f);
         }
 
         private RectTransform CreatePreviewPanel(RectTransform parent)
@@ -208,7 +244,7 @@ namespace Kaleidoscope2.Menu
             RectTransform panel = CreateGlassPanel("PreviewPanel", parent, new Vector2(0f, 0f), new Vector2(1f, 1f));
             panel.anchorMin = new Vector2(0f, 0f);
             panel.anchorMax = new Vector2(1f, 1f);
-            panel.offsetMin = new Vector2(506f, 0f);
+            panel.offsetMin = new Vector2(486f, 58f);
             panel.offsetMax = Vector2.zero;
             return panel;
         }
@@ -226,44 +262,42 @@ namespace Kaleidoscope2.Menu
             title.characterSpacing = 10f;
             Stretch(title.rectTransform);
 
+            CreateModePill(header);
+
             RectTransform previewFrame = CreateRect("RawImagePreviewFrame", panel);
             previewFrame.anchorMin = new Vector2(0f, 0f);
             previewFrame.anchorMax = new Vector2(1f, 1f);
             previewFrame.offsetMin = new Vector2(32f, 34f);
-            previewFrame.offsetMax = new Vector2(-32f, -98f);
+            previewFrame.offsetMax = new Vector2(-32f, -92f);
 
             Image frame = previewFrame.gameObject.AddComponent<Image>();
             frame.sprite = solidSprite;
-            frame.color = new Color(0.015f, 0.02f, 0.03f, 0.5f);
+            frame.color = new Color(0.006f, 0.01f, 0.015f, 0.68f);
             frame.raycastTarget = false;
-            AddFrame(previewFrame, Cyan, Gold, 2f);
+            AddFrame(previewFrame, new Color(Gold.r, Gold.g, Gold.b, 0.7f), new Color(Cyan.r, Cyan.g, Cyan.b, 0.42f), 1.5f);
+            AddInsetFrame(previewFrame, new Color(1f, 0.82f, 0.46f, 0.28f), 10f, 1f);
+            AddCornerCuts(previewFrame, GoldSoft, 32f, 1.5f);
 
-            RawImage preview = CreateRawImage("PreviewRawImage", previewFrame, previewTexture != null ? previewTexture : backgroundTexture);
+            RectTransform viewport = CreateRect("PreviewViewport", previewFrame);
+            Stretch(viewport);
+            viewport.offsetMin = new Vector2(12f, 12f);
+            viewport.offsetMax = new Vector2(-12f, -12f);
+            viewport.gameObject.AddComponent<RectMask2D>();
+
+            RawImage preview = CreateRawImage("PreviewRawImage", viewport, previewTexture != null ? previewTexture : backgroundTexture);
             Stretch(preview.rectTransform);
-            preview.rectTransform.offsetMin = new Vector2(10f, 10f);
-            preview.rectTransform.offsetMax = new Vector2(-10f, -10f);
-            preview.color = new Color(1f, 1f, 1f, 0.36f);
+            preview.color = new Color(0.98f, 0.98f, 1f, 0.82f);
             preview.raycastTarget = false;
 
-            RectTransform overlay = CreateRect("PreviewPlaceholderOverlay", previewFrame);
+            RectTransform overlay = CreateRect("PreviewGlassOverlay", viewport);
             Stretch(overlay);
-            overlay.offsetMin = new Vector2(10f, 10f);
-            overlay.offsetMax = new Vector2(-10f, -10f);
             Image overlayImage = overlay.gameObject.AddComponent<Image>();
             overlayImage.sprite = solidSprite;
-            overlayImage.color = new Color(0.02f, 0.025f, 0.035f, 0.42f);
+            overlayImage.color = new Color(0.005f, 0.01f, 0.014f, 0.16f);
             overlayImage.raycastTarget = false;
 
-            TMP_Text placeholder = CreateText(overlay, "PlaceholderText", "PREVIEW PANEL", 28f, FontStyles.Normal, TextPrimary, TextAlignmentOptions.Center);
-            placeholder.characterSpacing = 8f;
-            Stretch(placeholder.rectTransform);
-
-            TMP_Text sub = CreateText(overlay, "PlaceholderSubtitle", "RAWIMAGE SURFACE", 14f, FontStyles.Normal, TextSecondary, TextAlignmentOptions.Center);
-            sub.characterSpacing = 8f;
-            sub.rectTransform.anchorMin = new Vector2(0f, 0.44f);
-            sub.rectTransform.anchorMax = new Vector2(1f, 0.44f);
-            sub.rectTransform.offsetMin = new Vector2(0f, -28f);
-            sub.rectTransform.offsetMax = new Vector2(0f, 4f);
+            CreatePreviewScanlines(viewport);
+            CreatePreviewHud(viewport);
         }
 
         private void BuildBottomStatus(RectTransform parent)
@@ -272,104 +306,392 @@ namespace Kaleidoscope2.Menu
             statusBar.anchorMin = new Vector2(0f, 0f);
             statusBar.anchorMax = new Vector2(1f, 0f);
             statusBar.pivot = new Vector2(0.5f, 0f);
-            statusBar.sizeDelta = new Vector2(0f, 46f);
+            statusBar.sizeDelta = new Vector2(0f, 48f);
             statusBar.anchoredPosition = Vector2.zero;
 
             Image background = statusBar.gameObject.AddComponent<Image>();
             background.sprite = solidSprite;
-            background.color = new Color(0.015f, 0.02f, 0.028f, 0.9f);
+            background.color = new Color(0.01f, 0.018f, 0.026f, 0.9f);
             background.raycastTarget = false;
 
-            AddLine(statusBar, "TopLine", new Vector2(0f, 1f), new Vector2(1f, 1f), 2f, Cyan);
+            AddFrame(statusBar, new Color(Cyan.r, Cyan.g, Cyan.b, 0.32f), new Color(1f, 1f, 1f, 0.12f), 1f);
+            AddInsetFrame(statusBar, new Color(1f, 1f, 1f, 0.06f), 4f, 1f);
 
-            statusText = CreateText(statusBar, "StatusText", "SYSTEM READY  |  STARTUP MENU", 15f, FontStyles.Normal, TextSecondary, TextAlignmentOptions.Left);
+            RectTransform readyDot = CreateRect("ReadyDot", statusBar);
+            readyDot.anchorMin = new Vector2(0f, 0.5f);
+            readyDot.anchorMax = new Vector2(0f, 0.5f);
+            readyDot.pivot = new Vector2(0.5f, 0.5f);
+            readyDot.sizeDelta = new Vector2(8f, 8f);
+            readyDot.anchoredPosition = new Vector2(28f, 0f);
+            Image readyDotImage = readyDot.gameObject.AddComponent<Image>();
+            readyDotImage.sprite = solidSprite;
+            readyDotImage.color = GreenReady;
+            readyDotImage.raycastTarget = false;
+
+            statusText = CreateText(statusBar, "StatusText", "SYSTEM READY    |    DEMO OFF    |    MODE: STARTUP", 13f, FontStyles.Normal, TextSecondary, TextAlignmentOptions.Left);
             statusText.characterSpacing = 6f;
             statusText.rectTransform.anchorMin = Vector2.zero;
             statusText.rectTransform.anchorMax = Vector2.one;
-            statusText.rectTransform.offsetMin = new Vector2(66f, 0f);
-            statusText.rectTransform.offsetMax = new Vector2(-66f, 0f);
+            statusText.rectTransform.offsetMin = new Vector2(46f, 0f);
+            statusText.rectTransform.offsetMax = new Vector2(-260f, 0f);
+
+            TMP_Text version = CreateText(statusBar, "VersionText", "v0.1.0", 12f, FontStyles.Normal, TextMuted, TextAlignmentOptions.Right);
+            version.characterSpacing = 4f;
+            version.rectTransform.anchorMin = new Vector2(1f, 0f);
+            version.rectTransform.anchorMax = new Vector2(1f, 1f);
+            version.rectTransform.pivot = new Vector2(1f, 0.5f);
+            version.rectTransform.sizeDelta = new Vector2(120f, 0f);
+            version.rectTransform.anchoredPosition = new Vector2(-132f, 0f);
+
+            CreateStatusIcon(statusBar, "StatusGearIcon", new Vector2(-88f, 0f), KaelisMenuIconKind.Settings, TextMuted);
+            CreateStatusIcon(statusBar, "StatusOpticsIcon", new Vector2(-48f, 0f), KaelisMenuIconKind.Optics, TextMuted);
+        }
+
+        private void CreateModePill(RectTransform parent)
+        {
+            RectTransform pill = CreateRect("ModePill", parent);
+            pill.anchorMin = new Vector2(1f, 0.5f);
+            pill.anchorMax = new Vector2(1f, 0.5f);
+            pill.pivot = new Vector2(1f, 0.5f);
+            pill.sizeDelta = new Vector2(168f, 30f);
+            pill.anchoredPosition = new Vector2(0f, 0f);
+
+            Image image = pill.gameObject.AddComponent<Image>();
+            image.sprite = solidSprite;
+            image.color = new Color(0.018f, 0.026f, 0.032f, 0.88f);
+            image.raycastTarget = false;
+            AddFrame(pill, GoldSoft, new Color(Cyan.r, Cyan.g, Cyan.b, 0.18f), 1f);
+
+            CreateStatusIcon(pill, "PillDiamond", new Vector2(-132f, 0f), KaelisMenuIconKind.Diamond, Gold);
+
+            TMP_Text label = CreateText(pill, "Label", "PREMIUM 3D", 13f, FontStyles.Normal, Gold, TextAlignmentOptions.Left);
+            label.characterSpacing = 4f;
+            label.rectTransform.anchorMin = Vector2.zero;
+            label.rectTransform.anchorMax = Vector2.one;
+            label.rectTransform.offsetMin = new Vector2(42f, 0f);
+            label.rectTransform.offsetMax = new Vector2(-28f, 0f);
+
+            RectTransform dot = CreateRect("ReadyDot", pill);
+            dot.anchorMin = new Vector2(1f, 0.5f);
+            dot.anchorMax = new Vector2(1f, 0.5f);
+            dot.pivot = new Vector2(0.5f, 0.5f);
+            dot.sizeDelta = new Vector2(9f, 9f);
+            dot.anchoredPosition = new Vector2(-16f, 0f);
+
+            Image dotImage = dot.gameObject.AddComponent<Image>();
+            dotImage.sprite = solidSprite;
+            dotImage.color = GreenReady;
+            dotImage.raycastTarget = false;
+        }
+
+        private void CreatePreviewScanlines(RectTransform viewport)
+        {
+            for (int index = 1; index < 8; index++)
+            {
+                float y = index / 8f;
+                AddLine(viewport, "PreviewScanline" + index, new Vector2(0f, y), new Vector2(1f, y), 1f, new Color(1f, 1f, 1f, 0.035f));
+            }
+        }
+
+        private void CreatePreviewHud(RectTransform viewport)
+        {
+            RectTransform bottomBand = CreateRect("PreviewBottomBand", viewport);
+            bottomBand.anchorMin = new Vector2(0f, 0f);
+            bottomBand.anchorMax = new Vector2(1f, 0f);
+            bottomBand.pivot = new Vector2(0.5f, 0f);
+            bottomBand.sizeDelta = new Vector2(0f, 42f);
+            bottomBand.anchoredPosition = Vector2.zero;
+
+            Image bottomBandImage = bottomBand.gameObject.AddComponent<Image>();
+            bottomBandImage.sprite = solidSprite;
+            bottomBandImage.color = new Color(0f, 0.005f, 0.01f, 0.44f);
+            bottomBandImage.raycastTarget = false;
+
+            TMP_Text state = CreateText(bottomBand, "StateLabel", "PREMIUM 3D READY", 12f, FontStyles.Normal, TextSecondary, TextAlignmentOptions.Left);
+            state.characterSpacing = 5f;
+            state.rectTransform.anchorMin = Vector2.zero;
+            state.rectTransform.anchorMax = Vector2.one;
+            state.rectTransform.offsetMin = new Vector2(18f, 0f);
+            state.rectTransform.offsetMax = new Vector2(-18f, 0f);
+
+            AddLine(viewport, "PreviewTopAccent", new Vector2(0f, 1f), new Vector2(1f, 1f), 2f, new Color(Gold.r, Gold.g, Gold.b, 0.28f));
+            AddLine(viewport, "PreviewBottomAccent", new Vector2(0f, 0f), new Vector2(1f, 0f), 2f, new Color(Cyan.r, Cyan.g, Cyan.b, 0.22f));
+        }
+
+        private void CreateStatusIcon(RectTransform parent, string name, Vector2 anchoredPosition, KaelisMenuIconKind kind, Color color)
+        {
+            RectTransform iconRoot = CreateRect(name, parent);
+            iconRoot.anchorMin = new Vector2(1f, 0.5f);
+            iconRoot.anchorMax = new Vector2(1f, 0.5f);
+            iconRoot.pivot = new Vector2(0.5f, 0.5f);
+            iconRoot.sizeDelta = new Vector2(22f, 22f);
+            iconRoot.anchoredPosition = anchoredPosition;
+
+            AddIconGeometry(iconRoot, kind, color, 0.72f, 1.5f);
+        }
+
+        private void CreateMenuIcon(RectTransform buttonRoot, KaelisMenuIconKind kind, Color accent, bool primary)
+        {
+            RectTransform iconRoot = CreateRect("Icon", buttonRoot);
+            iconRoot.anchorMin = new Vector2(0f, 0.5f);
+            iconRoot.anchorMax = new Vector2(0f, 0.5f);
+            iconRoot.pivot = new Vector2(0.5f, 0.5f);
+            iconRoot.sizeDelta = new Vector2(40f, 40f);
+            iconRoot.anchoredPosition = new Vector2(38f, 0f);
+
+            Image badge = iconRoot.gameObject.AddComponent<Image>();
+            badge.sprite = solidSprite;
+            badge.color = new Color(accent.r, accent.g, accent.b, primary ? 0.09f : 0.035f);
+            badge.raycastTarget = false;
+            AddFrame(iconRoot, new Color(accent.r, accent.g, accent.b, primary ? 0.32f : 0.18f), new Color(1f, 1f, 1f, 0.08f), 1f);
+
+            AddIconGeometry(iconRoot, kind, accent, primary ? 1f : 0.78f, primary ? 2f : 1.6f);
+        }
+
+        private void AddIconGeometry(RectTransform root, KaelisMenuIconKind kind, Color color, float alpha, float thickness)
+        {
+            Color iconColor = new Color(color.r, color.g, color.b, alpha);
+
+            switch (kind)
+            {
+                case KaelisMenuIconKind.Diamond:
+                    AddIconLineBetween(root, "DiamondA", new Vector2(0f, 14f), new Vector2(15f, 2f), iconColor, thickness);
+                    AddIconLineBetween(root, "DiamondB", new Vector2(15f, 2f), new Vector2(0f, -15f), iconColor, thickness);
+                    AddIconLineBetween(root, "DiamondC", new Vector2(0f, -15f), new Vector2(-15f, 2f), iconColor, thickness);
+                    AddIconLineBetween(root, "DiamondD", new Vector2(-15f, 2f), new Vector2(0f, 14f), iconColor, thickness);
+                    AddIconLineBetween(root, "DiamondCore", new Vector2(0f, 14f), new Vector2(0f, -15f), new Color(iconColor.r, iconColor.g, iconColor.b, iconColor.a * 0.7f), thickness * 0.7f);
+                    break;
+                case KaelisMenuIconKind.Monitor:
+                    AddIconBox(root, "Screen", new Vector2(0f, 4f), new Vector2(24f, 15f), iconColor, thickness);
+                    AddIconLineBetween(root, "Stand", new Vector2(0f, -4f), new Vector2(0f, -13f), iconColor, thickness);
+                    AddIconLineBetween(root, "Base", new Vector2(-8f, -13f), new Vector2(8f, -13f), iconColor, thickness);
+                    break;
+                case KaelisMenuIconKind.Layers:
+                    AddIconDiamond(root, "LayerA", new Vector2(0f, 8f), new Vector2(24f, 12f), iconColor, thickness);
+                    AddIconDiamond(root, "LayerB", new Vector2(0f, 0f), new Vector2(24f, 12f), iconColor, thickness);
+                    AddIconDiamond(root, "LayerC", new Vector2(0f, -8f), new Vector2(24f, 12f), iconColor, thickness);
+                    break;
+                case KaelisMenuIconKind.Optics:
+                    AddIconBox(root, "OpticBox", Vector2.zero, new Vector2(23f, 23f), iconColor, thickness);
+                    AddIconLineBetween(root, "OpticH", new Vector2(-15f, 0f), new Vector2(15f, 0f), iconColor, thickness);
+                    AddIconLineBetween(root, "OpticV", new Vector2(0f, -15f), new Vector2(0f, 15f), iconColor, thickness);
+                    AddIconBox(root, "OpticCore", Vector2.zero, new Vector2(9f, 9f), iconColor, thickness);
+                    break;
+                case KaelisMenuIconKind.Star:
+                    AddIconLineBetween(root, "StarA", new Vector2(0f, 15f), new Vector2(0f, -15f), iconColor, thickness);
+                    AddIconLineBetween(root, "StarB", new Vector2(-13f, 8f), new Vector2(13f, -8f), iconColor, thickness);
+                    AddIconLineBetween(root, "StarC", new Vector2(13f, 8f), new Vector2(-13f, -8f), iconColor, thickness);
+                    break;
+                case KaelisMenuIconKind.Settings:
+                    AddIconBox(root, "SettingsCore", Vector2.zero, new Vector2(13f, 13f), iconColor, thickness);
+                    AddIconLineBetween(root, "SettingsH", new Vector2(-15f, 0f), new Vector2(15f, 0f), iconColor, thickness);
+                    AddIconLineBetween(root, "SettingsV", new Vector2(0f, -15f), new Vector2(0f, 15f), iconColor, thickness);
+                    AddIconLineBetween(root, "SettingsD1", new Vector2(-10f, -10f), new Vector2(10f, 10f), new Color(iconColor.r, iconColor.g, iconColor.b, iconColor.a * 0.55f), thickness);
+                    AddIconLineBetween(root, "SettingsD2", new Vector2(-10f, 10f), new Vector2(10f, -10f), new Color(iconColor.r, iconColor.g, iconColor.b, iconColor.a * 0.55f), thickness);
+                    break;
+                case KaelisMenuIconKind.Exit:
+                    AddIconLineBetween(root, "ExitStem", new Vector2(0f, 13f), new Vector2(0f, -2f), iconColor, thickness * 1.2f);
+                    AddIconLineBetween(root, "ExitLeft", new Vector2(-11f, 5f), new Vector2(-11f, -12f), iconColor, thickness);
+                    AddIconLineBetween(root, "ExitRight", new Vector2(11f, 5f), new Vector2(11f, -12f), iconColor, thickness);
+                    AddIconLineBetween(root, "ExitBase", new Vector2(-11f, -12f), new Vector2(11f, -12f), iconColor, thickness);
+                    break;
+            }
+        }
+
+        private void AddIconBox(RectTransform root, string name, Vector2 center, Vector2 size, Color color, float thickness)
+        {
+            float halfWidth = size.x * 0.5f;
+            float halfHeight = size.y * 0.5f;
+            AddIconLineBetween(root, name + "Top", center + new Vector2(-halfWidth, halfHeight), center + new Vector2(halfWidth, halfHeight), color, thickness);
+            AddIconLineBetween(root, name + "Bottom", center + new Vector2(-halfWidth, -halfHeight), center + new Vector2(halfWidth, -halfHeight), color, thickness);
+            AddIconLineBetween(root, name + "Left", center + new Vector2(-halfWidth, -halfHeight), center + new Vector2(-halfWidth, halfHeight), color, thickness);
+            AddIconLineBetween(root, name + "Right", center + new Vector2(halfWidth, -halfHeight), center + new Vector2(halfWidth, halfHeight), color, thickness);
+        }
+
+        private void AddIconDiamond(RectTransform root, string name, Vector2 center, Vector2 size, Color color, float thickness)
+        {
+            Vector2 top = center + new Vector2(0f, size.y * 0.5f);
+            Vector2 right = center + new Vector2(size.x * 0.5f, 0f);
+            Vector2 bottom = center + new Vector2(0f, -size.y * 0.5f);
+            Vector2 left = center + new Vector2(-size.x * 0.5f, 0f);
+            AddIconLineBetween(root, name + "A", top, right, color, thickness);
+            AddIconLineBetween(root, name + "B", right, bottom, color, thickness);
+            AddIconLineBetween(root, name + "C", bottom, left, color, thickness);
+            AddIconLineBetween(root, name + "D", left, top, color, thickness);
+        }
+
+        private void AddIconLineBetween(RectTransform root, string name, Vector2 start, Vector2 end, Color color, float thickness)
+        {
+            Vector2 delta = end - start;
+            RectTransform line = CreateRect(name, root);
+            line.anchorMin = new Vector2(0.5f, 0.5f);
+            line.anchorMax = new Vector2(0.5f, 0.5f);
+            line.pivot = new Vector2(0.5f, 0.5f);
+            line.sizeDelta = new Vector2(delta.magnitude, thickness);
+            line.anchoredPosition = (start + end) * 0.5f;
+            line.localEulerAngles = new Vector3(0f, 0f, Mathf.Atan2(delta.y, delta.x) * Mathf.Rad2Deg);
+
+            Image image = line.gameObject.AddComponent<Image>();
+            image.sprite = solidSprite;
+            image.color = color;
+            image.raycastTarget = false;
+
+            LayoutElement layoutElement = line.gameObject.AddComponent<LayoutElement>();
+            layoutElement.ignoreLayout = true;
         }
 
         private Toggle CreateDemoToggle(RectTransform parent)
         {
-            RectTransform row = CreateButtonBase(parent, "DemoModeToggle", "DEMO MODE", Gold, out TMP_Text label);
+            RectTransform row = CreateButtonBase(
+                parent,
+                "DemoModeToggle",
+                "DEMO MODE",
+                Cyan,
+                KaelisMenuIconKind.Monitor,
+                false,
+                56f,
+                out TMP_Text label,
+                out Image background,
+                out Image glow,
+                out Image accentLine);
             label.text = "DEMO MODE";
 
             Toggle toggle = row.gameObject.AddComponent<Toggle>();
-            toggle.transition = Selectable.Transition.ColorTint;
-            toggle.targetGraphic = row.GetComponent<Image>();
-            toggle.colors = CreateToggleColors();
+            toggle.transition = Selectable.Transition.None;
+            toggle.targetGraphic = background;
+            toggle.graphic = null;
 
-            RectTransform box = CreateRect("ToggleBox", row);
-            box.anchorMin = new Vector2(1f, 0.5f);
-            box.anchorMax = new Vector2(1f, 0.5f);
-            box.pivot = new Vector2(1f, 0.5f);
-            box.sizeDelta = new Vector2(32f, 32f);
-            box.anchoredPosition = new Vector2(-20f, 0f);
+            demoToggleValueText = CreateText(row, "ToggleValue", "OFF", 14f, FontStyles.Normal, TextSecondary, TextAlignmentOptions.Right);
+            demoToggleValueText.characterSpacing = 4f;
+            demoToggleValueText.rectTransform.anchorMin = new Vector2(1f, 0f);
+            demoToggleValueText.rectTransform.anchorMax = new Vector2(1f, 1f);
+            demoToggleValueText.rectTransform.pivot = new Vector2(1f, 0.5f);
+            demoToggleValueText.rectTransform.sizeDelta = new Vector2(52f, 0f);
+            demoToggleValueText.rectTransform.anchoredPosition = new Vector2(-78f, 0f);
 
-            Image boxImage = box.gameObject.AddComponent<Image>();
-            boxImage.sprite = solidSprite;
-            boxImage.color = new Color(0f, 0f, 0f, 0.46f);
-            boxImage.raycastTarget = false;
-            AddFrame(box, Cyan, Gold, 1f);
+            RectTransform track = CreateRect("ToggleTrack", row);
+            track.anchorMin = new Vector2(1f, 0.5f);
+            track.anchorMax = new Vector2(1f, 0.5f);
+            track.pivot = new Vector2(1f, 0.5f);
+            track.sizeDelta = new Vector2(52f, 26f);
+            track.anchoredPosition = new Vector2(-18f, 0f);
 
-            RectTransform check = CreateRect("Checkmark", box);
-            check.anchorMin = new Vector2(0.5f, 0.5f);
-            check.anchorMax = new Vector2(0.5f, 0.5f);
-            check.pivot = new Vector2(0.5f, 0.5f);
-            check.sizeDelta = new Vector2(18f, 18f);
-            check.anchoredPosition = Vector2.zero;
+            Image trackImage = track.gameObject.AddComponent<Image>();
+            trackImage.sprite = solidSprite;
+            trackImage.color = new Color(0f, 0f, 0f, 0.34f);
+            trackImage.raycastTarget = false;
+            AddFrame(track, new Color(Cyan.r, Cyan.g, Cyan.b, 0.34f), new Color(1f, 1f, 1f, 0.18f), 1f);
 
-            Image checkImage = check.gameObject.AddComponent<Image>();
-            checkImage.sprite = solidSprite;
-            checkImage.color = Gold;
-            checkImage.raycastTarget = false;
-            toggle.graphic = checkImage;
+            RectTransform knob = CreateRect("ToggleKnob", track);
+            knob.anchorMin = new Vector2(0f, 0.5f);
+            knob.anchorMax = new Vector2(0f, 0.5f);
+            knob.pivot = new Vector2(0.5f, 0.5f);
+            knob.sizeDelta = new Vector2(18f, 18f);
+            knob.anchoredPosition = new Vector2(13f, 0f);
+
+            Image knobImage = knob.gameObject.AddComponent<Image>();
+            knobImage.sprite = solidSprite;
+            knobImage.color = new Color(0.76f, 0.82f, 0.84f, 1f);
+            knobImage.raycastTarget = false;
+
+            demoToggleTransition = row.gameObject.AddComponent<KaelisMenuButtonTransition>();
+            demoToggleTransition.Configure(toggle, background, glow, accentLine, label, ButtonNormal, ButtonHover, ButtonPressed, ButtonSelected, ButtonDisabled, Cyan, false);
+
+            demoToggleVisual = row.gameObject.AddComponent<KaelisMenuToggleVisual>();
+            demoToggleVisual.Configure(trackImage, knob, knobImage, demoToggleValueText, Cyan, Gold);
             toggle.SetIsOnWithoutNotify(false);
 
             return toggle;
         }
 
-        private Button CreateMenuButton(RectTransform parent, string name, string label, Color accent)
+        private Button CreateMenuButton(RectTransform parent, string name, string label, Color accent, KaelisMenuIconKind iconKind, bool primary)
         {
-            RectTransform buttonRoot = CreateButtonBase(parent, name, label, accent, out TMP_Text _);
+            RectTransform buttonRoot = CreateButtonBase(
+                parent,
+                name,
+                label,
+                accent,
+                iconKind,
+                primary,
+                primary ? 64f : 56f,
+                out TMP_Text labelText,
+                out Image background,
+                out Image glow,
+                out Image accentLine);
             Button button = buttonRoot.gameObject.AddComponent<Button>();
-            button.transition = Selectable.Transition.ColorTint;
-            button.targetGraphic = buttonRoot.GetComponent<Image>();
-            button.colors = CreateButtonColors();
+            button.transition = Selectable.Transition.None;
+            button.targetGraphic = background;
+
+            KaelisMenuButtonTransition transition = buttonRoot.gameObject.AddComponent<KaelisMenuButtonTransition>();
+            Color normal = primary ? new Color(0.075f, 0.055f, 0.025f, 0.92f) : ButtonNormal;
+            Color hover = primary ? new Color(0.18f, 0.12f, 0.035f, 0.98f) : ButtonHover;
+            Color pressed = primary ? new Color(0.36f, 0.22f, 0.07f, 1f) : ButtonPressed;
+            Color selected = primary ? new Color(0.14f, 0.095f, 0.034f, 0.98f) : ButtonSelected;
+            transition.Configure(button, background, glow, accentLine, labelText, normal, hover, pressed, selected, ButtonDisabled, accent, primary);
             return button;
         }
 
-        private RectTransform CreateButtonBase(RectTransform parent, string name, string label, Color accent, out TMP_Text labelText)
+        private RectTransform CreateButtonBase(
+            RectTransform parent,
+            string name,
+            string label,
+            Color accent,
+            KaelisMenuIconKind iconKind,
+            bool primary,
+            float height,
+            out TMP_Text labelText,
+            out Image backgroundImage,
+            out Image glowImage,
+            out Image accentLineImage)
         {
             RectTransform buttonRoot = CreateRect(name, parent);
-            AddLayout(buttonRoot.gameObject, -1f, 56f);
+            AddLayout(buttonRoot.gameObject, -1f, height);
 
-            Image image = buttonRoot.gameObject.AddComponent<Image>();
-            image.sprite = solidSprite;
-            image.color = ButtonNormal;
-            image.raycastTarget = true;
+            backgroundImage = buttonRoot.gameObject.AddComponent<Image>();
+            backgroundImage.sprite = solidSprite;
+            backgroundImage.color = primary ? new Color(0.075f, 0.055f, 0.025f, 0.92f) : ButtonNormal;
+            backgroundImage.raycastTarget = true;
 
-            AddFrame(buttonRoot, accent, new Color(accent.r, accent.g, accent.b, 0.42f), 1.5f);
+            RectTransform glow = CreateRect("SoftAccentGlow", buttonRoot);
+            Stretch(glow);
+            Image glowImageComponent = glow.gameObject.AddComponent<Image>();
+            glowImageComponent.sprite = solidSprite;
+            glowImageComponent.color = new Color(accent.r, accent.g, accent.b, primary ? 0.16f : 0.035f);
+            glowImageComponent.raycastTarget = false;
+            glowImage = glowImageComponent;
+
+            AddFrame(buttonRoot, new Color(accent.r, accent.g, accent.b, primary ? 0.76f : 0.34f), new Color(1f, 1f, 1f, primary ? 0.22f : 0.12f), primary ? 1.5f : 1f);
+            AddInsetFrame(buttonRoot, new Color(accent.r, accent.g, accent.b, primary ? 0.3f : 0.16f), 5f, 1f);
+            AddCornerCuts(buttonRoot, new Color(accent.r, accent.g, accent.b, primary ? 0.9f : 0.42f), 18f, 1.5f);
 
             RectTransform accentLine = CreateRect("AccentLine", buttonRoot);
             accentLine.anchorMin = new Vector2(0f, 0f);
             accentLine.anchorMax = new Vector2(0f, 1f);
             accentLine.pivot = new Vector2(0f, 0.5f);
-            accentLine.sizeDelta = new Vector2(4f, 0f);
+            accentLine.sizeDelta = new Vector2(primary ? 3f : 2f, 0f);
             accentLine.anchoredPosition = Vector2.zero;
 
             Image accentImage = accentLine.gameObject.AddComponent<Image>();
             accentImage.sprite = solidSprite;
-            accentImage.color = accent;
+            accentImage.color = new Color(accent.r, accent.g, accent.b, primary ? 0.7f : 0.28f);
             accentImage.raycastTarget = false;
+            accentLineImage = accentImage;
 
-            labelText = CreateText(buttonRoot, "Label", label, 18f, FontStyles.Normal, TextPrimary, TextAlignmentOptions.MidlineLeft);
-            labelText.characterSpacing = 6f;
+            CreateMenuIcon(buttonRoot, iconKind, accent, primary);
+
+            labelText = CreateText(buttonRoot, "Label", label, primary ? 16f : 15f, FontStyles.Normal, TextPrimary, TextAlignmentOptions.MidlineLeft);
+            labelText.characterSpacing = primary ? 5f : 4f;
             labelText.rectTransform.anchorMin = Vector2.zero;
             labelText.rectTransform.anchorMax = Vector2.one;
-            labelText.rectTransform.offsetMin = new Vector2(24f, 0f);
-            labelText.rectTransform.offsetMax = new Vector2(-68f, 0f);
+            labelText.rectTransform.offsetMin = new Vector2(76f, 0f);
+            labelText.rectTransform.offsetMax = new Vector2(-88f, 0f);
+
+            TMP_Text chevron = CreateText(buttonRoot, "Chevron", ">", primary ? 28f : 25f, FontStyles.Normal, primary ? Gold : TextSecondary, TextAlignmentOptions.Center);
+            chevron.rectTransform.anchorMin = new Vector2(1f, 0f);
+            chevron.rectTransform.anchorMax = new Vector2(1f, 1f);
+            chevron.rectTransform.pivot = new Vector2(1f, 0.5f);
+            chevron.rectTransform.sizeDelta = new Vector2(34f, 0f);
+            chevron.rectTransform.anchoredPosition = new Vector2(-14f, 0f);
 
             return buttonRoot;
         }
@@ -385,7 +707,14 @@ namespace Kaleidoscope2.Menu
             image.color = Panel;
             image.raycastTarget = true;
 
-            AddFrame(panel, Cyan, Gold, 2f);
+            Outline outline = panel.gameObject.AddComponent<Outline>();
+            outline.effectColor = new Color(0f, 0f, 0f, 0.42f);
+            outline.effectDistance = new Vector2(2f, -2f);
+
+            AddFrame(panel, new Color(Cyan.r, Cyan.g, Cyan.b, 0.32f), new Color(1f, 1f, 1f, 0.12f), 1f);
+            AddInsetFrame(panel, new Color(1f, 1f, 1f, 0.08f), 8f, 1f);
+            AddPanelSheen(panel);
+            AddCornerCuts(panel, new Color(Cyan.r, Cyan.g, Cyan.b, 0.28f), 28f, 1.5f);
 
             Shadow shadow = panel.gameObject.AddComponent<Shadow>();
             shadow.effectColor = new Color(0f, 0f, 0f, 0.52f);
@@ -458,7 +787,23 @@ namespace Kaleidoscope2.Menu
                 demoStateText.color = demoModeEnabled ? Gold : TextSecondary;
             }
 
-            SetStatus(demoModeEnabled ? "DEMO MODE STORED  |  NO DEMO PIPELINE YET" : "SYSTEM READY  |  DEMO OFF");
+            if (demoToggleValueText != null)
+            {
+                demoToggleValueText.text = demoModeEnabled ? "ON" : "OFF";
+                demoToggleValueText.color = demoModeEnabled ? Gold : TextSecondary;
+            }
+
+            if (demoToggleTransition != null)
+            {
+                demoToggleTransition.SetSelectedVisual(demoModeEnabled);
+            }
+
+            if (demoToggleVisual != null)
+            {
+                demoToggleVisual.SetState(demoModeEnabled);
+            }
+
+            SetStatus(demoModeEnabled ? "SYSTEM READY    |    DEMO ON    |    MODE: STARTUP" : "SYSTEM READY    |    DEMO OFF    |    MODE: STARTUP");
             Debug.Log("[KAELIS Menu] Demo Mode stored: " + (demoModeEnabled ? "ON" : "OFF") + ".");
         }
 
@@ -468,20 +813,72 @@ namespace Kaleidoscope2.Menu
 
             if (canvasGroup != null)
             {
-                canvasGroup.alpha = visible ? 1f : 0f;
                 canvasGroup.blocksRaycasts = visible;
                 canvasGroup.interactable = visible;
             }
 
-            if (menuRoot != null && menuRoot.activeSelf != visible)
+            if (visibilityRoutine != null)
             {
-                menuRoot.SetActive(visible);
+                StopCoroutine(visibilityRoutine);
+                visibilityRoutine = null;
+            }
+
+            if (Application.isPlaying && canvasGroup != null && menuRoot != null)
+            {
+                visibilityRoutine = StartCoroutine(FadeVisible(visible));
+            }
+            else
+            {
+                if (canvasGroup != null)
+                {
+                    canvasGroup.alpha = visible ? 1f : 0f;
+                }
+
+                if (menuRoot != null && menuRoot.activeSelf != visible)
+                {
+                    menuRoot.SetActive(visible);
+                }
             }
 
             if (visible)
             {
-                SetStatus("SYSTEM READY  |  STARTUP MENU");
+                SetStatus(demoModeEnabled ? "SYSTEM READY    |    DEMO ON    |    MODE: STARTUP" : "SYSTEM READY    |    DEMO OFF    |    MODE: STARTUP");
             }
+        }
+
+        private IEnumerator FadeVisible(bool shouldShow)
+        {
+            if (menuRoot == null || canvasGroup == null)
+            {
+                yield break;
+            }
+
+            if (shouldShow && !menuRoot.activeSelf)
+            {
+                menuRoot.SetActive(true);
+            }
+
+            float startAlpha = canvasGroup.alpha;
+            float targetAlpha = shouldShow ? 1f : 0f;
+            float elapsed = 0f;
+
+            while (elapsed < VisibilityFadeSeconds)
+            {
+                elapsed += Time.unscaledDeltaTime;
+                float t = Mathf.Clamp01(elapsed / VisibilityFadeSeconds);
+                t = 1f - ((1f - t) * (1f - t));
+                canvasGroup.alpha = Mathf.Lerp(startAlpha, targetAlpha, t);
+                yield return null;
+            }
+
+            canvasGroup.alpha = targetAlpha;
+
+            if (!shouldShow)
+            {
+                menuRoot.SetActive(false);
+            }
+
+            visibilityRoutine = null;
         }
 
         private void SetStatus(string value)
@@ -623,24 +1020,61 @@ namespace Kaleidoscope2.Menu
             }
         }
 
-        private static ColorBlock CreateButtonColors()
+        private void AddPanelSheen(RectTransform target)
         {
-            ColorBlock colors = ColorBlock.defaultColorBlock;
-            colors.normalColor = ButtonNormal;
-            colors.highlightedColor = ButtonHover;
-            colors.pressedColor = ButtonPressed;
-            colors.selectedColor = ButtonSelected;
-            colors.disabledColor = new Color(0.05f, 0.05f, 0.05f, 0.55f);
-            colors.colorMultiplier = 1f;
-            colors.fadeDuration = 0.08f;
-            return colors;
+            RectTransform sheen = CreateRect("GlassSheen", target);
+            sheen.anchorMin = new Vector2(0f, 1f);
+            sheen.anchorMax = new Vector2(1f, 1f);
+            sheen.pivot = new Vector2(0.5f, 1f);
+            sheen.sizeDelta = new Vector2(0f, 76f);
+            sheen.anchoredPosition = Vector2.zero;
+
+            Image image = sheen.gameObject.AddComponent<Image>();
+            image.sprite = solidSprite;
+            image.color = PanelSoft;
+            image.raycastTarget = false;
+
+            LayoutElement layoutElement = sheen.gameObject.AddComponent<LayoutElement>();
+            layoutElement.ignoreLayout = true;
         }
 
-        private static ColorBlock CreateToggleColors()
+        private void AddTextGlow(GameObject target, Color color, Vector2 distance)
         {
-            ColorBlock colors = CreateButtonColors();
-            colors.selectedColor = PanelStrong;
-            return colors;
+            Shadow shadow = target.AddComponent<Shadow>();
+            shadow.effectColor = color;
+            shadow.effectDistance = distance;
+            shadow.useGraphicAlpha = false;
+        }
+
+        private void AddAmbientLine(RectTransform parent, string name, float yAnchor, Color color)
+        {
+            RectTransform line = CreateRect(name, parent);
+            line.anchorMin = new Vector2(0f, yAnchor);
+            line.anchorMax = new Vector2(1f, yAnchor);
+            line.pivot = new Vector2(0.5f, yAnchor);
+            line.sizeDelta = new Vector2(0f, 2f);
+            line.anchoredPosition = Vector2.zero;
+
+            Image image = line.gameObject.AddComponent<Image>();
+            image.sprite = solidSprite;
+            image.color = color;
+            image.raycastTarget = false;
+
+            LayoutElement layoutElement = line.gameObject.AddComponent<LayoutElement>();
+            layoutElement.ignoreLayout = true;
+        }
+
+        private void AddInsetFrame(RectTransform target, Color color, float inset, float thickness)
+        {
+            RectTransform insetFrame = CreateRect("InsetFrame", target);
+            Stretch(insetFrame);
+            insetFrame.offsetMin = new Vector2(inset, inset);
+            insetFrame.offsetMax = new Vector2(-inset, -inset);
+
+            AddFrame(insetFrame, color, new Color(color.r, color.g, color.b, color.a * 0.65f), thickness);
+
+            LayoutElement layoutElement = insetFrame.gameObject.AddComponent<LayoutElement>();
+            layoutElement.ignoreLayout = true;
         }
 
         private void AddFrame(RectTransform target, Color primary, Color secondary, float thickness)
@@ -649,6 +1083,33 @@ namespace Kaleidoscope2.Menu
             AddLine(target, "FrameBottom", new Vector2(0f, 0f), new Vector2(1f, 0f), thickness, secondary);
             AddLine(target, "FrameLeft", new Vector2(0f, 0f), new Vector2(0f, 1f), thickness, secondary);
             AddLine(target, "FrameRight", new Vector2(1f, 0f), new Vector2(1f, 1f), thickness, primary);
+        }
+
+        private void AddCornerCuts(RectTransform target, Color color, float length, float thickness)
+        {
+            AddCornerCut(target, "CornerTopLeft", new Vector2(0f, 1f), new Vector2(length * 0.35f, -length * 0.35f), -45f, color, length, thickness);
+            AddCornerCut(target, "CornerTopRight", new Vector2(1f, 1f), new Vector2(-length * 0.35f, -length * 0.35f), 45f, color, length, thickness);
+            AddCornerCut(target, "CornerBottomLeft", new Vector2(0f, 0f), new Vector2(length * 0.35f, length * 0.35f), 45f, color, length, thickness);
+            AddCornerCut(target, "CornerBottomRight", new Vector2(1f, 0f), new Vector2(-length * 0.35f, length * 0.35f), -45f, color, length, thickness);
+        }
+
+        private void AddCornerCut(RectTransform target, string name, Vector2 anchor, Vector2 anchoredPosition, float rotation, Color color, float length, float thickness)
+        {
+            RectTransform line = CreateRect(name, target);
+            line.anchorMin = anchor;
+            line.anchorMax = anchor;
+            line.pivot = new Vector2(0.5f, 0.5f);
+            line.sizeDelta = new Vector2(length, thickness);
+            line.anchoredPosition = anchoredPosition;
+            line.localEulerAngles = new Vector3(0f, 0f, rotation);
+
+            Image image = line.gameObject.AddComponent<Image>();
+            image.sprite = solidSprite;
+            image.color = color;
+            image.raycastTarget = false;
+
+            LayoutElement layoutElement = line.gameObject.AddComponent<LayoutElement>();
+            layoutElement.ignoreLayout = true;
         }
 
         private void AddLine(RectTransform parent, string name, Vector2 anchorMin, Vector2 anchorMax, float thickness, Color color)
@@ -730,6 +1191,300 @@ namespace Kaleidoscope2.Menu
             else
             {
                 DestroyImmediate(asset);
+            }
+        }
+    }
+
+    internal sealed class KaelisMenuButtonTransition : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler, IPointerDownHandler, IPointerUpHandler, ISelectHandler, IDeselectHandler
+    {
+        private Selectable selectable;
+        private Image background;
+        private Image glow;
+        private Image accentLine;
+        private TMP_Text label;
+        private RectTransform rectTransform;
+        private Color normalColor;
+        private Color hoverColor;
+        private Color pressedColor;
+        private Color selectedColor;
+        private Color disabledColor;
+        private Color accentColor;
+        private Color labelBaseColor;
+        private bool primary;
+        private bool hovered;
+        private bool pressed;
+        private bool keyboardSelected;
+        private bool forcedSelected;
+        private bool configured;
+
+        public void Configure(
+            Selectable selectable,
+            Image background,
+            Image glow,
+            Image accentLine,
+            TMP_Text label,
+            Color normalColor,
+            Color hoverColor,
+            Color pressedColor,
+            Color selectedColor,
+            Color disabledColor,
+            Color accentColor,
+            bool primary)
+        {
+            this.selectable = selectable;
+            this.background = background;
+            this.glow = glow;
+            this.accentLine = accentLine;
+            this.label = label;
+            this.normalColor = normalColor;
+            this.hoverColor = hoverColor;
+            this.pressedColor = pressedColor;
+            this.selectedColor = selectedColor;
+            this.disabledColor = disabledColor;
+            this.accentColor = accentColor;
+            this.primary = primary;
+            labelBaseColor = label != null ? label.color : Color.white;
+            rectTransform = (RectTransform)transform;
+            configured = true;
+
+            ApplyInstant();
+        }
+
+        public void SetSelectedVisual(bool selected)
+        {
+            forcedSelected = selected;
+        }
+
+        public void OnPointerEnter(PointerEventData eventData)
+        {
+            if (IsInteractable())
+            {
+                hovered = true;
+            }
+        }
+
+        public void OnPointerExit(PointerEventData eventData)
+        {
+            hovered = false;
+            pressed = false;
+        }
+
+        public void OnPointerDown(PointerEventData eventData)
+        {
+            if (IsInteractable())
+            {
+                pressed = true;
+            }
+        }
+
+        public void OnPointerUp(PointerEventData eventData)
+        {
+            pressed = false;
+        }
+
+        public void OnSelect(BaseEventData eventData)
+        {
+            keyboardSelected = true;
+        }
+
+        public void OnDeselect(BaseEventData eventData)
+        {
+            keyboardSelected = false;
+            pressed = false;
+        }
+
+        private void OnDisable()
+        {
+            hovered = false;
+            pressed = false;
+            keyboardSelected = false;
+        }
+
+        private void Update()
+        {
+            if (!configured)
+            {
+                return;
+            }
+
+            float t = 1f - Mathf.Exp(-14f * Time.unscaledDeltaTime);
+            Apply(t);
+        }
+
+        private void ApplyInstant()
+        {
+            Apply(1f);
+        }
+
+        private void Apply(float t)
+        {
+            bool interactable = IsInteractable();
+            bool selected = forcedSelected || keyboardSelected;
+            Color surface = disabledColor;
+            if (interactable)
+            {
+                if (pressed)
+                {
+                    surface = pressedColor;
+                }
+                else if (selected)
+                {
+                    surface = selectedColor;
+                }
+                else if (hovered)
+                {
+                    surface = hoverColor;
+                }
+                else
+                {
+                    surface = normalColor;
+                }
+            }
+
+            if (background != null)
+            {
+                background.color = Color.Lerp(background.color, surface, t);
+            }
+
+            if (glow != null)
+            {
+                float alpha = 0.035f;
+                if (primary)
+                {
+                    alpha = 0.14f;
+                }
+
+                if (hovered || selected)
+                {
+                    alpha += primary ? 0.16f : 0.11f;
+                }
+
+                if (pressed)
+                {
+                    alpha += 0.08f;
+                }
+
+                if (!interactable)
+                {
+                    alpha = 0.015f;
+                }
+
+                Color glowTarget = new Color(accentColor.r, accentColor.g, accentColor.b, alpha);
+                glow.color = Color.Lerp(glow.color, glowTarget, t);
+            }
+
+            if (accentLine != null)
+            {
+                float alpha = primary ? 0.68f : 0.22f;
+                if (hovered || selected)
+                {
+                    alpha = primary ? 0.95f : 0.58f;
+                }
+
+                if (!interactable)
+                {
+                    alpha = 0.1f;
+                }
+
+                Color accentTarget = new Color(accentColor.r, accentColor.g, accentColor.b, alpha);
+                accentLine.color = Color.Lerp(accentLine.color, accentTarget, t);
+            }
+
+            if (label != null)
+            {
+                Color labelTarget = labelBaseColor;
+                if (primary || hovered || selected)
+                {
+                    labelTarget = Color.Lerp(labelBaseColor, Color.white, primary ? 0.3f : 0.18f);
+                }
+
+                if (!interactable)
+                {
+                    labelTarget = new Color(labelBaseColor.r, labelBaseColor.g, labelBaseColor.b, 0.42f);
+                }
+
+                label.color = Color.Lerp(label.color, labelTarget, t);
+            }
+
+            if (rectTransform != null)
+            {
+                float targetScale = pressed ? 0.992f : ((hovered || selected) ? 1.006f : 1f);
+                Vector3 target = new Vector3(targetScale, targetScale, 1f);
+                rectTransform.localScale = Vector3.Lerp(rectTransform.localScale, target, t);
+            }
+        }
+
+        private bool IsInteractable()
+        {
+            return selectable == null || selectable.IsInteractable();
+        }
+    }
+
+    internal sealed class KaelisMenuToggleVisual : MonoBehaviour
+    {
+        private Image track;
+        private RectTransform knob;
+        private Image knobImage;
+        private TMP_Text valueLabel;
+        private Color offColor;
+        private Color cyan;
+        private Color gold;
+        private bool enabledState;
+        private bool configured;
+
+        public void Configure(Image track, RectTransform knob, Image knobImage, TMP_Text valueLabel, Color cyan, Color gold)
+        {
+            this.track = track;
+            this.knob = knob;
+            this.knobImage = knobImage;
+            this.valueLabel = valueLabel;
+            this.cyan = cyan;
+            this.gold = gold;
+            offColor = track != null ? track.color : new Color(0f, 0f, 0f, 0.34f);
+            configured = true;
+            Apply(1f);
+        }
+
+        public void SetState(bool enabled)
+        {
+            enabledState = enabled;
+        }
+
+        private void Update()
+        {
+            if (!configured)
+            {
+                return;
+            }
+
+            float t = 1f - Mathf.Exp(-15f * Time.unscaledDeltaTime);
+            Apply(t);
+        }
+
+        private void Apply(float t)
+        {
+            if (track != null)
+            {
+                Color onColor = new Color(cyan.r, cyan.g, cyan.b, 0.34f);
+                track.color = Color.Lerp(track.color, enabledState ? onColor : offColor, t);
+            }
+
+            if (knob != null)
+            {
+                Vector2 target = new Vector2(enabledState ? 39f : 13f, 0f);
+                knob.anchoredPosition = Vector2.Lerp(knob.anchoredPosition, target, t);
+            }
+
+            if (knobImage != null)
+            {
+                Color offKnob = new Color(0.76f, 0.82f, 0.84f, 1f);
+                knobImage.color = Color.Lerp(knobImage.color, enabledState ? gold : offKnob, t);
+            }
+
+            if (valueLabel != null)
+            {
+                Color offText = new Color(0.68f, 0.75f, 0.78f, 1f);
+                valueLabel.color = Color.Lerp(valueLabel.color, enabledState ? gold : offText, t);
             }
         }
     }
