@@ -1,64 +1,50 @@
-# AGENTS.md — KAELIS
+# AGENTS.md — KAELIS / Kaleidoscope2
+
+## 0. Main Instruction
+
+This project has two protected zones:
+
+```text
+Classic2D / Layer 1  — protected, do not break.
+Premium3D / Layer 2 — active development zone, can be refactored until it reaches the target quality.
+```
+
+Classic2D already works well and is visually strong.
+
+Premium3D is not finished. It may contain legacy experiments, temporary bridges, duplicated paths, weak optics, and old failed attempts. Codex is allowed to remove or replace old Premium3D code when it is clearly blocking progress.
+
+Do not preserve broken Premium3D code just because it exists.
+
+---
 
 ## 1. Project Goal
 
-KAELIS is a modular Unity-based cinematic kaleidoscope engine.
+KAELIS is a modular Unity cinematic kaleidoscope application with:
 
-Core flow:
+- a polished Classic2D kaleidoscope mode;
+- a premium RealMesh3D crystal mode;
+- modern application menu;
+- optional demo/presentation mode;
+- built-in default images and music for first launch / showcase;
+- file loading for user images later.
+
+Architecture idea:
 
 ```text
-UI / Input / Audio
+Input / Menu / Demo Mode / Audio
         ↓
 KaleidoscopeDirector
         ↓
-Independent Modules
+Layer 1 Classic2D OR Layer 2 Premium3D
         ↓
 Final Output
 ```
 
-Every module must remain isolated, replaceable, and testable.
-
-Do not build a chaotic MonoBehaviour jungle.
-
 ---
 
-## 2. Core Architecture Rules
+## 2. Layer 1 — Classic2D / Protected Mode
 
-Allowed:
-
-- UI / Menu / Input / Audio send commands to KaleidoscopeDirector.
-- KaleidoscopeDirector routes commands to modules.
-- Modules communicate through commands, interfaces, or event bus.
-- Modules expose small public APIs.
-- Diagnostics may read state and report problems.
-
-Forbidden:
-
-- UI directly edits shaders, cameras, materials, or crystal internals.
-- One module directly mutates another module’s internals.
-- `FindObjectOfType` in runtime loops.
-- `GameObject.Find` as production architecture.
-- `Camera.main` as production dependency.
-- hidden singleton logic.
-- circular dependencies.
-- unrelated “cleanup” during feature work.
-
----
-
-## 3. Layer Separation
-
-KAELIS has two different visual layers.
-
-```text
-Layer 1 — Kaleidoscope Display Layer
-Layer 2 — Premium3D Crystal Stage Layer
-```
-
-These layers must not be confused.
-
-### 3.1 Layer 1 — Kaleidoscope Display Layer
-
-Purpose: render and display the classic kaleidoscope image.
+Classic2D is the stable reference mode.
 
 Pipeline:
 
@@ -67,386 +53,422 @@ Source
     ↓
 Mirror
     ↓
-FinalOutputTexture
+Classic output
     ↓
 OutputPreview
 ```
 
-Layer 1 is stable and must remain protected.
+Classic2D must stay visually unchanged unless the task explicitly says otherwise.
 
-During Premium3D / RealMesh3D work, Layer 1 is READ-ONLY.
+Forbidden during Premium3D work:
 
-Do NOT:
+- changing MirrorModule behavior;
+- changing SourceModule behavior;
+- changing RuntimeMenuController / OutputPreview binding;
+- changing Classic2D shaders;
+- changing Billboard2D behavior;
+- changing existing classic hotkeys globally;
+- changing Layer 1 visual output to solve Premium3D problems.
 
-- modify MirrorModule;
-- modify SourceModule;
-- modify OutputPreview;
-- convert the display plane into a crystal;
-- treat fullscreen output as RealMesh3D;
-- break Classic2D / Billboard2D behavior.
+Classic2D is the baseline. Do not “fix” it while working on Premium3D.
 
-### 3.2 Layer 2 — Premium3D Crystal Stage Layer
+---
 
-Purpose: render a real volumetric crystal as a premium 3D optical stage.
+## 3. Layer 2 — Premium3D / Active Development Mode
 
-Correct composition:
+Premium3D is allowed to evolve aggressively.
+
+Goal:
+
+A large, beautiful, convincing, faceted, volumetric crystal that:
+
+- occupies a strong part of the screen;
+- has real 3D mesh geometry;
+- has readable front/back depth;
+- has mirror-polished facets;
+- refracts and reflects the kaleidoscope background;
+- does not look like a flat transparent bubble;
+- does not show the kaleidoscope center as a clean window;
+- has rich gemstone colors;
+- supports shape variety;
+- supports smooth shape transitions;
+- supports controlled optical effects.
+
+Premium3D may be refactored if needed.
+
+Allowed in Premium3D:
+
+- replace weak shaders;
+- remove failed optical experiments;
+- remove dead legacy bridges;
+- replace fake fullscreen tricks with spatial rendering;
+- introduce new clean classes;
+- split large classes if the split is local and improves clarity;
+- add diagnostics;
+- add debug modes;
+- add material presets;
+- add hidden reflection background;
+- add reflection camera / reflection texture;
+- add shape morphing;
+- add mouse wheel size control;
+- add gated F-key effect toggles.
+
+Do not be afraid to remove Premium3D code that is proven wrong.
+
+---
+
+## 4. Premium3D Hard Requirements
+
+Premium3D crystal must not be:
+
+- a plane;
+- a quad;
+- a RawImage;
+- a flat billboard;
+- a fullscreen fake projection;
+- a transparent bubble;
+- a clean window to the background center.
+
+Premium3D crystal must be:
+
+- MeshFilter + MeshRenderer;
+- volumetric;
+- centered;
+- large enough;
+- stable in size;
+- rich in material response;
+- reflective and refractive;
+- visually stronger than a simple tint.
+
+If the user says “the crystal is still too small / dull / white / flat / bubble-like”, treat that as a valid visual failure even if diagnostics claim success.
+
+Human visual result has priority over internal coverage numbers.
+
+---
+
+## 5. Premium3D Size and Scale Policy
+
+Mouse wheel must control Premium3D crystal scale when crystal mode is active.
+
+Required range:
 
 ```text
-Camera
-    ↓
-RealMeshCrystal
-    ↓
-BackgroundGeometry
+20% → 300%
 ```
 
-Incorrect composition:
+Rules:
+
+- mouse wheel scaling is active only when Premium3D crystal is visible/active;
+- when crystal is not visible, mouse wheel keeps original behavior;
+- scale must not pulse or breathe;
+- rotation must not change scale;
+- shape switching must not reset user scale unless explicitly requested.
+
+If automatic coverage calculation conflicts with user scale, user scale wins.
+
+---
+
+## 6. Premium3D Optical Policy
+
+The crystal must not behave like a direct transparent window.
+
+Bad:
 
 ```text
-Camera
-    ↓
-Fullscreen plane
-    ↓
-Tiny crystal
+Background → direct clean screenUv → user
 ```
 
-Layer 2 must use:
-
-- real MeshFilter + MeshRenderer crystal;
-- real depth;
-- side faces;
-- front/back separation;
-- explicit background geometry;
-- explicit camera/stage framing;
-- explicit light rig when lighting work is requested.
-
-Forbidden for RealMesh3D:
-
-- Plane as crystal;
-- Quad as crystal;
-- Billboard as crystal;
-- RawImage as crystal;
-- fullscreen fake projection as crystal;
-- screen-space-only fake depth;
-- huge projection wall pretending to be Premium3D.
-
-If the crystal is flat, it is not RealMesh3D.
-
----
-
-## 4. Current Repository State
-
-Current `DiamondFocusModule` is a LEGACY HYBRID compositor.
-
-It may contain:
-
-- real mesh;
-- optics;
-- RenderTexture compositing;
-- compatibility rendering.
-
-But it is NOT final True CrystalStage3D.
-
-Important:
+Good:
 
 ```text
-A volumetric mesh may exist,
-while the final system still behaves like a 2D compositor.
+Background → refraction / reflection / internal echo / facet split → user
 ```
 
-Do not keep trying to solve True Premium3D purely through fullscreen compositing tricks.
+Required optical direction:
 
-Legacy DiamondFocus may remain as compatibility/fallback.
+- reduce direct clean transmission;
+- block clean center see-through;
+- use internal reflection layers;
+- use hidden reflection background;
+- use mirror-like facets;
+- use gemstone absorption;
+- use Fresnel;
+- use controlled dispersion;
+- keep highlights readable, not blown out.
 
-True Premium3D work must focus on the CrystalStage3D spatial path.
+Diamond must not become a white unreadable blob.
+
+Ruby must feel deep red and expensive, not pink plastic.
+
+Opal must feel milky/rainbow/internal, not a flat tint.
 
 ---
 
-## 5. Crystal Modes
+## 7. Hidden Reflection Background
 
-KAELIS supports two crystal strategies.
+Premium3D should support a hidden reflection environment.
+
+Concept:
 
 ```text
-Billboard2D — performance/fake crystal mode
-RealMesh3D — premium volumetric crystal mode
+Visible kaleidoscope background
+        ↓
+seen behind crystal
+
+Hidden mirrored background behind camera
+        ↓
+not directly visible
+        ↓
+reflected only in mirror-polished crystal facets
 ```
 
-### 5.1 Billboard2D
+Rules:
 
-Billboard2D is intentionally fake and performance-friendly.
+- hidden reflection background must not be directly visible in Game View;
+- it must be visible only to reflection camera / reflection texture / crystal shader;
+- it must not cause screen-inside-screen;
+- it must not create a second visible wall;
+- it must not affect Classic2D;
+- diagnostics must prove whether reflection texture is valid and assigned.
 
-Allowed:
+Specular light highlight is not proof of hidden background reflection.
 
-- quad;
-- billboard;
-- screen-space shader;
-- fake facets;
-- fake reflection/refraction.
+Proof mode is required:
 
-Do not modify Billboard2D during RealMesh3D work unless explicitly requested.
+```text
+HiddenReflectionOnlyOnCrystal
+```
 
-### 5.2 RealMesh3D
-
-RealMesh3D is the premium mode.
-
-Hard requirements:
-
-- volumetric mesh;
-- visible side faces;
-- meaningful depth;
-- visible from side angle;
-- centered subject;
-- separate from background plane;
-- remains volumetric with optical shaders disabled.
-
-Validation:
-
-If disabling shaders leaves only a flat surface, the implementation fails.
+In this mode, hidden background must be unmistakably visible on facets.
 
 ---
 
-## 6. Premium3D Quality Gate — Size and Shape First
+## 8. Premium3D Refactor Permission
 
-Before any Premium3D optical effects are allowed, the crystal must pass the Size & Shape Gate.
+Codex is explicitly allowed to remove old Premium3D code if it is:
 
-Required before effects:
+- unused;
+- duplicated;
+- blocking the desired result;
+- responsible for pulsing/breathing;
+- responsible for fullscreen fake projection;
+- responsible for white overexposure;
+- responsible for clean center see-through;
+- responsible for conflicting scale correction;
+- a failed experimental path.
 
-- crystal occupies 42–48% of final visible Game View height;
-- crystal is centered;
-- no tiny crystal;
-- no corner crystal;
-- no duplicate crystal;
-- default shape is visually accepted as premium;
-- shape looks intentional, symmetrical, gemstone-like;
-- shape has readable facets;
-- Layer 1 remains unchanged.
+Before removal:
 
-Forbidden until this gate passes:
+1. Identify the file/class.
+2. Explain why it is Premium3D-only.
+3. Confirm it is not used by Classic2D.
+4. Remove or isolate it.
+5. Compile.
+6. Report the change.
 
-- caustics;
-- prism/rainbow projection;
-- radial waves;
-- background pulsing;
-- spotlight polish;
-- sparkle/glint systems;
-- presets;
-- extra post-processing;
-- new beauty effects.
+Do not remove Classic2D code.
 
-If the crystal is still too small or ugly, fix size and shape first.
-
-Do not add new effects to compensate for a weak crystal.
+Do not remove shared code unless it is proven safe or replaced with a compatible path.
 
 ---
 
-## 7. Premium3D Effects Rule
-
-Effects are allowed only after Size & Shape Gate passes.
-
-When effects are allowed:
-
-- background must remain beautiful and full-strength;
-- effects must enhance the crystal, not hide it;
-- prism/rainbow/caustics must be crystal-driven, not random fullscreen noise;
-- spotlight must support the crystal, not replace the scene;
-- no pulsing/radial waves unless explicitly requested.
-
-Effects must never be used to disguise broken scale, ugly geometry, or bad framing.
-
----
-
-## 8. Input / Hotkey Safety
+## 9. Input / Hotkey Safety
 
 Do not steal existing hotkeys globally.
 
-Crystal-specific hotkeys are active only when:
+Crystal-specific controls are active only when:
 
 ```text
-Backspace has enabled crystal visibility
-AND
-Crystal visible == true
+Premium3D crystal is visible/active
 ```
 
-If the crystal is hidden, all keys must keep their original project behavior.
+If Premium3D crystal is not active, old project behavior must remain.
 
-Crystal hotkeys must be gated through InputModule / command routing.
+Required known controls:
+
+```text
+Mouse Wheel — Premium3D crystal scale, 20% to 300%, only when crystal is active
+Insert/Delete — Premium3D crystal brightness range, safer lowered bounds
+F1 — Help, never steal
+F2–F12 — Premium3D effect toggles, only when crystal is active
+```
+
+Suggested F-key map:
+
+```text
+F2  Hidden reflection background
+F3  Mirror facets
+F4  Internal reflections
+F5  Dispersion / spectral split
+F6  Refraction distortion
+F7  Opal iridescence
+F8  Facet highlights
+F9  Shape morphing
+F10 Optical diagnostics
+F11 Cycle gem material preset
+F12 Reset Premium3D optical controls
+```
 
 ---
 
-## 9. Menu Rules
+## 10. Modern Menu Direction
 
-Menu is a premium commercial UI, not a debug panel.
+KAELIS needs a modern application menu.
 
-Before menu tasks, inspect:
+Menu goals:
+
+- premium look;
+- clean structure;
+- no debug-panel feeling;
+- readable typography;
+- keyboard/mouse support;
+- clear mode switching;
+- modern polished visual style.
+
+Menu must include, eventually:
+
+- Classic2D / Premium3D mode switch;
+- crystal material selection;
+- crystal shape selection;
+- crystal scale display/control;
+- optical effects toggles;
+- demo mode checkbox;
+- image source selection;
+- audio/demo controls;
+- diagnostics panel optional.
+
+Menu must not directly mutate low-level shaders or cameras.
+
+Preferred flow:
 
 ```text
-Assets/_Project/Kaleidoscope2/Menu/
-```
-
-Menu architecture:
-
-```text
-Menu
+Menu UI
     ↓
-MenuDirector
+MenuDirector / command layer
     ↓
-KaleidoscopeDirector
+KaleidoscopeDirector / settings
+    ↓
+Modules
 ```
 
-Menu must not directly mutate:
-
-- shaders;
-- cameras;
-- crystal internals;
-- recording internals.
-
-Menu quality requirements:
-
-- TextMeshPro;
-- sharp readable text;
-- hover/pressed/selected states;
-- keyboard/mouse/touch support;
-- consistent spacing;
-- premium presentation;
-- no baked broken text in background art.
-
 ---
 
-## 10. Required Top-Level Modules
+## 11. Demo Mode
 
-Required modules:
+Add a separate application demo mode.
 
-- Menu
-- Core
-- Control
-- Input
-- Source
-- Mirror
-- Camera
-- PhysicsChamber
-- AudioReactive
-- Tunnel
-- DiamondFocus
-- Recording
-- Presets
-- Diagnostics
+Demo mode is controlled by a checkbox in the modern menu.
 
----
+When Demo Mode is ON:
 
-## 11. DiamondFocus Responsibility
+- play a default bundled track;
+- use bundled default illustration/image set;
+- auto-cycle images;
+- optionally auto-cycle shapes/materials;
+- show the application in a polished presentation state.
 
-DiamondFocus currently acts as:
+When Demo Mode is OFF:
+
+- user-controlled mode remains available;
+- user-selected images/music should be used when implemented;
+- normal controls remain.
+
+Demo mode must not depend on external user files.
+
+Default assets will be chosen by the user and then included in the project.
+
+Expected structure may be:
 
 ```text
-Legacy Hybrid Crystal Compatibility Layer
+Assets/_Project/Kaleidoscope2/DemoContent/
+    Audio/
+    Images/
+    Presets/
 ```
 
-Responsibilities:
-
-- Billboard2D compatibility;
-- temporary RealMesh integration;
-- diagnostics;
-- compatibility with existing pipeline.
-
-DiamondFocus is NOT final True CrystalStage3D.
-
-Future preferred direction:
-
-```text
-DiamondFocus
-    ↓
-ICrystalRenderer
-    ├── BillboardCrystalRenderer
-    └── RealMeshCrystalRenderer / CrystalStage3D
-```
+Demo mode must be deterministic and safe for showcasing.
 
 ---
 
-## 12. Performance Rules
+## 12. Built-In Illustrations / Default Content
 
-Forbidden in Update / LateUpdate / FixedUpdate:
+KAELIS should include a curated built-in image set.
 
-- allocations;
-- LINQ allocations;
-- FindObjectOfType;
-- GameObject.Find;
-- repeated material recreation;
-- repeated RenderTexture recreation;
-- heavy string logging every frame.
+Purpose:
 
-Reuse resources.
+- first launch looks good;
+- demo mode works without file browser;
+- Premium3D has rich backgrounds to reflect/refract;
+- Classic2D has good showcase material.
+
+Rules:
+
+- built-in images are content assets, not code hacks;
+- do not hardcode one image into shaders;
+- use a content provider / source list;
+- allow user images later without breaking demo defaults.
 
 ---
 
-## 13. Validation Rules
+## 13. Diagnostics
 
-Every task report must include:
+Premium3D diagnostics should report:
 
-- What changed
-- Why
-- Files touched
-- Validation
-- Risks / Follow-up
+- active mode;
+- active shape;
+- active material;
+- crystal scale percent;
+- hidden reflection texture valid;
+- hidden reflection texture assigned;
+- hidden reflection visible to main camera false;
+- hidden reflection visible to reflection camera true;
+- direct transmission value;
+- brightness/intensity;
+- pulsing/breathing flags false;
+- active effect toggles.
 
-For RealMesh3D tasks additionally confirm:
-
-- mesh is volumetric;
-- side faces are visible;
-- not a plane/quad/billboard;
-- final visible screen coverage is reported;
-- Layer 1 was not modified;
-- Billboard2D still works.
-
-For Premium3D Size & Shape tasks additionally report:
-
-- final visible crystal coverage %;
-- internal Stage RT crystal coverage % if applicable;
-- active shape name;
-- mesh bounds;
-- vertex count;
-- triangle count;
-- hasVolume true/false.
+Diagnostics are allowed to be technical. They are for development confidence.
 
 ---
 
 ## 14. Stage Discipline
 
-Only work on the requested stage.
+Work in focused stages.
 
-Do NOT:
+Do not combine menu rewrite, optical shader rewrite, demo mode, asset import, shape morphing, and input remap unless the task explicitly asks for a combined pass.
 
-- implement future stages early;
-- rewrite project globally;
-- improve unrelated things;
-- combine size/shape fixes with optical effects;
-- combine cleanup with new features unless explicitly asked.
-
-Small isolated commits only.
+However, within Premium3D, Codex may refactor old broken code when necessary to complete the requested stage.
 
 ---
 
-## 15. Mental Model
+## 15. Validation Requirements
 
-Think like a hardware rack:
+Every task report must include:
 
-- Menu = front panel
-- Director = controller
-- Source = signal generator
-- Mirror = image processor
-- Layer 1 = display monitor
-- Layer 2 = crystal optical stage
-- Recording = recorder
-- Diagnostics = monitoring panel
+- what changed;
+- files touched;
+- forbidden files check;
+- compile result;
+- what was not touched;
+- visual acceptance notes if relevant;
+- remaining issues.
 
-Modules are connected, not fused.
+For Premium3D tasks, also report:
+
+- whether Classic2D was untouched;
+- whether pulsing/breathing returned;
+- whether hidden reflection is actually visible in debug mode if relevant;
+- whether mouse wheel scale works if relevant;
+- whether the crystal still shows clean center directly.
 
 ---
 
 ## 16. Final Rule
 
-Protect modularity.
+Classic2D is protected.
 
-A quick hack that destroys architecture is failure.
+Premium3D is allowed to be rebuilt until it becomes beautiful.
 
-A slower clean solution is preferred.
+Do not keep broken Premium3D code for safety theater.
 
-If the crystal is small or ugly, fix size and shape before adding effects.
+Safety means protecting the working Classic2D mode and moving Premium3D forward with clear, testable changes.
