@@ -74,6 +74,8 @@ namespace Kaleidoscope2.DiamondFocus
         private float lastReportedCrystalLightRigIntensity = float.MinValue;
         private int lastReportedCrystalLightRigCount = int.MinValue;
         private float lastCrystalLightRigReportTime = -10f;
+        private float lastReportedPremiumCrystalScalePercent = float.MinValue;
+        private float lastPremiumCrystalScaleReportTime = -10f;
         private float lastEffectiveCrystalScale;
         private Vector3 lastCrystalLocalPosition;
         private Bounds lastCrystalBounds;
@@ -138,7 +140,11 @@ namespace Kaleidoscope2.DiamondFocus
                 || command.Type == KaleidoscopeCommandType.SetCrystalLightRigEnabled
                 || command.Type == KaleidoscopeCommandType.AdjustCrystalLightRigIntensity
                 || command.Type == KaleidoscopeCommandType.SetCrystalLightRigIntensity
-                || command.Type == KaleidoscopeCommandType.SetCrystalLightRigActiveLightCount;
+                || command.Type == KaleidoscopeCommandType.SetCrystalLightRigActiveLightCount
+                || command.Type == KaleidoscopeCommandType.AdjustPremiumCrystalScalePercent
+                || command.Type == KaleidoscopeCommandType.SetPremiumCrystalScalePercent
+                || command.Type == KaleidoscopeCommandType.TogglePremiumCrystalEffect
+                || command.Type == KaleidoscopeCommandType.ResetPremiumCrystalOpticalControls;
         }
 
         public override void HandleCommand(KaleidoscopeCommand command)
@@ -218,6 +224,21 @@ namespace Kaleidoscope2.DiamondFocus
                 case KaleidoscopeCommandType.SetCrystalLightRigIntensity:
                 case KaleidoscopeCommandType.SetCrystalLightRigActiveLightCount:
                     ReportCrystalLightRig(settings);
+                    break;
+
+                case KaleidoscopeCommandType.AdjustPremiumCrystalScalePercent:
+                case KaleidoscopeCommandType.SetPremiumCrystalScalePercent:
+                    ReportPremiumCrystalScale(settings);
+                    break;
+
+                case KaleidoscopeCommandType.TogglePremiumCrystalEffect:
+                    settings.TogglePremiumCrystalEffect((PremiumCrystalEffectToggle)command.IntValue);
+                    ReportPremiumCrystalEffects(settings);
+                    break;
+
+                case KaleidoscopeCommandType.ResetPremiumCrystalOpticalControls:
+                    settings.ResetPremiumCrystalOpticalControls();
+                    ReportPremiumCrystalEffects(settings);
                     break;
             }
         }
@@ -356,12 +377,14 @@ namespace Kaleidoscope2.DiamondFocus
                 + ", material " + materialModeController.GetModeLabel(settings)
                 + ", profile " + profileName
                 + ", simulation " + settings.CrystalSimulationModeLabel
+                + ", Premium3D controls " + settings.PremiumCrystalControlStatus
+                + ", Premium3D effects " + settings.PremiumCrystalEffectStatus
                 + ", dir " + direction
                 + ", speed " + speed
                 + ", RefractionCoefficient " + settings.RefractionCoefficient.ToString("0.00")
                 + ", DirectedLightIntensity " + settings.DirectedLightIntensity.ToString("0.00")
                 + ", LightRig " + (lightRig.RigEnabled ? "on" : "off")
-                + " " + lightRig.LightIntensity.ToString("0.00") + "/20"
+                + " " + lightRig.LightIntensity.ToString("0.00") + "/" + settings.ActiveCrystalBrightnessMax.ToString("0.00")
                 + " glint " + lightRig.ResolvedGlintIntensity.ToString("0.00")
                 + " spectral " + lightRig.ResolvedSpectralIntensity.ToString("0.00")
                 + ", normalized " + normalized
@@ -802,8 +825,42 @@ namespace Kaleidoscope2.DiamondFocus
             lastCrystalLightRigReportTime = now;
             Debug.Log("[DiamondFocusModule] CrystalLightRig "
                 + (lightRig.RigEnabled ? "enabled" : "disabled")
-                + ", light intensity " + value.ToString("0.00") + " / 20"
+                + ", light intensity " + value.ToString("0.00") + " / " + settings.ActiveCrystalBrightnessMax.ToString("0.00")
+                + ", old brightness min/max " + DiamondFocusSettings.OldCrystalBrightnessMin.ToString("0.00") + "/" + DiamondFocusSettings.OldCrystalBrightnessMax.ToString("0.00")
+                + ", new brightness min/max " + DiamondFocusSettings.PremiumCrystalBrightnessMin.ToString("0.00") + "/" + DiamondFocusSettings.PremiumCrystalBrightnessMax.ToString("0.00")
                 + ", active light limit " + activeLightLimit.ToString() + ".", this);
+        }
+
+        private void ReportPremiumCrystalScale(DiamondFocusSettings settings)
+        {
+            if (settings == null)
+            {
+                return;
+            }
+
+            float value = settings.PremiumCrystalScalePercent;
+            float now = Application.isPlaying ? Time.unscaledTime : 0f;
+            if (Mathf.Abs(value - lastReportedPremiumCrystalScalePercent) < 0.05f && now - lastPremiumCrystalScaleReportTime < 0.5f)
+            {
+                return;
+            }
+
+            lastReportedPremiumCrystalScalePercent = value;
+            lastPremiumCrystalScaleReportTime = now;
+            Debug.Log("[DiamondFocusModule] Premium3D crystal scale "
+                + value.ToString("0") + "%, range "
+                + DiamondFocusSettings.PremiumCrystalScalePercentMin.ToString("0") + "-"
+                + DiamondFocusSettings.PremiumCrystalScalePercentMax.ToString("0") + "%.", this);
+        }
+
+        private void ReportPremiumCrystalEffects(DiamondFocusSettings settings)
+        {
+            if (settings == null)
+            {
+                return;
+            }
+
+            Debug.Log("[DiamondFocusModule] Premium3D effects " + settings.PremiumCrystalEffectStatus + ".", this);
         }
 
         private Texture ResolveKaleidoscopeTexture(Texture sourceTexture, out bool textureValid)

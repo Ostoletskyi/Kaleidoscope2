@@ -189,7 +189,9 @@ namespace Kaleidoscope2.DiamondFocus
             if (realMeshRenderer != null)
             {
                 realMeshRenderer.SetGeometryValidationMaterialEnabled(useRealMeshSolidGeometryValidationMaterial || sharedSettings.UseSolidGeometryValidationMaterial);
-                realMeshRenderer.SetStageDebugMode(realMeshStageDebugMode);
+                realMeshRenderer.SetStageDebugMode(sharedSettings.PremiumDebugOpticalDiagnosticsEnabled
+                    ? CrystalStage3DDebugMode.ReflectionEnvironmentOnly
+                    : realMeshStageDebugMode);
             }
 
             DeactivateAllRendererRoots();

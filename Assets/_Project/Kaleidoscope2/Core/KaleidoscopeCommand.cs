@@ -79,7 +79,11 @@ namespace Kaleidoscope2.Core
         SetCrystalLightRigIntensity = 71,
         ToggleCrystalSimulationMode = 72,
         SetCrystalSimulationMode = 73,
-        SetCrystalLightRigActiveLightCount = 74
+        SetCrystalLightRigActiveLightCount = 74,
+        AdjustPremiumCrystalScalePercent = 75,
+        SetPremiumCrystalScalePercent = 76,
+        TogglePremiumCrystalEffect = 77,
+        ResetPremiumCrystalOpticalControls = 78
     }
 
     [Serializable]
@@ -633,6 +637,35 @@ namespace Kaleidoscope2.Core
             {
                 intValue = count
             };
+        }
+
+        public static KaleidoscopeCommand AdjustPremiumCrystalScalePercent(float deltaPercent)
+        {
+            return new KaleidoscopeCommand(KaleidoscopeCommandType.AdjustPremiumCrystalScalePercent)
+            {
+                floatValue = deltaPercent
+            };
+        }
+
+        public static KaleidoscopeCommand SetPremiumCrystalScalePercent(float percent)
+        {
+            return new KaleidoscopeCommand(KaleidoscopeCommandType.SetPremiumCrystalScalePercent)
+            {
+                floatValue = percent
+            };
+        }
+
+        public static KaleidoscopeCommand TogglePremiumCrystalEffect(PremiumCrystalEffectToggle effect)
+        {
+            return new KaleidoscopeCommand(KaleidoscopeCommandType.TogglePremiumCrystalEffect)
+            {
+                intValue = (int)effect
+            };
+        }
+
+        public static KaleidoscopeCommand ResetPremiumCrystalOpticalControls()
+        {
+            return new KaleidoscopeCommand(KaleidoscopeCommandType.ResetPremiumCrystalOpticalControls);
         }
 
         public static KaleidoscopeCommand ToggleCrystalSimulationMode()

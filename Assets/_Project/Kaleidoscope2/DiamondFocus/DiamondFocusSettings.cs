@@ -55,6 +55,19 @@ namespace Kaleidoscope2.Core
         Stone = 3
     }
 
+    public enum PremiumCrystalEffectToggle
+    {
+        HiddenReflectionBackground = 0,
+        MirrorFacets = 1,
+        InternalReflections = 2,
+        Dispersion = 3,
+        RefractionDistortion = 4,
+        OpalIridescence = 5,
+        FacetHighlights = 6,
+        ShapeMorphing = 7,
+        DebugOpticalDiagnostics = 8
+    }
+
     [Serializable]
     public sealed class DiamondFocusSettings
     {
@@ -64,6 +77,13 @@ namespace Kaleidoscope2.Core
         public const float RefractionIndexMax = 10f;
         public const float DirectedLightIntensityMin = -10f;
         public const float DirectedLightIntensityMax = 10f;
+        public const float PremiumCrystalScalePercentMin = 20f;
+        public const float PremiumCrystalScalePercentMax = 300f;
+        public const float PremiumCrystalScalePercentDefault = 100f;
+        public const float OldCrystalBrightnessMin = CrystalLightRigSettings.LightIntensityMin;
+        public const float OldCrystalBrightnessMax = CrystalLightRigSettings.LightIntensityMax;
+        public const float PremiumCrystalBrightnessMin = OldCrystalBrightnessMin * 0.6f;
+        public const float PremiumCrystalBrightnessMax = OldCrystalBrightnessMax * 0.6f;
 
         private static readonly DiamondCrystalMaterialMode[] MaterialModeSequence =
         {
@@ -153,6 +173,18 @@ namespace Kaleidoscope2.Core
 
         [Header("Crystal Presentation")]
         [SerializeField, InspectorName("Crystal Simulation")] private CrystalRenderMode crystalSimulationMode = CrystalRenderMode.Billboard2D;
+        [SerializeField, Range(PremiumCrystalScalePercentMin, PremiumCrystalScalePercentMax)] private float premiumCrystalScalePercent = PremiumCrystalScalePercentDefault;
+
+        [Header("Premium3D Effect Toggles")]
+        [SerializeField] private bool premiumHiddenReflectionBackgroundEnabled = true;
+        [SerializeField] private bool premiumMirrorFacetsEnabled = true;
+        [SerializeField] private bool premiumInternalReflectionsEnabled = true;
+        [SerializeField] private bool premiumDispersionEnabled = true;
+        [SerializeField] private bool premiumRefractionDistortionEnabled = true;
+        [SerializeField] private bool premiumOpalIridescenceEnabled = true;
+        [SerializeField] private bool premiumFacetHighlightsEnabled = true;
+        [SerializeField] private bool premiumShapeMorphingEnabled = true;
+        [SerializeField] private bool premiumDebugOpticalDiagnosticsEnabled;
 
         [Header("Debug")]
         [SerializeField, InspectorName("DebugView")] private DiamondCrystalDebugMode debugMode = DiamondCrystalDebugMode.FinalCrystalComposite;
@@ -186,7 +218,7 @@ namespace Kaleidoscope2.Core
             get
             {
                 float value = ShapeTransitionProgress;
-                return value * value * (3f - 2f * value);
+                return value * value * value * (value * (value * 6f - 15f) + 10f);
             }
         }
         public DiamondCrystalMaterialMode MaterialMode { get { return materialMode; } }
@@ -252,6 +284,45 @@ namespace Kaleidoscope2.Core
         }
         public CrystalRenderMode CrystalSimulationMode { get { return crystalSimulationMode; } }
         public string CrystalSimulationModeLabel { get { return CrystalSharedSettings.GetRenderModeLabel(crystalSimulationMode); } }
+        public float PremiumCrystalScalePercent { get { return Mathf.Clamp(premiumCrystalScalePercent, PremiumCrystalScalePercentMin, PremiumCrystalScalePercentMax); } }
+        public float PremiumCrystalScaleMultiplier { get { return PremiumCrystalScalePercent / 100f; } }
+        public float ActiveCrystalBrightnessMin { get { return IsPremiumCrystalSimulation ? PremiumCrystalBrightnessMin : OldCrystalBrightnessMin; } }
+        public float ActiveCrystalBrightnessMax { get { return IsPremiumCrystalSimulation ? PremiumCrystalBrightnessMax : OldCrystalBrightnessMax; } }
+        public bool IsPremiumCrystalSimulation { get { return crystalSimulationMode == CrystalRenderMode.RealMesh3D; } }
+        public string PremiumCrystalControlStatus
+        {
+            get
+            {
+                return "crystal visible " + (enabled && IsPremiumCrystalSimulation ? "true" : "false")
+                    + ", current crystal scale percent " + PremiumCrystalScalePercent.ToString("0")
+                    + ", old brightness min/max " + OldCrystalBrightnessMin.ToString("0.00") + "/" + OldCrystalBrightnessMax.ToString("0.00")
+                    + ", new brightness min/max " + PremiumCrystalBrightnessMin.ToString("0.00") + "/" + PremiumCrystalBrightnessMax.ToString("0.00");
+            }
+        }
+        public bool PremiumHiddenReflectionBackgroundEnabled { get { return premiumHiddenReflectionBackgroundEnabled; } }
+        public bool PremiumMirrorFacetsEnabled { get { return premiumMirrorFacetsEnabled; } }
+        public bool PremiumInternalReflectionsEnabled { get { return premiumInternalReflectionsEnabled; } }
+        public bool PremiumDispersionEnabled { get { return premiumDispersionEnabled; } }
+        public bool PremiumRefractionDistortionEnabled { get { return premiumRefractionDistortionEnabled; } }
+        public bool PremiumOpalIridescenceEnabled { get { return premiumOpalIridescenceEnabled; } }
+        public bool PremiumFacetHighlightsEnabled { get { return premiumFacetHighlightsEnabled; } }
+        public bool PremiumShapeMorphingEnabled { get { return premiumShapeMorphingEnabled; } }
+        public bool PremiumDebugOpticalDiagnosticsEnabled { get { return premiumDebugOpticalDiagnosticsEnabled; } }
+        public string PremiumCrystalEffectStatus
+        {
+            get
+            {
+                return "hidden reflection " + FormatEnabled(premiumHiddenReflectionBackgroundEnabled)
+                    + ", mirror facets " + FormatEnabled(premiumMirrorFacetsEnabled)
+                    + ", internal reflections " + FormatEnabled(premiumInternalReflectionsEnabled)
+                    + ", dispersion " + FormatEnabled(premiumDispersionEnabled)
+                    + ", refraction distortion " + FormatEnabled(premiumRefractionDistortionEnabled)
+                    + ", opal iridescence " + FormatEnabled(premiumOpalIridescenceEnabled)
+                    + ", facet highlights " + FormatEnabled(premiumFacetHighlightsEnabled)
+                    + ", shape morphing " + FormatEnabled(premiumShapeMorphingEnabled)
+                    + ", optical diagnostics " + FormatEnabled(premiumDebugOpticalDiagnosticsEnabled);
+            }
+        }
         public float OpticalCaustics { get { return Mathf.Max(0f, opticalCaustics); } }
         public float OpticalDispersion { get { return Mathf.Max(0f, opticalDispersion); } }
         public float TotalInternalReflection { get { return Mathf.Max(0f, totalInternalReflection); } }
@@ -274,6 +345,7 @@ namespace Kaleidoscope2.Core
             {
                 EnsureDefaultSpin();
                 RegenerateModeVariant();
+                ClampCrystalLightRigIntensityForCurrentMode();
             }
         }
 
@@ -295,6 +367,24 @@ namespace Kaleidoscope2.Core
         public void BeginShapeTransition(DiamondFocusShape value)
         {
             DiamondFocusShape target = (DiamondFocusShape)Mathf.Clamp((int)value, 0, ShapeCount - 1);
+
+            if (!premiumShapeMorphingEnabled)
+            {
+                SetShape(target);
+                return;
+            }
+
+            if (shapeTransitionActive && target == shapeTransitionFromShape)
+            {
+                DiamondFocusShape previousFrom = shapeTransitionFromShape;
+                shapeTransitionFromShape = shapeTransitionToShape;
+                shapeTransitionToShape = previousFrom;
+                shapeTransitionElapsed = Mathf.Clamp(ShapeTransitionDuration - shapeTransitionElapsed, 0f, ShapeTransitionDuration);
+                shape = target;
+                RefreshInspectorLabels();
+                return;
+            }
+
             DiamondFocusShape from = shapeTransitionActive ? shapeTransitionToShape : shape;
 
             shape = target;
@@ -431,6 +521,7 @@ namespace Kaleidoscope2.Core
             crystalSimulationMode = value == CrystalRenderMode.RealMesh3D
                 ? CrystalRenderMode.RealMesh3D
                 : CrystalRenderMode.Billboard2D;
+            ClampCrystalLightRigIntensityForCurrentMode();
         }
 
         public void ToggleCrystalSimulationMode()
@@ -438,6 +529,119 @@ namespace Kaleidoscope2.Core
             SetCrystalSimulationMode(crystalSimulationMode == CrystalRenderMode.RealMesh3D
                 ? CrystalRenderMode.Billboard2D
                 : CrystalRenderMode.RealMesh3D);
+        }
+
+        public void SetPremiumCrystalScalePercent(float value)
+        {
+            premiumCrystalScalePercent = Mathf.Clamp(value, PremiumCrystalScalePercentMin, PremiumCrystalScalePercentMax);
+        }
+
+        public void AdjustPremiumCrystalScalePercent(float deltaPercent)
+        {
+            SetPremiumCrystalScalePercent(PremiumCrystalScalePercent + deltaPercent);
+        }
+
+        public void TogglePremiumCrystalEffect(PremiumCrystalEffectToggle effect)
+        {
+            SetPremiumCrystalEffectEnabled(effect, !GetPremiumCrystalEffectEnabled(effect));
+        }
+
+        public void SetPremiumCrystalEffectEnabled(PremiumCrystalEffectToggle effect, bool value)
+        {
+            switch (effect)
+            {
+                case PremiumCrystalEffectToggle.HiddenReflectionBackground:
+                    premiumHiddenReflectionBackgroundEnabled = value;
+                    break;
+                case PremiumCrystalEffectToggle.MirrorFacets:
+                    premiumMirrorFacetsEnabled = value;
+                    break;
+                case PremiumCrystalEffectToggle.InternalReflections:
+                    premiumInternalReflectionsEnabled = value;
+                    break;
+                case PremiumCrystalEffectToggle.Dispersion:
+                    premiumDispersionEnabled = value;
+                    break;
+                case PremiumCrystalEffectToggle.RefractionDistortion:
+                    premiumRefractionDistortionEnabled = value;
+                    break;
+                case PremiumCrystalEffectToggle.OpalIridescence:
+                    premiumOpalIridescenceEnabled = value;
+                    break;
+                case PremiumCrystalEffectToggle.FacetHighlights:
+                    premiumFacetHighlightsEnabled = value;
+                    break;
+                case PremiumCrystalEffectToggle.ShapeMorphing:
+                    premiumShapeMorphingEnabled = value;
+                    if (!value && shapeTransitionActive)
+                    {
+                        SetShape(shapeTransitionToShape);
+                    }
+                    break;
+                case PremiumCrystalEffectToggle.DebugOpticalDiagnostics:
+                    premiumDebugOpticalDiagnosticsEnabled = value;
+                    debugMode = value
+                        ? DiamondCrystalDebugMode.ReflectionOnly
+                        : DiamondCrystalDebugMode.FinalCrystalComposite;
+                    break;
+            }
+        }
+
+        public bool GetPremiumCrystalEffectEnabled(PremiumCrystalEffectToggle effect)
+        {
+            switch (effect)
+            {
+                case PremiumCrystalEffectToggle.HiddenReflectionBackground:
+                    return premiumHiddenReflectionBackgroundEnabled;
+                case PremiumCrystalEffectToggle.MirrorFacets:
+                    return premiumMirrorFacetsEnabled;
+                case PremiumCrystalEffectToggle.InternalReflections:
+                    return premiumInternalReflectionsEnabled;
+                case PremiumCrystalEffectToggle.Dispersion:
+                    return premiumDispersionEnabled;
+                case PremiumCrystalEffectToggle.RefractionDistortion:
+                    return premiumRefractionDistortionEnabled;
+                case PremiumCrystalEffectToggle.OpalIridescence:
+                    return premiumOpalIridescenceEnabled;
+                case PremiumCrystalEffectToggle.FacetHighlights:
+                    return premiumFacetHighlightsEnabled;
+                case PremiumCrystalEffectToggle.ShapeMorphing:
+                    return premiumShapeMorphingEnabled;
+                case PremiumCrystalEffectToggle.DebugOpticalDiagnostics:
+                    return premiumDebugOpticalDiagnosticsEnabled;
+                default:
+                    return false;
+            }
+        }
+
+        public void ResetPremiumCrystalOpticalControls()
+        {
+            premiumHiddenReflectionBackgroundEnabled = true;
+            premiumMirrorFacetsEnabled = true;
+            premiumInternalReflectionsEnabled = true;
+            premiumDispersionEnabled = true;
+            premiumRefractionDistortionEnabled = true;
+            premiumOpalIridescenceEnabled = true;
+            premiumFacetHighlightsEnabled = true;
+            premiumShapeMorphingEnabled = true;
+            premiumDebugOpticalDiagnosticsEnabled = false;
+            debugMode = DiamondCrystalDebugMode.FinalCrystalComposite;
+        }
+
+        public void SetCrystalLightRigIntensityForCurrentMode(float value)
+        {
+            CrystalLightRigSettings.SetLightIntensity(ClampCrystalLightRigIntensityForCurrentMode(value));
+        }
+
+        public void AdjustCrystalLightRigIntensityForCurrentMode(float delta)
+        {
+            float current = ClampCrystalLightRigIntensityForCurrentMode(CrystalLightRigSettings.LightIntensity);
+            CrystalLightRigSettings.SetLightIntensity(ClampCrystalLightRigIntensityForCurrentMode(current + delta));
+        }
+
+        public void ClampCrystalLightRigIntensityForCurrentMode()
+        {
+            CrystalLightRigSettings.SetLightIntensity(ClampCrystalLightRigIntensityForCurrentMode(CrystalLightRigSettings.LightIntensity));
         }
 
         public void SetDebugMode(DiamondCrystalDebugMode value)
@@ -499,6 +703,38 @@ namespace Kaleidoscope2.Core
 
             direction.Normalize();
             return new Vector3(direction.y, direction.x, direction.x * direction.y * 0.45f).normalized;
+        }
+
+        public static string GetPremiumCrystalEffectLabel(PremiumCrystalEffectToggle value)
+        {
+            switch (value)
+            {
+                case PremiumCrystalEffectToggle.HiddenReflectionBackground:
+                    return "Hidden reflection background";
+                case PremiumCrystalEffectToggle.MirrorFacets:
+                    return "Mirror facets";
+                case PremiumCrystalEffectToggle.InternalReflections:
+                    return "Internal reflections";
+                case PremiumCrystalEffectToggle.Dispersion:
+                    return "Dispersion";
+                case PremiumCrystalEffectToggle.RefractionDistortion:
+                    return "Refraction distortion";
+                case PremiumCrystalEffectToggle.OpalIridescence:
+                    return "Opal iridescence";
+                case PremiumCrystalEffectToggle.FacetHighlights:
+                    return "Facet highlights";
+                case PremiumCrystalEffectToggle.ShapeMorphing:
+                    return "Shape morphing";
+                case PremiumCrystalEffectToggle.DebugOpticalDiagnostics:
+                    return "Debug optical diagnostics";
+                default:
+                    return "Unknown Premium3D effect";
+            }
+        }
+
+        private static string FormatEnabled(bool value)
+        {
+            return value ? "on" : "off";
         }
 
         public static string GetShapeLabel(DiamondFocusShape value)
@@ -581,6 +817,11 @@ namespace Kaleidoscope2.Core
         private static Vector2 NormalizeOrDefault(Vector2 value)
         {
             return value.sqrMagnitude > 0.0001f ? value.normalized : new Vector2(0.35f, 0.75f).normalized;
+        }
+
+        private float ClampCrystalLightRigIntensityForCurrentMode(float value)
+        {
+            return Mathf.Clamp(value, ActiveCrystalBrightnessMin, ActiveCrystalBrightnessMax);
         }
 
         public static DiamondCrystalMaterialMode GetModeAtIndex(int index)

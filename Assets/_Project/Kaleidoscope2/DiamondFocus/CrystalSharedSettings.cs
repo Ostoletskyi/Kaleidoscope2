@@ -52,6 +52,16 @@ namespace Kaleidoscope2.Core
         [SerializeField] private bool crystalRotationEnabled = true;
         [SerializeField, Range(CrystalLightRigSettings.ActiveLightCountMin, CrystalLightRigSettings.ActiveLightCountMax)] private int realMeshLightCount = CrystalLightRigSettings.ActiveLightCountMax;
         [SerializeField] private bool crystalLightRigEnabled = true;
+        [SerializeField, Range(DiamondFocusSettings.PremiumCrystalScalePercentMin, DiamondFocusSettings.PremiumCrystalScalePercentMax)] private float premiumCrystalScalePercent = DiamondFocusSettings.PremiumCrystalScalePercentDefault;
+        [SerializeField] private bool premiumHiddenReflectionBackgroundEnabled = true;
+        [SerializeField] private bool premiumMirrorFacetsEnabled = true;
+        [SerializeField] private bool premiumInternalReflectionsEnabled = true;
+        [SerializeField] private bool premiumDispersionEnabled = true;
+        [SerializeField] private bool premiumRefractionDistortionEnabled = true;
+        [SerializeField] private bool premiumOpalIridescenceEnabled = true;
+        [SerializeField] private bool premiumFacetHighlightsEnabled = true;
+        [SerializeField] private bool premiumShapeMorphingEnabled = true;
+        [SerializeField] private bool premiumDebugOpticalDiagnosticsEnabled;
         [SerializeField, Range(0f, 1f)] private float realMeshAlpha = 0.58f;
         [SerializeField, Range(0f, 1f)] private float transparency;
         [SerializeField, Range(0f, 0.12f)] private float refractionStrength = 0.04f;
@@ -105,12 +115,24 @@ namespace Kaleidoscope2.Core
         public bool CrystalRotationEnabled { get { return crystalRotationEnabled; } }
         public int RealMeshLightCount { get { return Mathf.Clamp(realMeshLightCount, CrystalLightRigSettings.ActiveLightCountMin, CrystalLightRigSettings.ActiveLightCountMax); } }
         public bool CrystalLightRigEnabled { get { return crystalLightRigEnabled; } }
+        public float PremiumCrystalScalePercent { get { return Mathf.Clamp(premiumCrystalScalePercent, DiamondFocusSettings.PremiumCrystalScalePercentMin, DiamondFocusSettings.PremiumCrystalScalePercentMax); } }
+        public float PremiumCrystalScaleMultiplier { get { return PremiumCrystalScalePercent / 100f; } }
+        public bool PremiumHiddenReflectionBackgroundEnabled { get { return premiumHiddenReflectionBackgroundEnabled; } }
+        public bool PremiumMirrorFacetsEnabled { get { return premiumMirrorFacetsEnabled; } }
+        public bool PremiumInternalReflectionsEnabled { get { return premiumInternalReflectionsEnabled; } }
+        public bool PremiumDispersionEnabled { get { return premiumDispersionEnabled; } }
+        public bool PremiumRefractionDistortionEnabled { get { return premiumRefractionDistortionEnabled; } }
+        public bool PremiumOpalIridescenceEnabled { get { return premiumOpalIridescenceEnabled; } }
+        public bool PremiumFacetHighlightsEnabled { get { return premiumFacetHighlightsEnabled; } }
+        public bool PremiumShapeMorphingEnabled { get { return premiumShapeMorphingEnabled; } }
+        public bool PremiumDebugOpticalDiagnosticsEnabled { get { return premiumDebugOpticalDiagnosticsEnabled; } }
         public string RealMeshPlacementStatus
         {
             get
             {
                 Vector2 offset = CrystalScreenCenterOffset;
                 return "scale " + RealMeshScale.ToString("0.00")
+                    + ", premium scale " + PremiumCrystalScalePercent.ToString("0") + "%"
                     + ", distance " + CrystalDistanceFromCamera.ToString("0.00")
                     + ", centered " + (RealMeshScreenCenter ? "true" : "false")
                     + ", offset " + offset.x.ToString("0.00") + "," + offset.y.ToString("0.00")
@@ -151,7 +173,16 @@ namespace Kaleidoscope2.Core
                     + ", saturation boost " + SaturationBoost.ToString("0.00")
                     + ", contrast boost " + ContrastBoost.ToString("0.00")
                     + ", opal iridescence " + OpalIridescence.ToString("0.00")
-                    + ", min transmission " + MinimumTransmission.ToString("0.00");
+                    + ", min transmission " + MinimumTransmission.ToString("0.00")
+                    + ", hidden reflection " + FormatEnabled(PremiumHiddenReflectionBackgroundEnabled)
+                    + ", mirror facets " + FormatEnabled(PremiumMirrorFacetsEnabled)
+                    + ", internal reflections " + FormatEnabled(PremiumInternalReflectionsEnabled)
+                    + ", dispersion toggle " + FormatEnabled(PremiumDispersionEnabled)
+                    + ", refraction distortion " + FormatEnabled(PremiumRefractionDistortionEnabled)
+                    + ", opal toggle " + FormatEnabled(PremiumOpalIridescenceEnabled)
+                    + ", facet highlights " + FormatEnabled(PremiumFacetHighlightsEnabled)
+                    + ", shape morphing " + FormatEnabled(PremiumShapeMorphingEnabled)
+                    + ", optical diagnostics " + FormatEnabled(PremiumDebugOpticalDiagnosticsEnabled);
             }
         }
 
@@ -192,9 +223,19 @@ namespace Kaleidoscope2.Core
             ApplyPremiumMaterialProfile(premiumMaterialMode);
             rotation = diamondSettings.RotationEuler;
             CrystalLightRigSettings lightRigSettings = diamondSettings.CrystalLightRigSettings;
-            intensity = lightRigSettings.LightIntensity;
+            intensity = Mathf.Clamp(lightRigSettings.LightIntensity, diamondSettings.ActiveCrystalBrightnessMin, diamondSettings.ActiveCrystalBrightnessMax);
             realMeshLightCount = lightRigSettings.ActiveLightCountLimit;
             crystalLightRigEnabled = lightRigSettings.RigEnabled;
+            premiumCrystalScalePercent = diamondSettings.PremiumCrystalScalePercent;
+            premiumHiddenReflectionBackgroundEnabled = diamondSettings.PremiumHiddenReflectionBackgroundEnabled;
+            premiumMirrorFacetsEnabled = diamondSettings.PremiumMirrorFacetsEnabled;
+            premiumInternalReflectionsEnabled = diamondSettings.PremiumInternalReflectionsEnabled;
+            premiumDispersionEnabled = diamondSettings.PremiumDispersionEnabled;
+            premiumRefractionDistortionEnabled = diamondSettings.PremiumRefractionDistortionEnabled;
+            premiumOpalIridescenceEnabled = diamondSettings.PremiumOpalIridescenceEnabled;
+            premiumFacetHighlightsEnabled = diamondSettings.PremiumFacetHighlightsEnabled;
+            premiumShapeMorphingEnabled = diamondSettings.PremiumShapeMorphingEnabled;
+            premiumDebugOpticalDiagnosticsEnabled = diamondSettings.PremiumDebugOpticalDiagnosticsEnabled;
             transparency = diamondSettings.Transparency;
             refractionStrength = ResolveSafeRefractionStrength(diamondSettings);
             fresnelPower = diamondSettings.FresnelPower;
@@ -353,6 +394,11 @@ namespace Kaleidoscope2.Core
                 crystalScreenCenterOffset = Vector2.zero;
             }
 
+            premiumCrystalScalePercent = Mathf.Clamp(
+                premiumCrystalScalePercent,
+                DiamondFocusSettings.PremiumCrystalScalePercentMin,
+                DiamondFocusSettings.PremiumCrystalScalePercentMax);
+
             return migrated;
         }
 
@@ -428,6 +474,11 @@ namespace Kaleidoscope2.Core
             float coefficient01 = Mathf.InverseLerp(0f, 10f, diamondSettings.RefractionCoefficient);
             float mapped = diamondSettings.RefractionStrength * Mathf.Lerp(0.35f, 1f, coefficient01);
             return Mathf.Clamp(mapped, 0f, 0.085f);
+        }
+
+        private static string FormatEnabled(bool value)
+        {
+            return value ? "on" : "off";
         }
     }
 }

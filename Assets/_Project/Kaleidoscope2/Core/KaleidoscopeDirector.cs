@@ -408,11 +408,11 @@ namespace Kaleidoscope2.Core
                     return true;
 
                 case KaleidoscopeCommandType.AdjustCrystalLightRigIntensity:
-                    state.DiamondFocusSettings.CrystalLightRigSettings.AdjustLightIntensity(command.FloatValue);
+                    state.DiamondFocusSettings.AdjustCrystalLightRigIntensityForCurrentMode(command.FloatValue);
                     return true;
 
                 case KaleidoscopeCommandType.SetCrystalLightRigIntensity:
-                    state.DiamondFocusSettings.CrystalLightRigSettings.SetLightIntensity(command.FloatValue);
+                    state.DiamondFocusSettings.SetCrystalLightRigIntensityForCurrentMode(command.FloatValue);
                     return true;
 
                 case KaleidoscopeCommandType.SetCrystalLightRigActiveLightCount:
@@ -425,6 +425,14 @@ namespace Kaleidoscope2.Core
 
                 case KaleidoscopeCommandType.SetCrystalSimulationMode:
                     state.DiamondFocusSettings.SetCrystalSimulationMode((CrystalRenderMode)command.IntValue);
+                    return true;
+
+                case KaleidoscopeCommandType.AdjustPremiumCrystalScalePercent:
+                    state.DiamondFocusSettings.AdjustPremiumCrystalScalePercent(command.FloatValue);
+                    return true;
+
+                case KaleidoscopeCommandType.SetPremiumCrystalScalePercent:
+                    state.DiamondFocusSettings.SetPremiumCrystalScalePercent(command.FloatValue);
                     return true;
 
                 case KaleidoscopeCommandType.SetImageFilePath:

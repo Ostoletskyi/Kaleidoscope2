@@ -14,8 +14,13 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
         private const string StageModeLabel = "Premium3D CrystalStage3D spatial baseline";
         private const string CrystalOpticsShaderName = "Kaleidoscope2/RealCrystalOptics";
         private const string PremiumBackgroundShaderName = "Kaleidoscope2/CrystalStage3D/PremiumOpticalBackground";
+        private const string HiddenReflectionLayerName = "CrystalReflectionHidden";
         private const float CameraDistance = 10f;
         private const float BackgroundDistance = 3.5f;
+        private const float HiddenReflectionDistanceBehindCamera = 4.25f;
+        private const float HiddenReflectionFillMargin = 1.28f;
+        private const float HiddenReflectionStrength = 0.82f;
+        private const float HiddenReflectionDirectTransmission = 0.10f;
         private const float CameraFieldOfView = 35f;
         private const float TargetCrystalScreenCoverage = 0.58f;
         private const float MinimumCrystalScreenCoverage = 0.52f;
@@ -70,6 +75,10 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
         private static readonly int CrystalSaturationBoostId = Shader.PropertyToID("_SaturationBoost");
         private static readonly int CrystalContrastBoostId = Shader.PropertyToID("_ContrastBoost");
         private static readonly int CrystalOpalIridescenceId = Shader.PropertyToID("_OpalIridescence");
+        private static readonly int CrystalHiddenReflectionTexId = Shader.PropertyToID("_HiddenReflectionTex");
+        private static readonly int CrystalHiddenReflectionTexValidId = Shader.PropertyToID("_HiddenReflectionTexValid");
+        private static readonly int CrystalHiddenReflectionStrengthId = Shader.PropertyToID("_HiddenReflectionStrength");
+        private static readonly int CrystalDirectTransmissionId = Shader.PropertyToID("_DirectTransmission");
 
         private Transform owner;
         private GameObject root;
@@ -78,8 +87,11 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
         private GameObject lightRigObject;
         private GameObject crystalObject;
         private GameObject backgroundObject;
+        private GameObject hiddenReflectionObject;
+        private GameObject hiddenReflectionCameraObject;
         private GameObject diagnosticsObject;
         private Camera stageCamera;
+        private Camera hiddenReflectionCamera;
         private Light keyLight;
         private Light rimLight;
         private Light fillLight;
@@ -91,6 +103,8 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
         private MeshRenderer crystalMeshRenderer;
         private MeshFilter backgroundMeshFilter;
         private MeshRenderer backgroundMeshRenderer;
+        private MeshFilter hiddenReflectionMeshFilter;
+        private MeshRenderer hiddenReflectionMeshRenderer;
         private Mesh crystalMesh;
         private readonly List<Vector3> crystalTransitionVertices = new List<Vector3>(RealCrystalVolumetricMeshFactory.SegmentCount * 30);
         private readonly List<Vector2> crystalTransitionUvs = new List<Vector2>(RealCrystalVolumetricMeshFactory.SegmentCount * 30);
@@ -99,11 +113,15 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
         private Material transparentCrystalMaterial;
         private Material solidCrystalMaterial;
         private Material backgroundMaterial;
+        private Material hiddenReflectionMaterial;
         private RenderTexture outputTexture;
+        private RenderTexture hiddenReflectionTexture;
         private Camera[] cameraCache = new Camera[8];
         private CrystalShape activeShape = (CrystalShape)(-1);
         private int layer;
         private int stageLayerMask;
+        private int hiddenReflectionLayer;
+        private int hiddenReflectionLayerMask;
         private int lastActiveLightCount;
         private int protectedCameraCount;
         private string protectedCameraNames = "none";
@@ -112,6 +130,7 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
         private string activeCameraDiagnostics = "none";
         private string crystalCameraTargetTextureStatus = "none";
         private string opticalStageDiagnostics = "premium optical layers inactive";
+        private string hiddenReflectionDiagnostics = "hidden reflection background active false";
         private string sourceTextureDiagnostics = "source texture none";
         private string activePremiumShapeLabel = "none";
         private string activePremiumMaterialDiagnostics = "premium material none";
@@ -123,6 +142,8 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
         private string activeShapeTransitionDiagnostics = "shape transition inactive";
         private float validationOrbitPhase;
         private float stageViewScale = 1f;
+        private float activePremiumCrystalScalePercent = DiamondFocusSettings.PremiumCrystalScalePercentDefault;
+        private float activePremiumCrystalScaleMultiplier = 1f;
         private bool framingLocked;
         private int framingLockKey;
         private float lockedStageViewScale = 1f;
@@ -149,6 +170,11 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
         private string staticBaselineDiagnostics = "static baseline not sampled";
         private bool stageRenderedThisFrame;
         private bool physicalStageUsesStageOutputTexture;
+        private bool hiddenReflectionRenderedThisFrame;
+        private bool hiddenReflectionVisibleToReflectionCamera;
+        private bool hiddenReflectionVisibleToMainCamera;
+        private bool crystalMaterialReceivesHiddenReflection;
+        private bool hiddenReflectionBackgroundEnabled = true;
         private string diagnosticsLabel = StageModeLabel + ": not initialized";
 
         public Texture OutputTexture
@@ -205,13 +231,17 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
                 count += lightRigObject != null ? 1 : 0;
                 count += crystalObject != null ? 1 : 0;
                 count += backgroundObject != null ? 1 : 0;
+                count += hiddenReflectionObject != null ? 1 : 0;
+                count += hiddenReflectionCameraObject != null ? 1 : 0;
                 count += diagnosticsObject != null ? 1 : 0;
                 count += outputTexture != null ? 1 : 0;
+                count += hiddenReflectionTexture != null ? 1 : 0;
                 count += crystalMesh != null ? 1 : 0;
                 count += backgroundMesh != null ? 1 : 0;
                 count += transparentCrystalMaterial != null ? 1 : 0;
                 count += solidCrystalMaterial != null ? 1 : 0;
                 count += backgroundMaterial != null ? 1 : 0;
+                count += hiddenReflectionMaterial != null ? 1 : 0;
                 return count;
             }
         }
@@ -221,6 +251,8 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
             owner = ownerTransform;
             layer = ResolveSpatialStageLayer(crystalLayer);
             stageLayerMask = 1 << layer;
+            hiddenReflectionLayer = ResolveHiddenReflectionLayer(layer);
+            hiddenReflectionLayerMask = 1 << hiddenReflectionLayer;
             EnsureRuntimeObjects();
             SetVisible(false);
         }
@@ -235,6 +267,15 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
             if (stageCamera != null)
             {
                 stageCamera.enabled = false;
+            }
+
+            if (!visible)
+            {
+                SetHiddenReflectionRendererEnabled(false);
+                if (hiddenReflectionCamera != null)
+                {
+                    hiddenReflectionCamera.enabled = false;
+                }
             }
         }
 
@@ -257,6 +298,11 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
                 physicalStageUsesStageOutputTexture = false;
                 crystalCameraTargetTextureStatus = "none";
                 opticalStageDiagnostics = "premium optical layers inactive";
+                hiddenReflectionDiagnostics = "hidden reflection background active false";
+                hiddenReflectionRenderedThisFrame = false;
+                hiddenReflectionVisibleToReflectionCamera = false;
+                hiddenReflectionVisibleToMainCamera = false;
+                crystalMaterialReceivesHiddenReflection = false;
                 finalVisibleScreenCoverage = 0f;
                 finalVisibleCoverageDiagnostics = "final visible coverage not measured, stage hidden";
                 ResetFramingLock("stage hidden");
@@ -312,12 +358,14 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
         public void Shutdown()
         {
             ReleaseOutputTexture();
+            ReleaseHiddenReflectionTexture();
             DestroyRuntimeObject(root);
             DestroyRuntimeObject(crystalMesh);
             DestroyRuntimeObject(backgroundMesh);
             DestroyRuntimeObject(transparentCrystalMaterial);
             DestroyRuntimeObject(solidCrystalMaterial);
             DestroyRuntimeObject(backgroundMaterial);
+            DestroyRuntimeObject(hiddenReflectionMaterial);
 
             root = null;
             dioramaObject = null;
@@ -325,8 +373,11 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
             lightRigObject = null;
             crystalObject = null;
             backgroundObject = null;
+            hiddenReflectionObject = null;
+            hiddenReflectionCameraObject = null;
             diagnosticsObject = null;
             stageCamera = null;
+            hiddenReflectionCamera = null;
             keyLight = null;
             rimLight = null;
             fillLight = null;
@@ -338,16 +389,24 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
             crystalMeshRenderer = null;
             backgroundMeshFilter = null;
             backgroundMeshRenderer = null;
+            hiddenReflectionMeshFilter = null;
+            hiddenReflectionMeshRenderer = null;
             crystalMesh = null;
             backgroundMesh = null;
             transparentCrystalMaterial = null;
             solidCrystalMaterial = null;
             backgroundMaterial = null;
+            hiddenReflectionMaterial = null;
             lastActiveLightCount = 0;
             activeShape = (CrystalShape)(-1);
             stageRenderedThisFrame = false;
             physicalStageUsesStageOutputTexture = false;
             opticalStageDiagnostics = "premium optical layers inactive";
+            hiddenReflectionDiagnostics = "hidden reflection background active false";
+            hiddenReflectionRenderedThisFrame = false;
+            hiddenReflectionVisibleToReflectionCamera = false;
+            hiddenReflectionVisibleToMainCamera = false;
+            crystalMaterialReceivesHiddenReflection = false;
             finalVisibleScreenCoverage = 0f;
             finalVisibleCoverageDiagnostics = "final visible coverage not measured";
             ResetFramingLock("shutdown");
@@ -460,6 +519,36 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
             }
             backgroundObject.transform.SetParent(root.transform, false);
 
+            if (hiddenReflectionObject == null)
+            {
+                hiddenReflectionObject = new GameObject("HiddenReflectionBackground")
+                {
+                    hideFlags = HideFlags.HideAndDontSave
+                };
+                hiddenReflectionMeshFilter = hiddenReflectionObject.AddComponent<MeshFilter>();
+                hiddenReflectionMeshRenderer = hiddenReflectionObject.AddComponent<MeshRenderer>();
+            }
+            hiddenReflectionObject.transform.SetParent(root.transform, false);
+
+            if (hiddenReflectionCameraObject == null)
+            {
+                hiddenReflectionCameraObject = new GameObject("HiddenReflectionCamera")
+                {
+                    hideFlags = HideFlags.HideAndDontSave
+                };
+                hiddenReflectionCameraObject.transform.SetParent(root.transform, false);
+                hiddenReflectionCamera = hiddenReflectionCameraObject.AddComponent<Camera>();
+            }
+
+            if (hiddenReflectionCamera == null)
+            {
+                hiddenReflectionCamera = hiddenReflectionCameraObject.GetComponent<Camera>();
+                if (hiddenReflectionCamera == null)
+                {
+                    hiddenReflectionCamera = hiddenReflectionCameraObject.AddComponent<Camera>();
+                }
+            }
+
             if (diagnosticsObject == null)
             {
                 diagnosticsObject = new GameObject("StageDiagnostics")
@@ -476,12 +565,17 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
             cameraObject.transform.SetSiblingIndex(0);
             dioramaObject.transform.SetSiblingIndex(1);
             backgroundObject.transform.SetSiblingIndex(2);
-            diagnosticsObject.transform.SetSiblingIndex(3);
+            hiddenReflectionObject.transform.SetSiblingIndex(3);
+            hiddenReflectionCameraObject.transform.SetSiblingIndex(4);
+            diagnosticsObject.transform.SetSiblingIndex(5);
 
             AssignLayerRecursive(root.transform);
+            AssignHiddenReflectionLayer();
             ConfigureCamera();
+            ConfigureHiddenReflectionCamera();
             ConfigureDirectViewCameras();
             EnsureBackgroundMesh();
+            SetHiddenReflectionRendererEnabled(false);
         }
 
         private Light CreateLight(string name, LightType type, Vector3 eulerAngles)
@@ -512,6 +606,27 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
             stageCamera.allowMSAA = false;
             stageCamera.cullingMask = stageLayerMask;
             stageCamera.rect = new Rect(0f, 0f, 1f, 1f);
+        }
+
+        private void ConfigureHiddenReflectionCamera()
+        {
+            if (hiddenReflectionCamera == null)
+            {
+                return;
+            }
+
+            hiddenReflectionCamera.enabled = false;
+            hiddenReflectionCamera.clearFlags = CameraClearFlags.SolidColor;
+            hiddenReflectionCamera.backgroundColor = Color.black;
+            hiddenReflectionCamera.orthographic = false;
+            hiddenReflectionCamera.fieldOfView = 74f;
+            hiddenReflectionCamera.nearClipPlane = 0.03f;
+            hiddenReflectionCamera.farClipPlane = HiddenReflectionDistanceBehindCamera + 8f;
+            hiddenReflectionCamera.allowHDR = false;
+            hiddenReflectionCamera.allowMSAA = false;
+            hiddenReflectionCamera.cullingMask = hiddenReflectionLayerMask;
+            hiddenReflectionCamera.rect = new Rect(0f, 0f, 1f, 1f);
+            hiddenReflectionCamera.depth = -100f;
         }
 
         private void EnsureOutputTexture(int width, int height)
@@ -612,7 +727,8 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
                     + ", from " + fromPremiumShape.ToString()
                     + ", to " + toPremiumShape.ToString()
                     + ", progress " + transitionProgress.ToString("0.00")
-                    + ", smooth premium morph true";
+                    + ", smooth premium morph true"
+                    + ", shape morphing toggle " + (settings == null || settings.PremiumShapeMorphingEnabled ? "on" : "off");
             }
             else
             {
@@ -630,7 +746,8 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
                     ? transitionFramingBounds
                     : RealCrystalVolumetricMeshFactory.ResolveMaximumProfileBounds(premiumShape, premiumShape);
                 activeShapeTransitionDiagnostics = "shape transition active false, smooth premium morph ready true"
-                    + ", completed without framing snap " + (completingTransition ? "true" : "false");
+                    + ", completed without framing snap " + (completingTransition ? "true" : "false")
+                    + ", shape morphing toggle " + (settings == null || settings.PremiumShapeMorphingEnabled ? "on" : "off");
                 if (!completingTransition)
                 {
                     ResetFramingLock("crystal mesh changed");
@@ -707,6 +824,11 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
             {
                 backgroundMeshFilter.sharedMesh = backgroundMesh;
             }
+
+            if (hiddenReflectionMeshFilter != null)
+            {
+                hiddenReflectionMeshFilter.sharedMesh = backgroundMesh;
+            }
         }
 
         private void ConfigureStage(
@@ -721,6 +843,27 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
             SetVisible(true);
             ConfigureTransforms(sourceTexture, settings, rotation, debugMode);
             ConfigureLights(settings, intensity);
+            hiddenReflectionBackgroundEnabled = settings == null || settings.PremiumHiddenReflectionBackgroundEnabled;
+            if (hiddenReflectionBackgroundEnabled)
+            {
+                ConfigureHiddenReflectionBackground(sourceTexture);
+                RenderHiddenReflectionTexture();
+            }
+            else
+            {
+                hiddenReflectionRenderedThisFrame = false;
+                hiddenReflectionVisibleToReflectionCamera = false;
+                hiddenReflectionVisibleToMainCamera = false;
+                crystalMaterialReceivesHiddenReflection = false;
+                SetHiddenReflectionRendererEnabled(false);
+                if (hiddenReflectionCamera != null)
+                {
+                    hiddenReflectionCamera.enabled = false;
+                }
+
+                UpdateHiddenReflectionDiagnostics();
+            }
+
             ConfigureMaterials(
                 sourceTexture,
                 settings,
@@ -763,8 +906,17 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
             stageViewScale = lockedStageViewScale;
             dioramaObject.transform.localPosition = lockedDioramaLocalPosition;
             dioramaObject.transform.localScale = Vector3.one * lockedStageViewScale;
+            float premiumScalePercent = settings != null ? settings.PremiumCrystalScalePercent : DiamondFocusSettings.PremiumCrystalScalePercentDefault;
+            float premiumScaleMultiplier = settings != null ? settings.PremiumCrystalScaleMultiplier : 1f;
+            if (Mathf.Abs(premiumScalePercent - activePremiumCrystalScalePercent) > 0.001f)
+            {
+                ResetStaticBaselineTracking("premium crystal scale percent changed");
+            }
+
+            activePremiumCrystalScalePercent = premiumScalePercent;
+            activePremiumCrystalScaleMultiplier = premiumScaleMultiplier;
             crystalObject.transform.localPosition = lockedCrystalLocalPosition;
-            crystalObject.transform.localScale = Vector3.one * DioramaCrystalScale;
+            crystalObject.transform.localScale = Vector3.one * DioramaCrystalScale * activePremiumCrystalScaleMultiplier;
             crystalObject.transform.localRotation = Quaternion.Euler(rotation);
 
             backgroundObject.transform.localPosition = new Vector3(0f, 0f, BackgroundDistance);
@@ -774,6 +926,34 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
                 backgroundWorldSize.x,
                 backgroundWorldSize.y,
                 1f);
+
+            ConfigureHiddenReflectionTransform(aspect);
+        }
+
+        private void ConfigureHiddenReflectionTransform(float aspect)
+        {
+            if (hiddenReflectionObject == null || hiddenReflectionCameraObject == null || stageCamera == null || root == null)
+            {
+                return;
+            }
+
+            Vector3 hiddenWorldPosition = stageCamera.transform.position - stageCamera.transform.forward * HiddenReflectionDistanceBehindCamera;
+            hiddenReflectionObject.transform.localPosition = root.transform.InverseTransformPoint(hiddenWorldPosition);
+            hiddenReflectionObject.transform.localRotation = Quaternion.identity;
+            Vector2 reflectionWorldSize = ResolveViewSize(
+                HiddenReflectionDistanceBehindCamera,
+                hiddenReflectionCamera != null ? hiddenReflectionCamera.fieldOfView : 74f,
+                aspect) * HiddenReflectionFillMargin;
+            hiddenReflectionObject.transform.localScale = new Vector3(reflectionWorldSize.x, reflectionWorldSize.y, 1f);
+
+            hiddenReflectionCameraObject.transform.position = stageCamera.transform.position;
+            hiddenReflectionCameraObject.transform.LookAt(hiddenReflectionObject.transform.position, Vector3.up);
+            hiddenReflectionCameraObject.transform.localScale = Vector3.one;
+            if (hiddenReflectionCamera != null)
+            {
+                hiddenReflectionCamera.aspect = aspect;
+                hiddenReflectionCamera.cullingMask = hiddenReflectionLayerMask;
+            }
         }
 
         private Vector3 ResolveCameraPosition(bool validationOrbit)
@@ -792,6 +972,14 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
         {
             float halfFovRadians = CameraFieldOfView * 0.5f * Mathf.Deg2Rad;
             return Mathf.Tan(halfFovRadians) * Mathf.Max(MinimumMeshDimension, distance) * 2f;
+        }
+
+        private static Vector2 ResolveViewSize(float distance, float fieldOfView, float aspect)
+        {
+            float safeAspect = Mathf.Max(0.01f, aspect);
+            float halfFovRadians = Mathf.Max(1f, fieldOfView) * 0.5f * Mathf.Deg2Rad;
+            float height = Mathf.Tan(halfFovRadians) * Mathf.Max(MinimumMeshDimension, distance) * 2f;
+            return new Vector2(height * safeAspect, height);
         }
 
         private static float ClampFinalVisibleCoverage(float value)
@@ -1296,6 +1484,8 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
             crystalMeshRenderer.sharedMaterial = crystalMaterial;
             crystalMeshRenderer.shadowCastingMode = ShadowCastingMode.On;
             crystalMeshRenderer.receiveShadows = true;
+            crystalMaterialReceivesHiddenReflection = CrystalMaterialReceivesHiddenReflection(crystalMaterial);
+            UpdateHiddenReflectionDiagnostics();
         }
 
         private void ConfigurePremiumBackgroundMaterial(Material material, RenderTexture sourceTexture)
@@ -1328,6 +1518,63 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
             opticalStageDiagnostics = material.shader != null && material.shader.name == PremiumBackgroundShaderName
                 ? "premium background clean, selected source fill-cover true, background fills camera view true, pulsing false, rings false, radial waves false, caustics false, prism false"
                 : "premium optical layers fallback shader";
+        }
+
+        private void ConfigureHiddenReflectionBackground(RenderTexture sourceTexture)
+        {
+            hiddenReflectionRenderedThisFrame = false;
+            hiddenReflectionVisibleToReflectionCamera = false;
+            crystalMaterialReceivesHiddenReflection = false;
+
+            if (sourceTexture == null || hiddenReflectionMeshRenderer == null || hiddenReflectionCamera == null)
+            {
+                SetHiddenReflectionRendererEnabled(false);
+                hiddenReflectionDiagnostics = "hidden reflection background active false, source/camera/renderer missing";
+                return;
+            }
+
+            EnsureHiddenReflectionTexture(sourceTexture.width, sourceTexture.height);
+            if (hiddenReflectionTexture == null)
+            {
+                SetHiddenReflectionRendererEnabled(false);
+                hiddenReflectionDiagnostics = "hidden reflection background active false, reflection texture missing";
+                return;
+            }
+
+            if (hiddenReflectionMaterial == null)
+            {
+                Shader shader = Shader.Find(PremiumBackgroundShaderName);
+                if (shader == null)
+                {
+                    shader = Shader.Find("Unlit/Texture");
+                }
+
+                hiddenReflectionMaterial = new Material(shader)
+                {
+                    name = "Kaleidoscope2_CrystalStage3D_HiddenReflectionMaterial",
+                    hideFlags = HideFlags.HideAndDontSave
+                };
+            }
+            else
+            {
+                Shader premiumShader = Shader.Find(PremiumBackgroundShaderName);
+                if (premiumShader != null && hiddenReflectionMaterial.shader != premiumShader)
+                {
+                    hiddenReflectionMaterial.shader = premiumShader;
+                }
+            }
+
+            float viewAspect = hiddenReflectionCamera.aspect > 0f ? hiddenReflectionCamera.aspect : 1f;
+            float textureAspect = sourceTexture.height > 0 ? sourceTexture.width / (float)sourceTexture.height : viewAspect;
+            hiddenReflectionMaterial.mainTexture = sourceTexture;
+            SetMaterialTextureIfPresent(hiddenReflectionMaterial, StageMainTexId, sourceTexture);
+            SetMaterialFloatIfPresent(hiddenReflectionMaterial, StageViewAspectId, viewAspect);
+            SetMaterialFloatIfPresent(hiddenReflectionMaterial, StageTextureAspectId, textureAspect);
+            hiddenReflectionMeshRenderer.sharedMaterial = hiddenReflectionMaterial;
+            hiddenReflectionMeshRenderer.shadowCastingMode = ShadowCastingMode.Off;
+            hiddenReflectionMeshRenderer.receiveShadows = false;
+            SetHiddenReflectionRendererEnabled(false);
+            UpdateHiddenReflectionDiagnostics();
         }
 
         private Material EnsureSolidCrystalMaterial()
@@ -1397,10 +1644,20 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
                     + ", saturation boost " + settings.SaturationBoost.ToString("0.00")
                     + ", contrast boost " + settings.ContrastBoost.ToString("0.00")
                     + ", opal iridescence " + settings.OpalIridescence.ToString("0.00")
+                    + ", hidden reflection toggle " + (settings.PremiumHiddenReflectionBackgroundEnabled ? "on" : "off")
+                    + ", mirror facets toggle " + (settings.PremiumMirrorFacetsEnabled ? "on" : "off")
+                    + ", internal reflections toggle " + (settings.PremiumInternalReflectionsEnabled ? "on" : "off")
+                    + ", dispersion toggle " + (settings.PremiumDispersionEnabled ? "on" : "off")
+                    + ", refraction distortion toggle " + (settings.PremiumRefractionDistortionEnabled ? "on" : "off")
+                    + ", opal toggle " + (settings.PremiumOpalIridescenceEnabled ? "on" : "off")
+                    + ", facet highlights toggle " + (settings.PremiumFacetHighlightsEnabled ? "on" : "off")
                 : "premium gem material fallback";
             if (transparentCrystalMaterial.shader != null && transparentCrystalMaterial.shader.name == CrystalOpticsShaderName)
             {
-                ConfigurePremiumCrystalMaterial(transparentCrystalMaterial, sourceTexture, settings, color, materialMode, intensity);
+                RenderTexture activeHiddenReflectionTexture = settings == null || settings.PremiumHiddenReflectionBackgroundEnabled
+                    ? hiddenReflectionTexture
+                    : null;
+                ConfigurePremiumCrystalMaterial(transparentCrystalMaterial, sourceTexture, activeHiddenReflectionTexture, settings, color, materialMode, intensity);
             }
             else
             {
@@ -1413,6 +1670,7 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
         private static void ConfigurePremiumCrystalMaterial(
             Material material,
             RenderTexture sourceTexture,
+            RenderTexture hiddenReflectionTexture,
             CrystalSharedSettings settings,
             Color color,
             CrystalMaterialMode materialMode,
@@ -1445,23 +1703,74 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
             float metallic;
             float smoothness;
             ResolveCrystalSurface(materialMode, out metallic, out smoothness);
+            bool hiddenReflectionEnabled = settings == null || settings.PremiumHiddenReflectionBackgroundEnabled;
+            bool mirrorFacetsEnabled = settings == null || settings.PremiumMirrorFacetsEnabled;
+            bool internalReflectionsEnabled = settings == null || settings.PremiumInternalReflectionsEnabled;
+            bool dispersionEnabled = settings == null || settings.PremiumDispersionEnabled;
+            bool refractionDistortionEnabled = settings == null || settings.PremiumRefractionDistortionEnabled;
+            bool opalIridescenceEnabled = settings == null || settings.PremiumOpalIridescenceEnabled;
+            bool facetHighlightsEnabled = settings == null || settings.PremiumFacetHighlightsEnabled;
+            RenderTexture activeHiddenReflectionTexture = hiddenReflectionEnabled ? hiddenReflectionTexture : null;
+            if (!mirrorFacetsEnabled)
+            {
+                reflectionStrength *= 0.28f;
+                fresnelStrength *= 0.45f;
+                metallic *= 0.2f;
+                smoothness = Mathf.Min(smoothness, 0.62f);
+            }
+
+            if (!internalReflectionsEnabled)
+            {
+                internalReflection = 0f;
+                internalBrightness *= 0.42f;
+            }
+
+            if (!dispersionEnabled)
+            {
+                spectralDispersion = 0f;
+                physicalDispersion = 0f;
+            }
+
+            if (!refractionDistortionEnabled)
+            {
+                refractionStrength *= 0.18f;
+                facetRefraction *= 0.16f;
+                thicknessRefraction *= 0.18f;
+                backgroundDistortionStrength *= 0.12f;
+            }
+
+            if (!opalIridescenceEnabled)
+            {
+                opalIridescence = 0f;
+            }
+
+            if (!facetHighlightsEnabled)
+            {
+                facetFire = 0f;
+                specularStrength *= 0.32f;
+            }
 
             SetMaterialTextureIfPresent(material, CrystalKaleidoscopeTexId, sourceTexture);
+            SetMaterialTextureIfPresent(material, CrystalHiddenReflectionTexId, activeHiddenReflectionTexture);
+            SetMaterialFloatIfPresent(material, CrystalHiddenReflectionTexValidId, activeHiddenReflectionTexture != null ? 1f : 0f);
+            SetMaterialFloatIfPresent(material, CrystalHiddenReflectionStrengthId, hiddenReflectionEnabled ? HiddenReflectionStrength : 0f);
+            SetMaterialFloatIfPresent(material, CrystalDirectTransmissionId, HiddenReflectionDirectTransmission);
             SetMaterialColorIfPresent(material, CrystalTintId, color);
             SetMaterialColorIfPresent(material, CrystalGemCoreColorId, settings != null ? settings.GemCoreColor : color);
             SetMaterialColorIfPresent(material, CrystalGemFireColorId, settings != null ? settings.GemFireColor : new Color(1f, 0.86f, 0.34f, 1f));
             SetMaterialFloatIfPresent(material, CrystalIntensityId, Mathf.Clamp(intensity, 0f, 20f));
             SetMaterialFloatIfPresent(material, CrystalAlphaId, Mathf.Clamp(color.a, 0.42f, 0.94f));
             SetMaterialFloatIfPresent(material, CrystalMetallicId, metallic);
-            SetMaterialFloatIfPresent(material, CrystalSmoothnessId, Mathf.Clamp01(smoothness + intensity01 * 0.05f));
+            float minimumSmoothness = mirrorFacetsEnabled ? 0.985f : 0.52f;
+            SetMaterialFloatIfPresent(material, CrystalSmoothnessId, Mathf.Clamp01(Mathf.Max(smoothness, minimumSmoothness) + intensity01 * 0.02f));
             SetMaterialFloatIfPresent(material, CrystalTransparencyId, Mathf.Clamp01(transparency * 0.56f));
             SetMaterialFloatIfPresent(material, CrystalRefractionStrengthId, Mathf.Clamp(refractionStrength + 0.038f + intensity01 * 0.014f, 0.072f, 0.12f));
             SetMaterialFloatIfPresent(material, CrystalScreenRefractionStrengthId, Mathf.Clamp((refractionStrength * 0.5f + 0.02f) * Mathf.Lerp(0.78f, 1.34f, Mathf.Clamp01(backgroundDistortionStrength / 1.4f)), 0.026f, 0.078f));
             SetMaterialFloatIfPresent(material, CrystalFresnelPowerId, Mathf.Clamp(fresnelPower * 0.76f, 1.0f, 4.2f));
-            SetMaterialFloatIfPresent(material, CrystalReflectionStrengthId, Mathf.Clamp01(reflectionStrength + internalReflection * 0.16f + fresnelStrength * 0.08f + 0.08f));
+            SetMaterialFloatIfPresent(material, CrystalReflectionStrengthId, Mathf.Clamp01(reflectionStrength + internalReflection * 0.2f + fresnelStrength * 0.12f + 0.16f));
             SetMaterialFloatIfPresent(material, CrystalInternalBrightnessId, Mathf.Clamp(internalBrightness + 0.56f + intensity01 * 0.42f, 1.25f, 3f));
-            SetMaterialFloatIfPresent(material, CrystalMinimumTransmissionId, Mathf.Clamp01(minimumTransmission + gemClarity * 0.18f));
-            SetMaterialFloatIfPresent(material, CrystalSpecularStrengthId, Mathf.Clamp01(specularStrength + 0.18f));
+            SetMaterialFloatIfPresent(material, CrystalMinimumTransmissionId, Mathf.Clamp01(minimumTransmission * 0.62f + gemClarity * 0.06f));
+            SetMaterialFloatIfPresent(material, CrystalSpecularStrengthId, Mathf.Clamp01(specularStrength + 0.28f));
             SetMaterialFloatIfPresent(material, CrystalRimStrengthId, 1.05f + facetFire * 0.24f + intensity01 * 0.22f);
             SetMaterialFloatIfPresent(material, CrystalBrightnessFloorId, 0.14f + gemClarity * 0.05f + intensity01 * 0.04f);
             SetMaterialFloatIfPresent(material, CrystalGemTintStrengthId, settings != null ? settings.GemTintStrength : 0.16f);
@@ -1489,13 +1798,17 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
         {
             switch (materialMode)
             {
+                case CrystalMaterialMode.AbsoluteMirror:
+                    metallic = 0.08f;
+                    smoothness = 1f;
+                    break;
                 case CrystalMaterialMode.Metal:
                     metallic = 0.32f;
-                    smoothness = 0.94f;
+                    smoothness = 0.99f;
                     break;
                 case CrystalMaterialMode.FuturisticPlastic:
                     metallic = 0f;
-                    smoothness = 0.86f;
+                    smoothness = 0.94f;
                     break;
                 default:
                     metallic = 0.02f;
@@ -1581,6 +1894,138 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
             {
                 material.SetColor(propertyId, value);
             }
+        }
+
+        private void RenderHiddenReflectionTexture()
+        {
+            hiddenReflectionRenderedThisFrame = false;
+            hiddenReflectionVisibleToReflectionCamera = false;
+            if (hiddenReflectionCamera == null || hiddenReflectionTexture == null || hiddenReflectionMeshRenderer == null)
+            {
+                SetHiddenReflectionRendererEnabled(false);
+                UpdateHiddenReflectionDiagnostics();
+                return;
+            }
+
+            RenderTexture previousTarget = hiddenReflectionCamera.targetTexture;
+            RenderTexture previousActive = RenderTexture.active;
+            try
+            {
+                SetHiddenReflectionRendererEnabled(true);
+                hiddenReflectionCamera.enabled = false;
+                hiddenReflectionCamera.cullingMask = hiddenReflectionLayerMask;
+                hiddenReflectionCamera.targetTexture = hiddenReflectionTexture;
+                hiddenReflectionVisibleToReflectionCamera = IsHiddenReflectionVisibleToReflectionCamera();
+                hiddenReflectionCamera.Render();
+                hiddenReflectionRenderedThisFrame = true;
+            }
+            finally
+            {
+                hiddenReflectionCamera.targetTexture = previousTarget;
+                hiddenReflectionCamera.enabled = false;
+                RenderTexture.active = previousActive;
+                SetHiddenReflectionRendererEnabled(false);
+            }
+
+            hiddenReflectionVisibleToMainCamera = IsHiddenReflectionVisibleToMainCamera();
+            UpdateHiddenReflectionDiagnostics();
+        }
+
+        private void SetHiddenReflectionRendererEnabled(bool enabled)
+        {
+            if (hiddenReflectionMeshRenderer != null)
+            {
+                hiddenReflectionMeshRenderer.enabled = enabled;
+            }
+        }
+
+        private void EnsureHiddenReflectionTexture(int sourceWidth, int sourceHeight)
+        {
+            int width = Mathf.Clamp(Mathf.NextPowerOfTwo(Mathf.Max(1, sourceWidth / 2)), 256, 1024);
+            int height = Mathf.Clamp(Mathf.NextPowerOfTwo(Mathf.Max(1, sourceHeight / 2)), 256, 1024);
+            if (hiddenReflectionTexture != null && hiddenReflectionTexture.width == width && hiddenReflectionTexture.height == height)
+            {
+                return;
+            }
+
+            ReleaseHiddenReflectionTexture();
+            RenderTextureDescriptor descriptor = new RenderTextureDescriptor(width, height, RenderTextureFormat.ARGB32, 16)
+            {
+                msaaSamples = 1,
+                sRGB = QualitySettings.activeColorSpace == ColorSpace.Linear,
+                useMipMap = true,
+                autoGenerateMips = true
+            };
+            hiddenReflectionTexture = new RenderTexture(descriptor)
+            {
+                name = "Kaleidoscope2_CrystalStage3D_HiddenReflectionTexture",
+                filterMode = FilterMode.Trilinear,
+                wrapMode = TextureWrapMode.Clamp
+            };
+            hiddenReflectionTexture.Create();
+        }
+
+        private void ReleaseHiddenReflectionTexture()
+        {
+            if (hiddenReflectionTexture == null)
+            {
+                return;
+            }
+
+            if (hiddenReflectionTexture.IsCreated())
+            {
+                hiddenReflectionTexture.Release();
+            }
+
+            DestroyRuntimeObject(hiddenReflectionTexture);
+            hiddenReflectionTexture = null;
+        }
+
+        private bool CrystalMaterialReceivesHiddenReflection(Material material)
+        {
+            return material != null
+                && hiddenReflectionTexture != null
+                && material.HasProperty(CrystalHiddenReflectionTexId)
+                && ReferenceEquals(material.GetTexture(CrystalHiddenReflectionTexId), hiddenReflectionTexture)
+                && (!material.HasProperty(CrystalHiddenReflectionTexValidId) || material.GetFloat(CrystalHiddenReflectionTexValidId) > 0.5f);
+        }
+
+        private bool IsHiddenReflectionVisibleToReflectionCamera()
+        {
+            return hiddenReflectionObject != null
+                && hiddenReflectionMeshRenderer != null
+                && hiddenReflectionMeshRenderer.enabled
+                && hiddenReflectionCamera != null
+                && (hiddenReflectionCamera.cullingMask & (1 << hiddenReflectionObject.layer)) != 0;
+        }
+
+        private bool IsHiddenReflectionVisibleToMainCamera()
+        {
+            if (hiddenReflectionObject == null || hiddenReflectionMeshRenderer == null || !hiddenReflectionMeshRenderer.enabled)
+            {
+                return false;
+            }
+
+            bool stageCameraCanSeeHiddenLayer = stageCamera != null
+                && (stageCamera.cullingMask & (1 << hiddenReflectionObject.layer)) != 0;
+            return stageCameraCanSeeHiddenLayer || CanAnyDirectViewCameraRenderLayer(1 << hiddenReflectionObject.layer);
+        }
+
+        private void UpdateHiddenReflectionDiagnostics()
+        {
+            hiddenReflectionVisibleToMainCamera = IsHiddenReflectionVisibleToMainCamera();
+            bool active = hiddenReflectionObject != null
+                && hiddenReflectionBackgroundEnabled
+                && hiddenReflectionCamera != null
+                && hiddenReflectionTexture != null
+                && hiddenReflectionMaterial != null;
+            hiddenReflectionDiagnostics = "hidden reflection background active " + (active ? "true" : "false")
+                + ", visible to main camera " + (hiddenReflectionVisibleToMainCamera ? "true" : "false")
+                + ", visible to reflection camera " + (hiddenReflectionVisibleToReflectionCamera ? "true" : "false")
+                + ", reflection texture " + FormatTexture(hiddenReflectionTexture)
+                + ", crystal material receives hidden reflection texture " + (crystalMaterialReceivesHiddenReflection ? "true" : "false")
+                + ", hidden reflection layer " + hiddenReflectionLayer.ToString()
+                + ", reflection rendered this frame " + (hiddenReflectionRenderedThisFrame ? "true" : "false");
         }
 
         private void RenderStageCamera()
@@ -1686,6 +2131,11 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
 
         private bool CanAnyDirectViewCameraRenderStageLayer()
         {
+            return CanAnyDirectViewCameraRenderLayer(stageLayerMask);
+        }
+
+        private bool CanAnyDirectViewCameraRenderLayer(int mask)
+        {
             int cameraCount = Camera.allCamerasCount;
             EnsureCameraCacheCapacity(cameraCount);
             int resolvedCount = Camera.GetAllCameras(cameraCache);
@@ -1697,7 +2147,7 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
                     continue;
                 }
 
-                if ((camera.cullingMask & stageLayerMask) != 0)
+                if ((camera.cullingMask & mask) != 0)
                 {
                     return true;
                 }
@@ -2115,6 +2565,7 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
                 + ", stage RT " + stageTextureSize
                 + ", " + sourceTextureDiagnostics
                 + ", " + opticalStageDiagnostics
+                + ", " + hiddenReflectionDiagnostics
                 + ", StageDiagnostics active " + diagnosticsActive
                 + ", active cameras " + activeCameraDiagnostics
                 + ", camera projection " + cameraProjection
@@ -2132,6 +2583,8 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
                 + ", stage root scale " + stageRootScale
                 + ", stageViewScale " + stageViewScale.ToString("0.00")
                 + ", diorama scale " + dioramaScale
+                + ", current crystal scale percent " + activePremiumCrystalScalePercent.ToString("0")
+                + ", premium scale multiplier " + activePremiumCrystalScaleMultiplier.ToString("0.00")
                 + ", crystal world " + crystalPosition
                 + ", crystal local " + crystalLocalPosition
                 + ", crystal scale " + crystalScale
@@ -2186,10 +2639,35 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
             }
         }
 
+        private void AssignHiddenReflectionLayer()
+        {
+            if (hiddenReflectionObject != null)
+            {
+                hiddenReflectionObject.layer = hiddenReflectionLayer;
+            }
+
+            if (hiddenReflectionCameraObject != null)
+            {
+                hiddenReflectionCameraObject.layer = hiddenReflectionLayer;
+            }
+        }
+
         private static int ResolveSpatialStageLayer(int fallbackLayer)
         {
             int namedLayer = LayerMask.NameToLayer(SpatialStageLayerName);
             return namedLayer >= 0 ? namedLayer : Mathf.Clamp(fallbackLayer, 0, 31);
+        }
+
+        private static int ResolveHiddenReflectionLayer(int fallbackLayer)
+        {
+            int namedLayer = LayerMask.NameToLayer(HiddenReflectionLayerName);
+            if (namedLayer >= 0)
+            {
+                return namedLayer;
+            }
+
+            int ignoreRaycastLayer = LayerMask.NameToLayer("Ignore Raycast");
+            return ignoreRaycastLayer >= 0 ? ignoreRaycastLayer : Mathf.Clamp(fallbackLayer, 0, 31);
         }
 
         private static string FormatMask(int mask)
