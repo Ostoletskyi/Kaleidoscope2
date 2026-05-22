@@ -1,383 +1,272 @@
-# AGENTS.md — KAELIS / Kaleidoscope2
+# AGENTS.md — KAELIS Menu Freedom Mode
 
-## 0. Main Instruction
+## 0. Main Decision
 
-This project has two protected zones:
+The startup menu is now an active creative development zone.
 
-```text
-Classic2D / Layer 1  — protected, do not break.
-Premium3D / Layer 2 — active development zone, can be refactored until it reaches the target quality.
-```
+Codex is allowed to redesign and rebuild the KAELIS startup menu until it matches the approved visual direction.
 
-Classic2D already works well and is visually strong.
+The approved direction is:
 
-Premium3D is not finished. It may contain legacy experiments, temporary bridges, duplicated paths, weak optics, and old failed attempts. Codex is allowed to remove or replace old Premium3D code when it is clearly blocking progress.
+- luxury crystal interface;
+- noble blue / cyan atmosphere;
+- warm gold accents;
+- gemstone buttons;
+- cinematic optical depth;
+- bright, premium, commercial look;
+- real menu UI, not a debug overlay.
 
-Do not preserve broken Premium3D code just because it exists.
+The current menu implementation is not sacred.
 
----
+If the current runtime-built menu architecture prevents reaching the desired commercial visual result, Codex may replace or refactor it.
 
-## 1. Project Goal
-
-KAELIS is a modular Unity cinematic kaleidoscope application with:
-
-- a polished Classic2D kaleidoscope mode;
-- a premium RealMesh3D crystal mode;
-- modern application menu;
-- optional demo/presentation mode;
-- built-in default images and music for first launch / showcase;
-- file loading for user images later.
-
-Architecture idea:
-
-```text
-Input / Menu / Demo Mode / Audio
-        ↓
-KaleidoscopeDirector
-        ↓
-Layer 1 Classic2D OR Layer 2 Premium3D
-        ↓
-Final Output
-```
+Do not keep weak menu code just because it already exists.
 
 ---
 
-## 2. Layer 1 — Classic2D / Protected Mode
+## 1. Protected Systems
 
-Classic2D is the stable reference mode.
+The following systems are protected and must not be changed during menu work:
 
-Pipeline:
+- Classic2D rendering;
+- Premium3D crystal rendering;
+- DiamondFocus;
+- crystal shaders;
+- Mirror/**;
+- Source/**;
+- RuntimeMenuController;
+- OutputPreview;
+- camera/render pipelines;
+- gameplay/render logic outside startup menu.
 
-```text
-Source
-    ↓
-Mirror
-    ↓
-Classic output
-    ↓
-OutputPreview
-```
+Menu work must not damage the working kaleidoscope modes.
 
-Classic2D must stay visually unchanged unless the task explicitly says otherwise.
-
-Forbidden during Premium3D work:
-
-- changing MirrorModule behavior;
-- changing SourceModule behavior;
-- changing RuntimeMenuController / OutputPreview binding;
-- changing Classic2D shaders;
-- changing Billboard2D behavior;
-- changing existing classic hotkeys globally;
-- changing Layer 1 visual output to solve Premium3D problems.
-
-Classic2D is the baseline. Do not “fix” it while working on Premium3D.
+Classic2D and Premium3D rendering are separate from menu development.
 
 ---
 
-## 3. Layer 2 — Premium3D / Active Development Mode
+## 2. What Codex May Freely Change
 
-Premium3D is allowed to evolve aggressively.
+Codex may freely change, refactor, replace, or rebuild:
 
-Goal:
+- startup menu UI;
+- menu controller;
+- menu view hierarchy;
+- menu animation scripts;
+- menu asset preparation scripts;
+- generated menu sprites;
+- generated TMP font assets;
+- menu-only materials;
+- menu-only VFX;
+- menu-only layout logic;
+- menu-only input handling;
+- menu-only transition logic.
 
-A large, beautiful, convincing, faceted, volumetric crystal that:
+Codex may create new files under:
 
-- occupies a strong part of the screen;
-- has real 3D mesh geometry;
-- has readable front/back depth;
-- has mirror-polished facets;
-- refracts and reflects the kaleidoscope background;
-- does not look like a flat transparent bubble;
-- does not show the kaleidoscope center as a clean window;
-- has rich gemstone colors;
-- supports shape variety;
-- supports smooth shape transitions;
-- supports controlled optical effects.
+```text
+Assets/_Project/Kaleidoscope2/Menu/
+Assets/_Project/Kaleidoscope2/Menu/UI/
+Assets/_Project/Kaleidoscope2/Menu/Runtime/
+Assets/_Project/Kaleidoscope2/Menu/Editor/
+Assets/_Project/Kaleidoscope2/Menu/VFX/
+Assets/_Project/Kaleidoscope2/Menu/Generated/
+```
 
-Premium3D may be refactored if needed.
-
-Allowed in Premium3D:
-
-- replace weak shaders;
-- remove failed optical experiments;
-- remove dead legacy bridges;
-- replace fake fullscreen tricks with spatial rendering;
-- introduce new clean classes;
-- split large classes if the split is local and improves clarity;
-- add diagnostics;
-- add debug modes;
-- add material presets;
-- add hidden reflection background;
-- add reflection camera / reflection texture;
-- add shape morphing;
-- add mouse wheel size control;
-- add gated F-key effect toggles.
-
-Do not be afraid to remove Premium3D code that is proven wrong.
+Codex may remove obsolete menu-only code and menu-only generated assets if they are replaced by a better menu implementation.
 
 ---
 
-## 4. Premium3D Hard Requirements
+## 3. Approved Visual Target
 
-Premium3D crystal must not be:
+The selected reference image is the art direction source.
 
-- a plane;
-- a quad;
-- a RawImage;
-- a flat billboard;
-- a fullscreen fake projection;
-- a transparent bubble;
-- a clean window to the background center.
+Codex must move the real Unity menu toward this visual target:
 
-Premium3D crystal must be:
+- bright noble blue/cyan atmosphere;
+- polished crystal panels;
+- luminous gemstone buttons;
+- gold primary action;
+- blue/cyan secondary buttons;
+- ruby red exit button;
+- soft optical haze;
+- cinematic preview panel;
+- luxury sci-fi typography;
+- clean commercial composition.
 
-- MeshFilter + MeshRenderer;
-- volumetric;
-- centered;
-- large enough;
-- stable in size;
-- rich in material response;
-- reflective and refractive;
-- visually stronger than a simple tint.
+Do not darken the menu into a dull technical interface.
 
-If the user says “the crystal is still too small / dull / white / flat / bubble-like”, treat that as a valid visual failure even if diagnostics claim success.
+Do not invent a new style unless the current menu cannot technically reproduce the reference.
 
-Human visual result has priority over internal coverage numbers.
+If the current result differs from the reference, the reference wins.
 
 ---
 
-## 5. Premium3D Size and Scale Policy
+## 4. Menu Quality Bar
 
-Mouse wheel must control Premium3D crystal scale when crystal mode is active.
+The menu must feel like:
 
-Required range:
+- commercial software;
+- premium visual application;
+- optical experience engine;
+- luxury crystal dashboard;
+- polished startup screen.
 
-```text
-20% → 300%
-```
+The menu must not feel like:
 
-Rules:
-
-- mouse wheel scaling is active only when Premium3D crystal is visible/active;
-- when crystal is not visible, mouse wheel keeps original behavior;
-- scale must not pulse or breathe;
-- rotation must not change scale;
-- shape switching must not reset user scale unless explicitly requested.
-
-If automatic coverage calculation conflicts with user scale, user scale wins.
-
----
-
-## 6. Premium3D Optical Policy
-
-The crystal must not behave like a direct transparent window.
-
-Bad:
-
-```text
-Background → direct clean screenUv → user
-```
-
-Good:
-
-```text
-Background → refraction / reflection / internal echo / facet split → user
-```
-
-Required optical direction:
-
-- reduce direct clean transmission;
-- block clean center see-through;
-- use internal reflection layers;
-- use hidden reflection background;
-- use mirror-like facets;
-- use gemstone absorption;
-- use Fresnel;
-- use controlled dispersion;
-- keep highlights readable, not blown out.
-
-Diamond must not become a white unreadable blob.
-
-Ruby must feel deep red and expensive, not pink plastic.
-
-Opal must feel milky/rainbow/internal, not a flat tint.
+- Unity debug UI;
+- raw prototype;
+- programmer layout;
+- accidental overlay;
+- technical placeholder;
+- low-contrast dark screen;
+- cheap neon arcade UI.
 
 ---
 
-## 7. Hidden Reflection Background
+## 5. Layout Direction
 
-Premium3D should support a hidden reflection environment.
-
-Concept:
+The preferred layout remains:
 
 ```text
-Visible kaleidoscope background
-        ↓
-seen behind crystal
-
-Hidden mirrored background behind camera
-        ↓
-not directly visible
-        ↓
-reflected only in mirror-polished crystal facets
+Left panel      — KAELIS title, tagline, buttons
+Right panel     — live preview / hero visual
+Bottom bar      — system/demo/mode status
+Background      — soft optical crystal atmosphere
 ```
 
-Rules:
+Codex may adjust proportions, spacing, panel sizes, padding, and visual balance if it improves similarity to the approved reference.
 
-- hidden reflection background must not be directly visible in Game View;
-- it must be visible only to reflection camera / reflection texture / crystal shader;
-- it must not cause screen-inside-screen;
-- it must not create a second visible wall;
-- it must not affect Classic2D;
-- diagnostics must prove whether reflection texture is valid and assigned.
-
-Specular light highlight is not proof of hidden background reflection.
-
-Proof mode is required:
-
-```text
-HiddenReflectionOnlyOnCrystal
-```
-
-In this mode, hidden background must be unmistakably visible on facets.
+Codex may redesign internal hierarchy of the startup menu if needed.
 
 ---
 
-## 8. Premium3D Refactor Permission
+## 6. Typography Direction
 
-Codex is explicitly allowed to remove old Premium3D code if it is:
+Use real TextMeshPro text.
 
-- unused;
-- duplicated;
-- blocking the desired result;
-- responsible for pulsing/breathing;
-- responsible for fullscreen fake projection;
-- responsible for white overexposure;
-- responsible for clean center see-through;
-- responsible for conflicting scale correction;
-- a failed experimental path.
+Do not rely on text baked into images.
 
-Before removal:
+Preferred roles:
 
-1. Identify the file/class.
-2. Explain why it is Premium3D-only.
-3. Confirm it is not used by Classic2D.
-4. Remove or isolate it.
-5. Compile.
-6. Report the change.
+- KAELIS title: Cinzel or best luxury serif available;
+- tagline/subtitle: Cinzel Regular or refined serif with letter spacing;
+- button labels: Cinzel SemiBold or best readable luxury style;
+- secondary UI/status: Inter / Manrope / clean modern sans-serif;
+- decorative accent: Cormorant Garamond only if readable and appropriate.
 
-Do not remove Classic2D code.
+If a font does not work visually, Codex may choose a better font from the available menu fonts and explain why.
 
-Do not remove shared code unless it is proven safe or replaced with a compatible path.
+Readability has priority over strict font assignment.
 
 ---
 
-## 9. Input / Hotkey Safety
+## 7. Button Direction
 
-Do not steal existing hotkeys globally.
+Buttons are central to the menu identity.
 
-Crystal-specific controls are active only when:
+They should look like carved gemstone UI capsules.
 
-```text
-Premium3D crystal is visible/active
-```
+Required button family:
 
-If Premium3D crystal is not active, old project behavior must remain.
+- Enter Experience: gold / amber / primary;
+- Demo Mode: cyan / teal;
+- Modes / Optics / Presets / Settings: blue/cyan gemstone;
+- Exit: ruby / red.
 
-Required known controls:
-
-```text
-Mouse Wheel — Premium3D crystal scale, 20% to 300%, only when crystal is active
-Insert/Delete — Premium3D crystal brightness range, safer lowered bounds
-F1 — Help, never steal
-F2–F12 — Premium3D effect toggles, only when crystal is active
-```
-
-Suggested F-key map:
+Button states:
 
 ```text
-F2  Hidden reflection background
-F3  Mirror facets
-F4  Internal reflections
-F5  Dispersion / spectral split
-F6  Refraction distortion
-F7  Opal iridescence
-F8  Facet highlights
-F9  Shape morphing
-F10 Optical diagnostics
-F11 Cycle gem material preset
-F12 Reset Premium3D optical controls
+Normal  — dark gemstone body, readable text, calm glow
+Hover   — activation line/fill reaches the opposite edge consistently
+Pressed — fully lit gemstone state
+Release — brief hot yellow/gold flash, then action
+Active  — stable selected state
+Exit    — ruby destructive state
 ```
+
+Important:
+
+The activation line/fill must travel consistently to the opposite edge.
+No partial broken line.
+No different random fill lengths per button.
+No cropped or broken highlights.
+No baked labels inside button sprites.
+
+Codex may replace the current button implementation if the existing sliced sprites or transition logic cannot produce the desired behavior.
 
 ---
 
-## 10. Modern Menu Direction
+## 8. Background Direction
 
-KAELIS needs a modern application menu.
+The far background should be:
 
-Menu goals:
+- blue/cyan;
+- luminous;
+- soft;
+- cinematic;
+- optical;
+- atmospheric;
+- supportive of menu readability.
 
-- premium look;
-- clean structure;
-- no debug-panel feeling;
-- readable typography;
-- keyboard/mouse support;
-- clear mode switching;
-- modern polished visual style.
+It should not be:
 
-Menu must include, eventually:
+- visible frozen kaleidoscope;
+- muddy black;
+- too dark;
+- too noisy;
+- too sharp;
+- visually competing with preview and buttons.
 
-- Classic2D / Premium3D mode switch;
-- crystal material selection;
-- crystal shape selection;
-- crystal scale display/control;
-- optical effects toggles;
-- demo mode checkbox;
-- image source selection;
-- audio/demo controls;
-- diagnostics panel optional.
-
-Menu must not directly mutate low-level shaders or cameras.
-
-Preferred flow:
-
-```text
-Menu UI
-    ↓
-MenuDirector / command layer
-    ↓
-KaleidoscopeDirector / settings
-    ↓
-Modules
-```
+Codex may replace the current menu background asset or create a new menu-only background if it improves the result.
 
 ---
 
-## 11. Demo Mode
+## 9. Preview Panel Direction
 
-Add a separate application demo mode.
+The preview panel should feel like a premium hero display.
 
-Demo mode is controlled by a checkbox in the modern menu.
+It should have:
 
-When Demo Mode is ON:
+- clear frame hierarchy;
+- soft cyan/gold accents;
+- rich visual content;
+- enough brightness;
+- polished depth;
+- no placeholder feeling.
 
-- play a default bundled track;
-- use bundled default illustration/image set;
-- auto-cycle images;
-- optionally auto-cycle shapes/materials;
-- show the application in a polished presentation state.
+The preview image may remain a menu art/placeholder until live preview is explicitly requested, but it must look intentional.
 
-When Demo Mode is OFF:
+---
 
-- user-controlled mode remains available;
-- user-selected images/music should be used when implemented;
-- normal controls remain.
+## 10. Animation and Interaction
 
-Demo mode must not depend on external user files.
+Codex may add menu-only animation:
 
-Default assets will be chosen by the user and then included in the project.
+- intro fade;
+- staggered button reveal;
+- hover glow;
+- press compression;
+- release flash;
+- subtle shimmer;
+- soft panel glow;
+- slow background drift;
+- non-invasive menu ambience.
 
-Expected structure may be:
+Do not add aggressive animation.
+Do not affect rendering modules.
+
+Actions may be delayed briefly after release flash, but interaction must still feel responsive.
+
+---
+
+## 11. Demo Mode Preparation
+
+The menu should visually support Demo Mode.
+
+Demo Mode may remain a stored UI state unless a task explicitly asks to wire audio/images.
+
+Future demo content lives under:
 
 ```text
 Assets/_Project/Kaleidoscope2/DemoContent/
@@ -386,89 +275,62 @@ Assets/_Project/Kaleidoscope2/DemoContent/
     Presets/
 ```
 
-Demo mode must be deterministic and safe for showcasing.
+Do not wire demo playback unless the task explicitly says so.
 
 ---
 
-## 12. Built-In Illustrations / Default Content
+## 12. Asset Policy
 
-KAELIS should include a curated built-in image set.
+Allowed:
 
-Purpose:
+- generate menu-only sprites;
+- generate TMP font assets;
+- create editor helper scripts for deterministic asset preparation;
+- use Resources or serialized references if reliable;
+- replace bad generated assets with better ones;
+- delete obsolete menu-only generated assets.
 
-- first launch looks good;
-- demo mode works without file browser;
-- Premium3D has rich backgrounds to reflect/refract;
-- Classic2D has good showcase material.
+Required:
 
-Rules:
-
-- built-in images are content assets, not code hacks;
-- do not hardcode one image into shaders;
-- use a content provider / source list;
-- allow user images later without breaking demo defaults.
-
----
-
-## 13. Diagnostics
-
-Premium3D diagnostics should report:
-
-- active mode;
-- active shape;
-- active material;
-- crystal scale percent;
-- hidden reflection texture valid;
-- hidden reflection texture assigned;
-- hidden reflection visible to main camera false;
-- hidden reflection visible to reflection camera true;
-- direct transmission value;
-- brightness/intensity;
-- pulsing/breathing flags false;
-- active effect toggles.
-
-Diagnostics are allowed to be technical. They are for development confidence.
+- keep generated assets under Menu/**;
+- do not reintroduce deleted old reference files;
+- do not use stale crop coordinates;
+- rescan current asset files when assets change;
+- do not use baked text from concept images as UI text.
 
 ---
 
-## 14. Stage Discipline
+## 13. Validation
 
-Work in focused stages.
+Every menu task must report:
 
-Do not combine menu rewrite, optical shader rewrite, demo mode, asset import, shape morphing, and input remap unless the task explicitly asks for a combined pass.
-
-However, within Premium3D, Codex may refactor old broken code when necessary to complete the requested stage.
-
----
-
-## 15. Validation Requirements
-
-Every task report must include:
-
-- what changed;
-- files touched;
-- forbidden files check;
-- compile result;
-- what was not touched;
-- visual acceptance notes if relevant;
+- files changed;
+- assets generated;
+- protected systems untouched;
+- smoke test / compile result;
+- visual goal achieved or not;
 - remaining issues.
 
-For Premium3D tasks, also report:
+Also report:
 
-- whether Classic2D was untouched;
-- whether pulsing/breathing returned;
-- whether hidden reflection is actually visible in debug mode if relevant;
-- whether mouse wheel scale works if relevant;
-- whether the crystal still shows clean center directly.
+```text
+git diff --name-only
+```
+
+Expected changes should normally be limited to:
+
+```text
+Assets/_Project/Kaleidoscope2/Menu/**
+Assets/_Project/Kaleidoscope2/Menu/UI/**
+Assets/_Project/Kaleidoscope2/Menu/Editor/**
+```
 
 ---
 
-## 16. Final Rule
+## 14. Final Rule
 
-Classic2D is protected.
+Protect the kaleidoscope engine.
 
-Premium3D is allowed to be rebuilt until it becomes beautiful.
+Free the menu.
 
-Do not keep broken Premium3D code for safety theater.
-
-Safety means protecting the working Classic2D mode and moving Premium3D forward with clear, testable changes.
+Codex is allowed to be bold inside the menu subsystem until the startup screen looks like the approved premium KAELIS reference.

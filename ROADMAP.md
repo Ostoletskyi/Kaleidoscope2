@@ -1,397 +1,358 @@
-# ROADMAP.md — KAELIS Development Roadmap
+# ROADMAP.md — KAELIS Menu Commercial Redesign Roadmap
 
-## Current Strategy
+## Strategy
 
-KAELIS has one stable visual reference and one active experimental target.
+The current priority is the startup menu.
+
+The previous cautious menu implementation did not reach the desired visual quality. Therefore, menu development is now allowed to be more ambitious.
+
+The rule:
 
 ```text
-Classic2D — protected reference mode.
-Premium3D — active development mode.
+Classic2D and Premium3D rendering are protected.
+Startup Menu is free to redesign.
 ```
 
-Classic2D must remain untouched unless explicitly requested.
-
-Premium3D may be refactored, cleaned, simplified, or rebuilt until it reaches the desired result.
+Codex may refactor or rebuild the menu subsystem to reach the approved commercial reference.
 
 ---
 
-## Desired Result
-
-The application should become:
-
-- visually impressive immediately after launch;
-- usable as a demo/showcase without manual setup;
-- able to show beautiful Classic2D kaleidoscope visuals;
-- able to show a premium 3D crystal that reflects/refracts the background convincingly;
-- controlled through a modern menu.
-
----
-
-# PHASE 0 — Safety Baseline
+# PHASE 0 — Menu Safety Checkpoint
 
 Goal:
-
-Create a safe checkpoint before larger Premium3D/menu/demo changes.
+Create a safe rollback point before aggressive menu work.
 
 Tasks:
 
-- run `git status`;
-- commit current working state;
-- push if needed;
+- run git status;
+- commit current state if not committed;
 - confirm current branch;
-- confirm Classic2D works.
+- verify Classic2D and Premium3D still run;
+- confirm current menu assets exist.
 
 Acceptance:
 
-- clean rollback point exists;
-- Classic2D current behavior is known.
+- safe rollback point exists;
+- protected systems are known-good.
 
 ---
 
-# PHASE 1 — Premium3D Stabilization and Cleanup
+# PHASE 1 — Current Menu Audit
 
 Goal:
-
-Stop protecting failed Premium3D experiments.
+Understand why the current menu does not match the reference.
 
 Tasks:
 
-- identify old Premium3D code paths;
-- identify duplicated renderers;
-- identify unused legacy bridges;
-- identify code causing:
-  - pulsing;
-  - breathing;
-  - white overexposure;
-  - fake fullscreen projection;
-  - clean center see-through;
-  - reflection pipeline failure;
-- remove or isolate Premium3D-only broken code.
+- inspect current menu hierarchy;
+- inspect KaelisStartupMenuController;
+- inspect generated button assets;
+- inspect font assets;
+- inspect current menu background;
+- inspect hover/pressed/activation transitions;
+- compare current result against approved reference.
 
-Rules:
+Report:
 
-- do not touch Classic2D;
-- do not touch Mirror/Source/OutputPreview unless explicitly approved;
-- removal is allowed if the code is Premium3D-only and blocking progress.
+- what is too dark;
+- what is too dull;
+- what is too small;
+- what differs from reference;
+- what current code prevents.
 
 Acceptance:
 
-- Premium3D code path is clearer;
-- no obvious duplicate crystal path;
-- no accidental fullscreen fake wall;
-- no hidden broken renderer kept “just in case”.
+- clear list of visual blockers;
+- clear list of code/assets to replace or keep.
 
 ---
 
-# PHASE 2 — Premium3D Scale and Controls
+# PHASE 2 — Menu Architecture Freedom Pass
 
 Goal:
+Decide whether current runtime-built architecture is still useful.
 
-Give the user direct control over Premium3D crystal size.
+Allowed actions:
 
-Tasks:
+- keep current architecture if sufficient;
+- split controller into view/style/animation classes;
+- create a proper prefab-like runtime hierarchy;
+- create new menu-only scripts;
+- replace weak code;
+- remove obsolete menu-only code.
 
-- mouse wheel controls Premium3D crystal scale;
-- scale range: 20% to 300%;
-- only active when Premium3D crystal is visible/active;
-- when inactive, mouse wheel keeps old behavior;
-- scale remains stable during rotation;
-- scale remains stable during shape switching.
-
-Also:
-
-- Insert/Delete brightness range should be safer;
-- upper brightness limit lowered by 40%;
-- lower brightness limit lowered by 40%;
-- prevent Diamond white overexposure.
-
-Acceptance:
-
-- user can make crystal huge or small manually;
-- no pulsing/breathing;
-- Classic2D unchanged.
-
----
-
-# PHASE 3 — Premium3D Hidden Reflection Pipeline
-
-Goal:
-
-Make crystal facets reflect rich hidden environment detail.
-
-Tasks:
-
-- create hidden mirrored background behind the camera;
-- render it to hidden reflection texture;
-- make it invisible to main/user camera;
-- assign it to crystal material;
-- implement/verify HiddenReflectionOnlyOnCrystal debug mode;
-- make mirror-polished facets visibly reflect it.
-
-Acceptance:
-
-- hidden reflection texture is non-empty;
-- hidden reflection texture is assigned to material;
-- user cannot see second background directly;
-- crystal facets visibly show hidden reflection fragments;
-- specular light spot is not mistaken for reflection proof.
-
----
-
-# PHASE 4 — Premium3D Optical Material Pass
-
-Goal:
-
-Make the crystal feel like a gemstone, not a transparent bubble.
-
-Tasks:
-
-- reduce direct center see-through;
-- reduce clean screenUv window behavior;
-- improve internal reflection;
-- improve facet-based refraction;
-- improve gemstone absorption;
-- improve Fresnel/edge response;
-- prevent white overexposure;
-- tune Diamond/Ruby/Emerald/Sapphire/Opal profiles.
-
-Acceptance:
-
-- Diamond is bright but not a white blob;
-- Ruby is deep red, not pink plastic;
-- Opal has internal milky/rainbow character;
-- center of kaleidoscope is not visible as a clean direct hole;
-- background is transformed through the crystal.
-
----
-
-# PHASE 5 — Premium3D Shape Library and Morphing
-
-Goal:
-
-Make Premium3D shapes as visually exciting as Classic2D.
-
-Tasks:
-
-- improve weak shapes;
-- remove or deprioritize ugly forms;
-- add/clean shapes:
-  - Classic Brilliant;
-  - Octagon;
-  - Cushion;
-  - Marquise;
-  - Pear / Drop;
-  - Emerald / Step Cut;
-  - Princess / Square;
-  - Hexagon variation;
-- implement safe shape morphing;
-- avoid hard popping;
-- keep scale stable.
-
-Acceptance:
-
-- shape switching is visually satisfying;
-- forms are not random broken shards;
-- crystal remains volumetric and attractive.
-
----
-
-# PHASE 6 — F-Key Premium3D Effect Toggles
-
-Goal:
-
-Make Premium3D effects controllable.
-
-Rules:
-
-- F1 remains Help;
-- F2–F12 are active only when Premium3D crystal is visible/active;
-- when Premium3D is inactive, old key behavior remains.
-
-Suggested mapping:
+Suggested structure:
 
 ```text
-F2  Hidden reflection background
-F3  Mirror facets
-F4  Internal reflections
-F5  Dispersion
-F6  Refraction distortion
-F7  Opal iridescence
-F8  Facet highlights
-F9  Shape morphing
-F10 Optical diagnostics
-F11 Cycle gem material
-F12 Reset Premium3D optical controls
+Menu/Runtime/
+    KaelisStartupMenuController.cs
+    KaelisStartupMenuView.cs
+    KaelisMenuStyle.cs
+    KaelisMenuButton.cs
+    KaelisMenuAnimator.cs
+    KaelisMenuAssets.cs
+
+Menu/Editor/
+    KaelisMenuAssetPreparation.cs
 ```
 
 Acceptance:
 
-- toggles work;
-- diagnostics report state;
-- no global hotkey stealing.
+- menu code becomes easier to polish;
+- current visual limitations are reduced;
+- protected systems untouched.
 
 ---
 
-# PHASE 7 — Modern Menu Foundation
+# PHASE 3 — Reference-Locked Visual Reconstruction
 
 Goal:
-
-Build a modern application menu.
+Make the real menu match the selected reference.
 
 Tasks:
 
-- inspect existing menu files;
-- design clean menu architecture;
-- add mode switch Classic2D / Premium3D;
-- add Demo Mode checkbox;
-- add basic crystal controls;
-- add visual style foundation.
+- rebuild background treatment;
+- improve left panel;
+- improve right preview panel;
+- improve bottom status bar;
+- improve frame/corner accents;
+- restore bright blue/cyan/gold luxury palette;
+- remove dull/underlit look.
 
-Rules:
+Target:
 
-- menu must not directly mutate shaders/cameras;
-- use command/settings layer;
-- keep it polished, not debug-like.
+- brighter;
+- cleaner;
+- more luminous;
+- more premium;
+- more blue/cyan;
+- less muddy;
+- closer to approved reference.
 
 Acceptance:
 
-- menu looks modern;
-- Demo Mode checkbox exists;
-- Classic/Premium switching is clear;
-- no rendering logic is hardcoded in UI.
+- visual comparison clearly moves toward reference;
+- no new unrelated style invented.
 
 ---
 
-# PHASE 8 — Demo Mode
+# PHASE 4 — Button System Rebuild
 
 Goal:
-
-Create a separate showcase mode.
-
-Demo Mode ON:
-
-- play default bundled track;
-- use bundled illustration/image set;
-- auto-cycle content;
-- optionally auto-cycle Premium3D shapes/materials;
-- show polished visual experience.
-
-Demo Mode OFF:
-
-- normal user control;
-- no forced audio/images.
+Fix gemstone buttons completely.
 
 Tasks:
 
-- add DemoModeSettings;
-- add DemoModeController;
-- add content provider for bundled images;
-- add default audio hook;
-- add menu checkbox;
-- make it deterministic.
+- remove current broken/weak button state behavior if needed;
+- rebuild button visuals as layered UI elements;
+- ensure activation line/fill reaches the opposite edge consistently;
+- ensure hover is consistent on every button;
+- ensure pressed state is full and readable;
+- ensure release flash is brief and premium;
+- ensure text remains TMP, not baked into image;
+- ensure gem corners do not stretch.
 
-Expected asset structure:
+Implementation options:
+
+- sliced sprites;
+- left/middle/right fragments;
+- overlay masks;
+- shader-like UI material only if menu-only;
+- procedural fill line independent from sprite texture.
+
+Acceptance:
+
+- no broken partial activity line;
+- all buttons respond consistently;
+- Enter is dominant;
+- Exit is ruby;
+- secondary buttons are blue/cyan;
+- button text is readable.
+
+---
+
+# PHASE 5 — Typography Pass
+
+Goal:
+Make text feel premium and readable.
+
+Tasks:
+
+- choose final font roles from available fonts;
+- generate TMP font assets if needed;
+- tune title size/tracking;
+- tune button label size/tracking;
+- tune status/micro text;
+- fix hierarchy:
+  - KAELIS title;
+  - tagline;
+  - primary CTA;
+  - secondary buttons;
+  - preview labels;
+  - status bar.
+
+Acceptance:
+
+- KAELIS title feels premium;
+- labels are readable;
+- text no longer looks like placeholder;
+- typography matches reference.
+
+---
+
+# PHASE 6 — Background and Preview Polish
+
+Goal:
+Make the menu feel commercial at first glance.
+
+Tasks:
+
+- replace dark/frozen background with soft optical atmosphere;
+- improve preview panel content and brightness;
+- add subtle prism/bokeh/caustic ambience;
+- keep UI readable;
+- avoid noisy kaleidoscope background.
+
+Acceptance:
+
+- far background supports menu;
+- preview feels like a hero showcase;
+- overall menu is bright and rich.
+
+---
+
+# PHASE 7 — Interaction and Animation
+
+Goal:
+Make menu feel alive.
+
+Tasks:
+
+- intro reveal;
+- staggered button appearance;
+- hover shimmer;
+- press compression;
+- release flash;
+- soft glow transitions;
+- optional slow background drift;
+- optional subtle preview shimmer.
+
+Acceptance:
+
+- interactions feel premium;
+- no aggressive animation;
+- actions remain responsive.
+
+---
+
+# PHASE 8 — Demo Mode UI Preparation
+
+Goal:
+Make Demo Mode visually ready.
+
+Tasks:
+
+- improve Demo Mode toggle;
+- show ON/OFF clearly;
+- prepare UI text for demo status;
+- do not wire audio/images yet unless requested.
+
+Acceptance:
+
+- Demo Mode control looks integrated;
+- future wiring is easy.
+
+---
+
+# PHASE 9 — Asset Cleanup
+
+Goal:
+Remove old menu clutter.
+
+Tasks:
+
+- delete obsolete menu-only generated assets if replaced;
+- remove stale reference files if not needed;
+- keep final reference images in a clear References folder;
+- keep generated assets in Generated/Resources folders;
+- ensure no old deleted assets are reintroduced.
+
+Acceptance:
+
+- menu folders are clean;
+- no confusing stale files;
+- deterministic asset preparation exists if needed.
+
+---
+
+# PHASE 10 — Commercial Acceptance Pass
+
+Goal:
+Judge the menu like a product.
+
+Checklist:
+
+- Does it match approved reference?
+- Is it bright enough?
+- Is it blue/cyan/gold enough?
+- Is KAELIS title strong?
+- Is Enter obvious?
+- Are buttons beautiful and consistent?
+- Is the preview panel rich?
+- Is the background supportive?
+- Is text readable?
+- Does it avoid debug look?
+- Are protected systems untouched?
+
+Acceptance:
+
+- menu is presentation-ready;
+- user confirms visual quality;
+- then commit.
+
+---
+
+## Forbidden Throughout
+
+Do not modify:
+
+- Classic2D;
+- Premium3D rendering;
+- DiamondFocus;
+- crystal shaders;
+- Mirror/**;
+- Source/**;
+- RuntimeMenuController;
+- OutputPreview;
+- cameras/render pipeline.
+
+---
+
+## Allowed Throughout
+
+Inside Menu/**, Codex may:
+
+- redesign;
+- refactor;
+- replace;
+- delete obsolete menu code;
+- generate assets;
+- create editor helpers;
+- create new menu scripts;
+- create better menu materials;
+- change layout;
+- change animation;
+- change button state system.
+
+---
+
+## Current Active Task
+
+The next task should be:
 
 ```text
-Assets/_Project/Kaleidoscope2/DemoContent/
-    Audio/
-    Images/
-    Presets/
+Menu Phase 1–4:
+Audit the current menu against the approved reference, then rebuild the menu visual/button system as needed so it actually matches the selected bright blue-gold crystal reference.
 ```
 
-Acceptance:
-
-- application can run a good-looking demo without external files;
-- user can disable demo mode;
-- default assets are replaceable by project content.
-
----
-
-# PHASE 9 — Built-In Illustration Source
-
-Goal:
-
-Bundle curated images for first launch/demo.
-
-Tasks:
-
-- add built-in image list;
-- make Source module able to receive built-in texture sequence without breaking user file loading;
-- support auto-cycle;
-- keep future file browser compatibility.
-
-Acceptance:
-
-- default built-in illustrations work;
-- selected images can be changed later;
-- Classic2D and Premium3D both benefit.
-
----
-
-# PHASE 10 — Presentation Polish
-
-Goal:
-
-Make KAELIS feel like a finished visual application.
-
-Tasks:
-
-- menu polish;
-- loading/splash polish;
-- demo transitions;
-- preset names;
-- diagnostics toggle;
-- stable defaults;
-- performance check.
-
-Acceptance:
-
-- app opens into a strong visual state;
-- demo mode showcases the project;
-- Classic2D remains strong;
-- Premium3D feels valuable, not experimental.
-
----
-
-## Forbidden During All Phases
-
-Unless explicitly requested:
-
-- do not modify Classic2D visual output;
-- do not modify MirrorModule behavior;
-- do not modify SourceModule behavior for Premium3D-only fixes;
-- do not break RuntimeMenuController / OutputPreview binding;
-- do not remove working Classic2D code;
-- do not steal global hotkeys.
-
----
-
-## Allowed During Premium3D Phases
-
-Codex may:
-
-- delete failed Premium3D-only code;
-- replace weak Premium3D shaders;
-- replace weak Premium3D renderers;
-- remove duplicated Premium3D paths;
-- create clean Premium3D modules;
-- add diagnostics/debug modes;
-- refactor Premium3D until visual target is met.
-
-This permission is intentional.
-
-Premium3D is not protected legacy. It is the active build area.
-
----
-
-## Current Active Priority
-
-```text
-1. Premium3D cleanup
-2. Mouse wheel scale control
-3. Hidden reflection proof
-4. Optical material correction
-5. Modern menu + Demo Mode foundation
-```
-
-Do not start full menu/demo work until the current codebase has a safe checkpoint.
+Do not continue tiny superficial tweaks if the current implementation cannot reach the reference.
