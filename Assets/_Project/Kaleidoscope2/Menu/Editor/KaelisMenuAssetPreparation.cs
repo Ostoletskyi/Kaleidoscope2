@@ -11,41 +11,52 @@ namespace Kaleidoscope2.Menu.Editor
         private const string ResourceRoot = "Assets/_Project/Kaleidoscope2/Menu/UI/Resources";
         private const string GemButtonsRoot = ResourceRoot + "/GemButtons";
         private const string MenuFontsRoot = ResourceRoot + "/MenuFonts";
-        private const string ButtonsBasePath = "Assets/_Project/Kaleidoscope2/Menu/UI/Materials/buttons.png";
-        private const string ButtonsGlowPath = "Assets/_Project/Kaleidoscope2/Menu/UI/Materials/buttons2.png";
+        private const string LogoResourcesRoot = ResourceRoot + "/Logos";
+        private const string ButtonSheetPath = "Assets/_Project/Kaleidoscope2/Menu/UI/Buttons/buttons.png";
+        private const string BackgroundPath = "Assets/_Project/Kaleidoscope2/Menu/UI/Backgrounds/Background.png";
+        private const string LogoPath = "Assets/_Project/Kaleidoscope2/Menu/UI/Logos/Logo.png";
+        private const string LogoResourcePath = LogoResourcesRoot + "/Logo.png";
 
-        private const int DemoRow = 1;
-        private const int SecondaryRow = 2;
-        private const int ExitRow = 6;
+        private const int OutputWidth = 768;
+        private const int OutputHeight = 120;
+
+        private static readonly Vector4 ButtonSpriteBorder = new Vector4(118f, 42f, 118f, 42f);
+
+        private readonly struct ButtonGrade
+        {
+            public readonly string Key;
+            public readonly int RowIndex;
+            public readonly Color Tint;
+
+            public ButtonGrade(string key, int rowIndex, Color tint)
+            {
+                Key = key;
+                RowIndex = rowIndex;
+                Tint = tint;
+            }
+        }
 
         public static void Run()
         {
             Directory.CreateDirectory(GemButtonsRoot);
             Directory.CreateDirectory(MenuFontsRoot);
+            Directory.CreateDirectory(LogoResourcesRoot);
 
-            Texture2D baseSheet = LoadReadableTexture(ButtonsBasePath);
-            Texture2D glowSheet = LoadReadableTexture(ButtonsGlowPath);
-            List<RectInt> baseRows = FindButtonRows(baseSheet);
-            List<RectInt> glowRows = FindButtonRows(glowSheet);
+            PrepareButtonSheetImporter(ButtonSheetPath);
+            PrepareUiTextureImporter(BackgroundPath, false);
+            PrepareUiTextureImporter(LogoPath, true);
+            CopyLogoResource();
 
-            Require(baseRows.Count > ExitRow, "buttons.png must contain at least seven button rows.");
-            Require(glowRows.Count > ExitRow, "buttons2.png must contain at least seven button rows.");
+            Texture2D sheet = LoadReadableTexture(ButtonSheetPath);
+            List<RectInt> rows = FindButtonRows(sheet);
+            Require(rows.Count >= 6, "buttons.png must contain at least six visible gemstone rows.");
 
-            WriteButton(baseSheet, baseRows[SecondaryRow], "button_primary_normal", new Color(1f, 0.58f, 0.1f), 0.62f);
-            WriteButton(glowSheet, glowRows[SecondaryRow], "button_primary_hover", new Color(1f, 0.72f, 0.08f), 0.88f);
-            WriteButton(glowSheet, glowRows[SecondaryRow], "button_primary_pressed", new Color(1f, 0.8f, 0.12f), 0.96f);
+            WriteButtonSet(sheet, rows, new ButtonGrade("primary", 0, new Color(1f, 0.68f, 0.18f, 1f)));
+            WriteButtonSet(sheet, rows, new ButtonGrade("demo", 1, new Color(0.20f, 0.90f, 0.92f, 1f)));
+            WriteButtonSet(sheet, rows, new ButtonGrade("secondary", 2, new Color(0.18f, 0.72f, 1f, 1f)));
+            WriteButtonSet(sheet, rows, new ButtonGrade("exit", rows.Count - 1, new Color(1f, 0.18f, 0.12f, 1f)));
 
-            WriteButton(baseSheet, baseRows[SecondaryRow], "button_secondary_normal");
-            WriteButton(glowSheet, glowRows[SecondaryRow], "button_secondary_hover", new Color(1f, 0.7f, 0.12f), 0.78f);
-            WriteButton(glowSheet, glowRows[SecondaryRow], "button_secondary_pressed", new Color(1f, 0.76f, 0.14f), 0.92f);
-            WriteButton(glowSheet, glowRows[SecondaryRow], "button_secondary_selected");
-
-            WriteButton(baseSheet, baseRows[DemoRow], "button_demo_normal");
-            WriteButton(glowSheet, glowRows[DemoRow], "button_demo_active");
-
-            WriteButton(baseSheet, baseRows[ExitRow], "button_exit_normal");
-            WriteButton(glowSheet, glowRows[ExitRow], "button_exit_hover");
-            WriteButton(glowSheet, glowRows[ExitRow], "button_exit_pressed");
+            CopyButtonAsset("button_demo_selected.png", "button_demo_active.png");
 
             CreateFontAsset("Kaelis_Cinzel_Regular", "Assets/_Project/Kaleidoscope2/Menu/UI/Fonts/Cinzel/static/Cinzel-Regular.ttf");
             CreateFontAsset("Kaelis_Cinzel_Medium", "Assets/_Project/Kaleidoscope2/Menu/UI/Fonts/Cinzel/static/Cinzel-Medium.ttf");
@@ -54,15 +65,34 @@ namespace Kaleidoscope2.Menu.Editor
             CreateFontAsset("Kaelis_Inter_18pt_Medium", "Assets/_Project/Kaleidoscope2/Menu/UI/Fonts/Inter/static/Inter_18pt-Medium.ttf");
             CreateFontAsset("Kaelis_Inter_18pt_SemiBold", "Assets/_Project/Kaleidoscope2/Menu/UI/Fonts/Inter/static/Inter_18pt-SemiBold.ttf");
 
+            Object.DestroyImmediate(sheet);
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
-            Debug.Log("[KAELIS Menu Assets] Gemstone buttons and menu TMP fonts prepared.");
+            Debug.Log("[KAELIS Menu Assets] Gemstone buttons rebuilt from UI/Buttons/buttons.png. Rows detected: " + rows.Count + ".");
+        }
+
+        private static void WriteButtonSet(Texture2D sheet, List<RectInt> rows, ButtonGrade grade)
+        {
+            RectInt source = rows[Mathf.Clamp(grade.RowIndex, 0, rows.Count - 1)];
+            WriteButton(sheet, source, "button_" + grade.Key + "_normal", grade.Tint, 0f);
+            WriteButton(sheet, source, "button_" + grade.Key + "_hover", grade.Tint, 0.34f);
+            WriteButton(sheet, source, "button_" + grade.Key + "_pressed", grade.Tint, 0.66f);
+            WriteButton(sheet, source, "button_" + grade.Key + "_selected", grade.Tint, 0.46f);
+        }
+
+        private static void WriteButton(Texture2D sheet, RectInt source, string assetName, Color tint, float lit)
+        {
+            Texture2D output = BuildButtonTexture(sheet, source, tint, lit);
+            string path = GemButtonsRoot + "/" + assetName + ".png";
+            File.WriteAllBytes(path, output.EncodeToPNG());
+            Object.DestroyImmediate(output);
+            AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceUpdate);
+            ConfigureButtonImporter(path);
         }
 
         private static Texture2D LoadReadableTexture(string path)
         {
             Require(File.Exists(path), path + " missing.");
-
             Texture2D texture = new Texture2D(2, 2, TextureFormat.RGBA32, false);
             texture.name = Path.GetFileNameWithoutExtension(path);
             texture.LoadImage(File.ReadAllBytes(path), false);
@@ -71,49 +101,50 @@ namespace Kaleidoscope2.Menu.Editor
 
         private static List<RectInt> FindButtonRows(Texture2D sheet)
         {
-            List<int> rows = new List<int>();
+            List<int> occupiedRows = new List<int>();
             for (int y = 0; y < sheet.height; y++)
             {
-                int count = 0;
+                int occupied = 0;
                 for (int x = 0; x < sheet.width; x += 2)
                 {
                     if (IsButtonPixel(sheet.GetPixel(x, y)))
                     {
-                        count++;
+                        occupied++;
                     }
                 }
 
-                if (count > 12)
+                if (occupied > sheet.width * 0.16f)
                 {
-                    rows.Add(y);
+                    occupiedRows.Add(y);
                 }
             }
 
-            List<RectInt> rects = new List<RectInt>();
-            if (rows.Count == 0)
+            List<RectInt> rows = new List<RectInt>();
+            if (occupiedRows.Count == 0)
             {
-                return rects;
+                return rows;
             }
 
-            int start = rows[0];
-            int previous = rows[0];
-            for (int index = 1; index < rows.Count; index++)
+            int start = occupiedRows[0];
+            int previous = occupiedRows[0];
+            for (int index = 1; index < occupiedRows.Count; index++)
             {
-                int y = rows[index];
+                int y = occupiedRows[index];
                 if (y <= previous + 2)
                 {
                     previous = y;
                     continue;
                 }
 
-                rects.Add(FindRowBounds(sheet, start, previous));
+                rows.Add(FindRowBounds(sheet, start, previous));
                 start = y;
                 previous = y;
             }
 
-            rects.Add(FindRowBounds(sheet, start, previous));
-            rects.Sort((left, right) => right.y.CompareTo(left.y));
-            return rects;
+            rows.Add(FindRowBounds(sheet, start, previous));
+            rows.RemoveAll(rect => rect.width < sheet.width * 0.50f || rect.height < 24);
+            rows.Sort((left, right) => right.y.CompareTo(left.y));
+            return rows;
         }
 
         private static RectInt FindRowBounds(Texture2D sheet, int yMin, int yMax)
@@ -139,226 +170,156 @@ namespace Kaleidoscope2.Menu.Editor
                 }
             }
 
+            minX = Mathf.Max(0, minX - 4);
+            minY = Mathf.Max(0, minY - 4);
+            maxX = Mathf.Min(sheet.width - 1, maxX + 4);
+            maxY = Mathf.Min(sheet.height - 1, maxY + 4);
             return new RectInt(minX, minY, maxX - minX + 1, maxY - minY + 1);
         }
 
-        private static bool IsButtonPixel(Color color)
+        private static Texture2D BuildButtonTexture(Texture2D sheet, RectInt source, Color tint, float lit)
         {
-            return color.a > 0.06f && (color.r < 0.965f || color.g < 0.965f || color.b < 0.965f);
-        }
-
-        private static void WriteButton(Texture2D sheet, RectInt rect, string assetName)
-        {
-            WriteButton(sheet, rect, assetName, Color.white, 0f);
-        }
-
-        private static void WriteButton(Texture2D sheet, RectInt rect, string assetName, Color tint, float tintStrength)
-        {
-            Texture2D clean = BuildCleanButton(sheet, rect);
-            if (tintStrength > 0f)
-            {
-                ApplyGemTint(clean, tint, tintStrength);
-            }
-
-            string path = GemButtonsRoot + "/" + assetName + ".png";
-            File.WriteAllBytes(path, clean.EncodeToPNG());
-            AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceUpdate);
-
-            TextureImporter importer = AssetImporter.GetAtPath(path) as TextureImporter;
-            if (importer != null)
-            {
-                importer.textureType = TextureImporterType.Sprite;
-                importer.spriteImportMode = SpriteImportMode.Single;
-                importer.alphaIsTransparency = true;
-                importer.mipmapEnabled = false;
-                importer.filterMode = FilterMode.Bilinear;
-                importer.textureCompression = TextureImporterCompression.Uncompressed;
-                importer.spritePixelsPerUnit = 100f;
-                importer.spriteBorder = new Vector4(178f, 42f, 178f, 42f);
-                importer.SaveAndReimport();
-            }
-        }
-
-        private static Texture2D BuildCleanButton(Texture2D sheet, RectInt rect)
-        {
-            int width = rect.width;
-            int height = rect.height;
-            int capWidth = Mathf.Clamp(Mathf.RoundToInt(width * 0.22f), 150, 190);
-            int centerWidth = Mathf.Clamp(Mathf.RoundToInt(width * 0.12f), 80, width - (capWidth * 2));
-            int centerStart = FindCleanPatchStart(sheet, rect, capWidth, centerWidth);
-
-            Texture2D output = new Texture2D(width, height, TextureFormat.RGBA32, false);
+            Texture2D output = new Texture2D(OutputWidth, OutputHeight, TextureFormat.RGBA32, false);
             Color clear = new Color(0f, 0f, 0f, 0f);
-            Color[] pixels = new Color[width * height];
-            for (int index = 0; index < pixels.Length; index++)
+
+            for (int y = 0; y < OutputHeight; y++)
             {
-                pixels[index] = clear;
-            }
-
-            output.SetPixels(pixels);
-
-            CopyRegion(sheet, rect, output, 0, 0, 0, 0, capWidth, height);
-            CopyRegion(sheet, rect, output, width - capWidth, 0, width - capWidth, 0, capWidth, height);
-
-            for (int x = capWidth; x < width - capWidth; x++)
-            {
-                int sourceX = centerStart + Mathf.RoundToInt(Mathf.InverseLerp(capWidth, width - capWidth - 1, x) * (centerWidth - 1));
-                for (int y = 0; y < height; y++)
+                float y01 = y / (OutputHeight - 1f);
+                for (int x = 0; x < OutputWidth; x++)
                 {
-                    output.SetPixel(x, y, CleanPixel(sheet.GetPixel(rect.x + sourceX, rect.y + y)));
+                    float x01 = x / (OutputWidth - 1f);
+                    float sourceX = (source.x + (x01 * (source.width - 1))) / sheet.width;
+                    float sourceY = (source.y + (y01 * (source.height - 1))) / sheet.height;
+                    Color color = sheet.GetPixelBilinear(sourceX, sourceY);
+
+                    if (IsTransparentPixel(color))
+                    {
+                        output.SetPixel(x, y, clear);
+                        continue;
+                    }
+
+                    float luminance = (color.r * 0.299f) + (color.g * 0.587f) + (color.b * 0.114f);
+                    float centerX = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0.18f, 0.30f, x01)) * (1f - Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0.74f, 0.88f, x01)));
+                    float centerY = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0.23f, 0.40f, y01)) * (1f - Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0.60f, 0.80f, y01)));
+                    float readability = centerX * centerY;
+                    float edgeLift = Mathf.Max(
+                        1f - Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0.00f, 0.16f, x01)),
+                        Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0.84f, 1.00f, x01)));
+                    float topGlow = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0.70f, 0.93f, y01));
+
+                    Color tinted = Color.Lerp(color, new Color(tint.r * Mathf.Max(0.36f, luminance), tint.g * Mathf.Max(0.36f, luminance), tint.b * Mathf.Max(0.36f, luminance), color.a), 0.10f + (lit * 0.18f));
+                    tinted.r *= 1f + (lit * 0.16f) + (edgeLift * 0.06f) + (topGlow * lit * 0.10f);
+                    tinted.g *= 1f + (lit * 0.16f) + (edgeLift * 0.06f) + (topGlow * lit * 0.10f);
+                    tinted.b *= 1f + (lit * 0.16f) + (edgeLift * 0.06f) + (topGlow * lit * 0.10f);
+
+                    float darken = Mathf.Lerp(1f, 0.56f + (lit * 0.10f), readability * 0.42f);
+                    tinted.r *= darken;
+                    tinted.g *= darken;
+                    tinted.b *= darken;
+                    tinted.a = color.a;
+
+                    output.SetPixel(x, y, tinted);
                 }
             }
-
-            // Remove baked sheet icons/text while preserving faceted material and readable edges.
-            CoverWithMaterialPatch(sheet, rect, output, 52, Mathf.RoundToInt(height * 0.2f), 142, Mathf.RoundToInt(height * 0.62f), centerStart, centerWidth);
-            CoverWithMaterialPatch(sheet, rect, output, Mathf.RoundToInt(width * 0.18f), Mathf.RoundToInt(height * 0.12f), Mathf.RoundToInt(width * 0.64f), Mathf.RoundToInt(height * 0.76f), centerStart, centerWidth);
-            AddCenterReadabilityBand(output, capWidth, Mathf.RoundToInt(height * 0.18f), width - capWidth * 2, Mathf.RoundToInt(height * 0.64f));
-            AddDarkPatch(output, 48, Mathf.RoundToInt(height * 0.22f), 150, Mathf.RoundToInt(height * 0.58f), 0.14f);
 
             output.Apply(false, false);
             return output;
         }
 
-        private static int FindCleanPatchStart(Texture2D sheet, RectInt rect, int capWidth, int patchWidth)
+        private static bool IsButtonPixel(Color color)
         {
-            int searchStart = Mathf.Max(capWidth + 24, Mathf.RoundToInt(rect.width * 0.42f));
-            int searchEnd = Mathf.Min(rect.width - capWidth - patchWidth - 12, Mathf.RoundToInt(rect.width * 0.78f));
-            int bestX = searchStart;
-            float bestScore = float.MaxValue;
-
-            for (int x = searchStart; x <= searchEnd; x += 4)
-            {
-                float score = 0f;
-                int samples = 0;
-                for (int px = 0; px < patchWidth; px += 4)
-                {
-                    for (int py = Mathf.RoundToInt(rect.height * 0.2f); py < Mathf.RoundToInt(rect.height * 0.8f); py += 4)
-                    {
-                        Color color = sheet.GetPixel(rect.x + x + px, rect.y + py);
-                        if (!IsButtonPixel(color))
-                        {
-                            continue;
-                        }
-
-                        float luminance = (color.r * 0.299f) + (color.g * 0.587f) + (color.b * 0.114f);
-                        score += luminance > 0.64f ? 5f : luminance;
-                        samples++;
-                    }
-                }
-
-                if (samples == 0)
-                {
-                    continue;
-                }
-
-                score /= samples;
-                if (score < bestScore)
-                {
-                    bestScore = score;
-                    bestX = x;
-                }
-            }
-
-            return Mathf.Clamp(bestX, capWidth + 8, rect.width - capWidth - patchWidth);
+            return !IsTransparentPixel(color);
         }
 
-        private static void CopyRegion(Texture2D source, RectInt sourceRect, Texture2D target, int targetX, int targetY, int sourceX, int sourceY, int width, int height)
+        private static bool IsTransparentPixel(Color color)
         {
-            for (int y = 0; y < height; y++)
+            if (color.a <= 0.04f)
             {
-                for (int x = 0; x < width; x++)
-                {
-                    target.SetPixel(targetX + x, targetY + y, CleanPixel(source.GetPixel(sourceRect.x + sourceX + x, sourceRect.y + sourceY + y)));
-                }
+                return true;
             }
+
+            float max = Mathf.Max(color.r, Mathf.Max(color.g, color.b));
+            float min = Mathf.Min(color.r, Mathf.Min(color.g, color.b));
+            float saturation = max - min;
+            if (max > 0.94f && saturation < 0.08f)
+            {
+                return true;
+            }
+
+            return color.g > 0.42f && color.g > color.r * 1.18f && color.g > color.b * 1.18f;
         }
 
-        private static void CoverWithMaterialPatch(Texture2D source, RectInt sourceRect, Texture2D target, int targetX, int targetY, int width, int height, int patchStartX, int patchWidth)
+        private static void CopyButtonAsset(string fromName, string toName)
         {
-            int maxX = Mathf.Min(target.width, targetX + width);
-            int maxY = Mathf.Min(target.height, targetY + height);
-            for (int y = Mathf.Max(0, targetY); y < maxY; y++)
+            string fromPath = GemButtonsRoot + "/" + fromName;
+            string toPath = GemButtonsRoot + "/" + toName;
+            if (!File.Exists(fromPath))
             {
-                for (int x = Mathf.Max(0, targetX); x < maxX; x++)
-                {
-                    int sourceX = patchStartX + Mathf.RoundToInt(Mathf.InverseLerp(targetX, maxX - 1, x) * (patchWidth - 1));
-                    Color patch = CleanPixel(source.GetPixel(sourceRect.x + sourceX, sourceRect.y + y));
-                    Color existing = target.GetPixel(x, y);
-                    target.SetPixel(x, y, Color.Lerp(existing, patch, 0.98f));
-                }
+                return;
             }
+
+            File.Copy(fromPath, toPath, true);
+            AssetDatabase.ImportAsset(toPath, ImportAssetOptions.ForceUpdate);
+            ConfigureButtonImporter(toPath);
         }
 
-        private static void AddCenterReadabilityBand(Texture2D target, int x, int y, int width, int height)
+        private static void CopyLogoResource()
         {
-            int maxX = Mathf.Min(target.width, x + width);
-            int maxY = Mathf.Min(target.height, y + height);
-            for (int py = Mathf.Max(0, y); py < maxY; py++)
-            {
-                for (int px = Mathf.Max(0, x); px < maxX; px++)
-                {
-                    Color existing = target.GetPixel(px, py);
-                    if (existing.a <= 0.01f)
-                    {
-                        continue;
-                    }
-
-                    float edge = Mathf.InverseLerp(0f, height * 0.5f, Mathf.Min(py - y, maxY - py));
-                    float strength = Mathf.Lerp(0.08f, 0.34f, edge);
-                    Color shaded = new Color(existing.r * (1f - strength), existing.g * (1f - strength), existing.b * (1f - strength), existing.a);
-                    target.SetPixel(px, py, shaded);
-                }
-            }
+            Require(File.Exists(LogoPath), "Logo.png missing.");
+            File.Copy(LogoPath, LogoResourcePath, true);
+            AssetDatabase.ImportAsset(LogoResourcePath, ImportAssetOptions.ForceUpdate);
+            PrepareUiTextureImporter(LogoResourcePath, true);
         }
 
-        private static void AddDarkPatch(Texture2D target, int x, int y, int width, int height, float strength)
+        private static void ConfigureButtonImporter(string path)
         {
-            int maxX = Mathf.Min(target.width, x + width);
-            int maxY = Mathf.Min(target.height, y + height);
-            for (int py = Mathf.Max(0, y); py < maxY; py++)
+            TextureImporter importer = AssetImporter.GetAtPath(path) as TextureImporter;
+            if (importer == null)
             {
-                for (int px = Mathf.Max(0, x); px < maxX; px++)
-                {
-                    Color existing = target.GetPixel(px, py);
-                    if (existing.a <= 0.01f)
-                    {
-                        continue;
-                    }
-
-                    target.SetPixel(px, py, new Color(existing.r * (1f - strength), existing.g * (1f - strength), existing.b * (1f - strength), existing.a));
-                }
+                return;
             }
+
+            importer.textureType = TextureImporterType.Sprite;
+            importer.spriteImportMode = SpriteImportMode.Single;
+            importer.alphaIsTransparency = true;
+            importer.mipmapEnabled = false;
+            importer.filterMode = FilterMode.Bilinear;
+            importer.textureCompression = TextureImporterCompression.Uncompressed;
+            importer.spritePixelsPerUnit = 100f;
+            importer.compressionQuality = 100;
+            importer.npotScale = TextureImporterNPOTScale.None;
+            importer.wrapMode = TextureWrapMode.Clamp;
+            importer.spriteBorder = ButtonSpriteBorder;
+            importer.SaveAndReimport();
         }
 
-        private static void ApplyGemTint(Texture2D texture, Color tint, float strength)
+        private static void PrepareButtonSheetImporter(string path)
         {
-            Color[] pixels = texture.GetPixels();
-            for (int index = 0; index < pixels.Length; index++)
-            {
-                Color color = pixels[index];
-                if (color.a <= 0.01f)
-                {
-                    continue;
-                }
-
-                float luminance = (color.r * 0.299f) + (color.g * 0.587f) + (color.b * 0.114f);
-                float highlight = Mathf.Clamp01(luminance * 1.35f);
-                Color tinted = new Color(tint.r * highlight, tint.g * highlight, tint.b * highlight, color.a);
-                pixels[index] = Color.Lerp(color, tinted, strength);
-            }
-
-            texture.SetPixels(pixels);
-            texture.Apply(false, false);
+            PrepareDefaultTextureImporter(path, true);
         }
 
-        private static Color CleanPixel(Color color)
+        private static void PrepareUiTextureImporter(string path, bool alpha)
         {
-            if (!IsButtonPixel(color))
+            PrepareDefaultTextureImporter(path, alpha);
+        }
+
+        private static void PrepareDefaultTextureImporter(string path, bool alpha)
+        {
+            TextureImporter importer = AssetImporter.GetAtPath(path) as TextureImporter;
+            if (importer == null)
             {
-                return new Color(0f, 0f, 0f, 0f);
+                return;
             }
 
-            return color;
+            importer.textureType = TextureImporterType.Default;
+            importer.alphaIsTransparency = alpha;
+            importer.mipmapEnabled = false;
+            importer.filterMode = FilterMode.Bilinear;
+            importer.textureCompression = TextureImporterCompression.Uncompressed;
+            importer.compressionQuality = 100;
+            importer.npotScale = TextureImporterNPOTScale.None;
+            importer.wrapMode = TextureWrapMode.Clamp;
+            importer.SaveAndReimport();
         }
 
         private static void CreateFontAsset(string assetName, string fontPath)
@@ -370,7 +331,9 @@ namespace Kaleidoscope2.Menu.Editor
             TMP_FontAsset oldAsset = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(assetPath);
             if (oldAsset != null)
             {
-                AssetDatabase.DeleteAsset(assetPath);
+                oldAsset.atlasPopulationMode = AtlasPopulationMode.Dynamic;
+                EditorUtility.SetDirty(oldAsset);
+                return;
             }
 
             TMP_FontAsset fontAsset = TMP_FontAsset.CreateFontAsset(sourceFont);

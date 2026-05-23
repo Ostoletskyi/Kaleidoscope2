@@ -1,330 +1,463 @@
-# ROADMAP.md — KAELIS Menu Commercial Redesign Roadmap
+# ROADMAP.md — KAELIS Menu Actions Roadmap
 
 ## Strategy
 
-The current priority is the startup menu.
+The visual foundation of the KAELIS startup menu is now good enough to begin interaction work.
 
-The previous cautious menu implementation did not reach the desired visual quality. Therefore, menu development is now allowed to be more ambitious.
-
-The rule:
+The next goal is:
 
 ```text
-Classic2D and Premium3D rendering are protected.
-Startup Menu is free to redesign.
+Make the menu functional without damaging the rendering engine.
 ```
 
-Codex may refactor or rebuild the menu subsystem to reach the approved commercial reference.
+The menu must become an interaction shell with clean section panels and safe command routing.
 
 ---
 
-# PHASE 0 — Menu Safety Checkpoint
+# PHASE 0 — Safety Checkpoint
 
-Goal:
-Create a safe rollback point before aggressive menu work.
+Goal: start from a safe state.
 
 Tasks:
 
 - run git status;
-- commit current state if not committed;
 - confirm current branch;
-- verify Classic2D and Premium3D still run;
-- confirm current menu assets exist.
+- commit current visual menu state if approved;
+- verify changed files are limited to Menu/**;
+- read AGENTS.md;
+- read ROADMAP.md.
 
 Acceptance:
 
-- safe rollback point exists;
-- protected systems are known-good.
+- rollback point exists;
+- no protected systems are dirty.
 
 ---
 
-# PHASE 1 — Current Menu Audit
+# PHASE 1 — Action Audit
 
-Goal:
-Understand why the current menu does not match the reference.
+Goal: understand current input/action paths before wiring buttons.
 
 Tasks:
 
-- inspect current menu hierarchy;
-- inspect KaelisStartupMenuController;
-- inspect generated button assets;
-- inspect font assets;
-- inspect current menu background;
-- inspect hover/pressed/activation transitions;
-- compare current result against approved reference.
+- inspect startup menu button callbacks;
+- inspect middle mouse click handling;
+- identify what action middle mouse click currently triggers;
+- identify existing public command methods;
+- identify whether RuntimeMenuController has safe public methods;
+- identify any existing mode switch API;
+- identify existing settings/preset APIs if present.
 
 Report:
 
-- what is too dark;
-- what is too dull;
-- what is too small;
-- what differs from reference;
-- what current code prevents.
-
-Acceptance:
-
-- clear list of visual blockers;
-- clear list of code/assets to replace or keep.
-
----
-
-# PHASE 2 — Menu Architecture Freedom Pass
-
-Goal:
-Decide whether current runtime-built architecture is still useful.
-
-Allowed actions:
-
-- keep current architecture if sufficient;
-- split controller into view/style/animation classes;
-- create a proper prefab-like runtime hierarchy;
-- create new menu-only scripts;
-- replace weak code;
-- remove obsolete menu-only code.
-
-Suggested structure:
-
 ```text
-Menu/Runtime/
-    KaelisStartupMenuController.cs
-    KaelisStartupMenuView.cs
-    KaelisMenuStyle.cs
-    KaelisMenuButton.cs
-    KaelisMenuAnimator.cs
-    KaelisMenuAssets.cs
-
-Menu/Editor/
-    KaelisMenuAssetPreparation.cs
+Button/action path found
+Safe public methods available
+Unsafe direct module access to avoid
+Real bindings possible now
+Placeholders required
 ```
 
 Acceptance:
 
-- menu code becomes easier to polish;
-- current visual limitations are reduced;
-- protected systems untouched.
+- Enter Experience target action is known;
+- safe command boundary is clear.
 
 ---
 
-# PHASE 3 — Reference-Locked Visual Reconstruction
+# PHASE 2 — Menu Action Router
 
-Goal:
-Make the real menu match the selected reference.
+Goal: create a clean button action layer.
+
+Create menu-only class:
+
+```text
+KaelisMenuActionRouter
+```
+
+Responsibilities:
+
+- receive button actions;
+- open/close sections;
+- route Enter Experience;
+- route Exit confirmation;
+- expose DemoMode state without implementing Demo Mode;
+- keep one active section at a time;
+- call command bridge when real runtime action is safe.
+
+Acceptance:
+
+- menu buttons no longer contain large inline logic;
+- action flow is centralized.
+
+---
+
+# PHASE 3 — Command Bridge
+
+Goal: safely connect menu UI to existing runtime actions.
+
+Create menu-only class if needed:
+
+```text
+KaelisMenuCommandBridge
+```
+
+Responsibilities:
+
+- call existing safe public runtime commands;
+- provide clear placeholder logs when safe binding does not exist;
+- avoid direct manipulation of protected modules.
+
+Important:
+
+Do not invent duplicate render behavior.
+
+Acceptance:
+
+- Enter Experience uses same action as middle mouse click where possible;
+- unsafe bindings are not faked.
+
+---
+
+# PHASE 4 — Section Controller
+
+Goal: implement section navigation.
+
+Create:
+
+```text
+KaelisMenuSectionController
+```
+
+Responsibilities:
+
+- register section panels;
+- show one active section at a time;
+- hide previous section;
+- handle neutral/closed state;
+- provide soft fade/slide transitions.
+
+Sections:
+
+```text
+Modes
+Optics
+Presets
+Settings
+Exit
+```
+
+Demo Mode is excluded from section implementation for now.
+
+Acceptance:
+
+- clicking menu buttons opens corresponding panels;
+- only one panel visible;
+- transitions feel premium.
+
+---
+
+# PHASE 5 — Modes Panel
+
+Goal: create functional Modes UI shell.
+
+Panel content:
+
+```text
+Classic 2D
+Premium 3D Crystal
+4D Tunnel / Funnel
+5D Endless Flight
+Experimental / Coming Soon
+```
+
+Each entry should include:
+
+- title;
+- short description;
+- selected/active state;
+- disabled state if not implemented.
+
+Binding rule:
+
+- bind only if safe public command exists;
+- otherwise placeholder log.
+
+Acceptance:
+
+- Modes button opens Modes panel;
+- cards look premium;
+- no rendering modules directly modified.
+
+---
+
+# PHASE 6 — Optics Panel
+
+Goal: create visual optics controls shell.
+
+Controls:
+
+```text
+Refraction
+Reflection
+Prism Dispersion
+Facet Highlights
+Bloom / Glow
+Caustics
+Background Distortion
+Crystal Transparency
+```
+
+Control types:
+
+- premium sliders;
+- toggles;
+- small info labels;
+- disabled state when unsupported.
+
+Binding rule:
+
+- bind only to safe public APIs;
+- otherwise placeholder log.
+
+Acceptance:
+
+- Optics panel exists;
+- controls are visually consistent;
+- no shader/render hack.
+
+---
+
+# PHASE 7 — Presets Panel
+
+Goal: create presets shell.
+
+Content:
+
+```text
+Factory Presets
+User Presets
+Apply
+Save Current
+Rename
+Delete
+Reset Factory
+```
+
+Initial presets may be placeholders:
+
+```text
+Diamond Palace
+Blue Ice
+Golden Prism
+Ruby Night
+Emerald Depth
+Opal Dream
+Dark Luxury
+Cosmic Glass
+```
+
+Binding rule:
+
+- do not implement persistence unless safe preset system exists;
+- placeholders acceptable.
+
+Acceptance:
+
+- Presets button opens panel;
+- cards/list look premium;
+- no fake persistence claim.
+
+---
+
+# PHASE 8 — Settings Panel
+
+Goal: create system settings shell.
+
+Groups:
+
+```text
+DISPLAY
+- Resolution
+- Fullscreen
+- VSync
+- Target FPS
+
+AUDIO
+- Master Volume
+- Menu Volume
+- Demo Volume placeholder
+
+CONTROLS
+- Mouse Wheel Crystal Scale
+- Hotkeys
+- UI Scale
+
+SYSTEM
+- Show FPS
+- Show Diagnostics
+- Reset Settings
+```
+
+Binding rule:
+
+- safe settings may be bound;
+- otherwise placeholders.
+
+Acceptance:
+
+- Settings panel exists;
+- categories are clear;
+- no visual optics mixed into Settings.
+
+---
+
+# PHASE 9 — Exit Confirmation
+
+Goal: prevent accidental exit.
+
+Behavior:
+
+- Exit button opens confirmation panel;
+- panel says “Exit KAELIS?”;
+- buttons:
+  - Cancel;
+  - Exit Application.
+- Cancel closes panel;
+- Exit Application quits in build and logs in editor.
+
+Acceptance:
+
+- no instant quit from first click;
+- confirmation looks premium.
+
+---
+
+# PHASE 10 — Demo Mode Reserved
+
+Goal: keep Demo Mode untouched until dedicated task.
+
+Allowed:
+
+- toggle state visual;
+- status text update;
+- placeholder log.
+
+Forbidden for now:
+
+- audio playback wiring;
+- image cycling;
+- preset demo choreography;
+- demo timeline;
+- demo content automation.
+
+Acceptance:
+
+- Demo Mode not accidentally implemented halfway.
+
+---
+
+# PHASE 11 — Smoke Tests
+
+Goal: protect menu action system.
+
+Update/create:
+
+```text
+KaelisMenuActionSmokeTest
+```
+
+Test:
+
+- Enter Experience callback exists;
+- Modes opens Modes panel;
+- Optics opens Optics panel;
+- Presets opens Presets panel;
+- Settings opens Settings panel;
+- Exit opens confirmation;
+- Cancel closes Exit panel;
+- only one section visible at a time;
+- Demo Mode remains state-only;
+- menu hierarchy builds.
+
+Acceptance:
+
+- smoke test passes.
+
+---
+
+# PHASE 12 — Visual Interaction Polish
+
+Goal: make action panels feel part of KAELIS.
 
 Tasks:
 
-- rebuild background treatment;
-- improve left panel;
-- improve right preview panel;
-- improve bottom status bar;
-- improve frame/corner accents;
-- restore bright blue/cyan/gold luxury palette;
-- remove dull/underlit look.
-
-Target:
-
-- brighter;
-- cleaner;
-- more luminous;
-- more premium;
-- more blue/cyan;
-- less muddy;
-- closer to approved reference.
+- panel fade/slide transitions;
+- hover states;
+- selected section indicator;
+- glass overlay styling;
+- clear section titles;
+- back/close affordance if needed.
 
 Acceptance:
 
-- visual comparison clearly moves toward reference;
-- no new unrelated style invented.
+- section panels look premium;
+- no debug UI;
+- no ugly default Unity controls.
 
 ---
 
-# PHASE 4 — Button System Rebuild
+# PHASE 13 — Report And Commit
 
-Goal:
-Fix gemstone buttons completely.
+Goal: finish safely.
 
-Tasks:
+Required final report:
 
-- remove current broken/weak button state behavior if needed;
-- rebuild button visuals as layered UI elements;
-- ensure activation line/fill reaches the opposite edge consistently;
-- ensure hover is consistent on every button;
-- ensure pressed state is full and readable;
-- ensure release flash is brief and premium;
-- ensure text remains TMP, not baked into image;
-- ensure gem corners do not stretch.
+```text
+Files changed
+Section architecture
+Button actions
+Real bindings vs placeholders
+Protected systems untouched
+Compile result
+Smoke test result
+git diff --name-only
+```
 
-Implementation options:
+Commit message suggestion:
 
-- sliced sprites;
-- left/middle/right fragments;
-- overlay masks;
-- shader-like UI material only if menu-only;
-- procedural fill line independent from sprite texture.
-
-Acceptance:
-
-- no broken partial activity line;
-- all buttons respond consistently;
-- Enter is dominant;
-- Exit is ruby;
-- secondary buttons are blue/cyan;
-- button text is readable.
+```text
+Add KAELIS startup menu action sections
+```
 
 ---
 
-# PHASE 5 — Typography Pass
+## Current Active Task
 
-Goal:
-Make text feel premium and readable.
+Next Codex task:
 
-Tasks:
-
-- choose final font roles from available fonts;
-- generate TMP font assets if needed;
-- tune title size/tracking;
-- tune button label size/tracking;
-- tune status/micro text;
-- fix hierarchy:
-  - KAELIS title;
-  - tagline;
-  - primary CTA;
-  - secondary buttons;
-  - preview labels;
-  - status bar.
-
-Acceptance:
-
-- KAELIS title feels premium;
-- labels are readable;
-- text no longer looks like placeholder;
-- typography matches reference.
-
----
-
-# PHASE 6 — Background and Preview Polish
-
-Goal:
-Make the menu feel commercial at first glance.
-
-Tasks:
-
-- replace dark/frozen background with soft optical atmosphere;
-- improve preview panel content and brightness;
-- add subtle prism/bokeh/caustic ambience;
-- keep UI readable;
-- avoid noisy kaleidoscope background.
-
-Acceptance:
-
-- far background supports menu;
-- preview feels like a hero showcase;
-- overall menu is bright and rich.
-
----
-
-# PHASE 7 — Interaction and Animation
-
-Goal:
-Make menu feel alive.
-
-Tasks:
-
-- intro reveal;
-- staggered button appearance;
-- hover shimmer;
-- press compression;
-- release flash;
-- soft glow transitions;
-- optional slow background drift;
-- optional subtle preview shimmer.
-
-Acceptance:
-
-- interactions feel premium;
-- no aggressive animation;
-- actions remain responsive.
-
----
-
-# PHASE 8 — Demo Mode UI Preparation
-
-Goal:
-Make Demo Mode visually ready.
-
-Tasks:
-
-- improve Demo Mode toggle;
-- show ON/OFF clearly;
-- prepare UI text for demo status;
-- do not wire audio/images yet unless requested.
-
-Acceptance:
-
-- Demo Mode control looks integrated;
-- future wiring is easy.
-
----
-
-# PHASE 9 — Asset Cleanup
-
-Goal:
-Remove old menu clutter.
-
-Tasks:
-
-- delete obsolete menu-only generated assets if replaced;
-- remove stale reference files if not needed;
-- keep final reference images in a clear References folder;
-- keep generated assets in Generated/Resources folders;
-- ensure no old deleted assets are reintroduced.
-
-Acceptance:
-
-- menu folders are clean;
-- no confusing stale files;
-- deterministic asset preparation exists if needed.
-
----
-
-# PHASE 10 — Commercial Acceptance Pass
-
-Goal:
-Judge the menu like a product.
-
-Checklist:
-
-- Does it match approved reference?
-- Is it bright enough?
-- Is it blue/cyan/gold enough?
-- Is KAELIS title strong?
-- Is Enter obvious?
-- Are buttons beautiful and consistent?
-- Is the preview panel rich?
-- Is the background supportive?
-- Is text readable?
-- Does it avoid debug look?
-- Are protected systems untouched?
-
-Acceptance:
-
-- menu is presentation-ready;
-- user confirms visual quality;
-- then commit.
+```text
+Plan and implement menu action routing and section panels for Modes, Optics, Presets, Settings, and Exit. Keep Demo Mode reserved. Make Enter Experience call the same action as middle mouse click.
+```
 
 ---
 
 ## Forbidden Throughout
 
-Do not modify:
+Do not touch:
 
-- Classic2D;
-- Premium3D rendering;
-- DiamondFocus;
-- crystal shaders;
-- Mirror/**;
-- Source/**;
-- RuntimeMenuController;
-- OutputPreview;
-- cameras/render pipeline.
+```text
+Classic2D
+Premium3D rendering
+DiamondFocus
+crystal shaders
+Mirror/**
+Source/**
+RuntimeMenuController internals
+OutputPreview internals
+cameras
+render pipelines
+```
 
 ---
 
@@ -332,27 +465,21 @@ Do not modify:
 
 Inside Menu/**, Codex may:
 
-- redesign;
-- refactor;
-- replace;
-- delete obsolete menu code;
-- generate assets;
-- create editor helpers;
-- create new menu scripts;
-- create better menu materials;
-- change layout;
-- change animation;
-- change button state system.
+```text
+create action router
+create section controller
+create section panels
+create command bridge
+create menu smoke tests
+adjust menu layout for panels
+add menu-only transitions
+add placeholder controls
+```
 
 ---
 
-## Current Active Task
+## Final Principle
 
-The next task should be:
+First make the menu safe and functional.
 
-```text
-Menu Phase 1–4:
-Audit the current menu against the approved reference, then rebuild the menu visual/button system as needed so it actually matches the selected bright blue-gold crystal reference.
-```
-
-Do not continue tiny superficial tweaks if the current implementation cannot reach the reference.
+Then bind the real engine controls one by one in separate tasks.

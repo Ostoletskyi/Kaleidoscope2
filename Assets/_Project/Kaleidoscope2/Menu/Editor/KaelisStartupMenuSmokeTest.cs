@@ -1,5 +1,6 @@
 using System;
 using System.Reflection;
+using Kaleidoscope2.Core;
 using Kaleidoscope2.Menu;
 using TMPro;
 using UnityEditor;
@@ -44,16 +45,45 @@ namespace Kaleidoscope2.Menu.Editor
             Require(FindChild<Button>(canvasTransform, "PresetsButton") != null, "Presets button missing.");
             Require(FindChild<Button>(canvasTransform, "SettingsButton") != null, "Settings button missing.");
             Require(FindChild<Button>(canvasTransform, "ExitButton") != null, "Exit button missing.");
+            RequireButtonLabel(canvasTransform, "EnterExperienceButton", "ENTER EXPERIENCE");
+            RequireButtonLabel(canvasTransform, "DemoModeToggle", "DEMO MODE");
+            RequireButtonLabel(canvasTransform, "ModesButton", "MODES");
+            RequireButtonLabel(canvasTransform, "OpticsButton", "OPTICS");
+            RequireButtonLabel(canvasTransform, "PresetsButton", "PRESETS");
+            RequireButtonLabel(canvasTransform, "SettingsButton", "SETTINGS");
+            RequireButtonLabel(canvasTransform, "ExitButton", "EXIT");
+            Require(FindChild<KaelisMenuButton>(canvasTransform, "EnterExperienceButton") != null, "Enter Experience must use KaelisMenuButton.");
+            Require(FindChild<KaelisMenuButton>(canvasTransform, "DemoModeToggle") != null, "Demo Mode must use KaelisMenuButton.");
+            Require(FindChild<KaelisMenuButton>(canvasTransform, "ExitButton") != null, "Exit must use KaelisMenuButton.");
+            Require(FindDescendant<RectMask2D>(FindChild<Transform>(canvasTransform, "EnterExperienceButton"), "GemActivationClip") != null, "Enter activation clip missing.");
+            Require(FindDescendant<RectMask2D>(FindChild<Transform>(canvasTransform, "DemoModeToggle"), "GemActivationClip") != null, "Demo activation clip missing.");
+            Require(FindDescendant<RectMask2D>(FindChild<Transform>(canvasTransform, "ExitButton"), "GemActivationClip") != null, "Exit activation clip missing.");
+            Require(FindChild<Transform>(canvasTransform, "GemReleaseFlashLine") == null, "Release flash must not draw a thin line through button labels.");
+            Require(FindChild<Transform>(canvasTransform, "ActivationTop") == null, "Button activation must not draw a thin top/strike line.");
             Require(FindChild<RawImage>(canvasTransform, "PreviewRawImage") != null, "Preview RawImage missing.");
-            Require(FindChild<TMP_Text>(canvasTransform, "Title") != null, "KAELIS title text missing.");
+            RawImage brandLogo = FindChild<RawImage>(canvasTransform, "BrandLogoImage");
+            Require(brandLogo != null, "KAELIS brand logo image missing.");
+            Require(brandLogo.texture != null, "KAELIS brand logo texture missing.");
+            Require(brandLogo.uvRect == new Rect(0f, 0f, 1f, 1f), "KAELIS brand logo must use the full texture UV rect.");
+            AspectRatioFitter brandFit = brandLogo.GetComponent<AspectRatioFitter>();
+            Require(brandFit != null, "KAELIS brand logo must preserve aspect ratio.");
+            Require(brandFit.aspectMode == AspectRatioFitter.AspectMode.FitInParent, "KAELIS brand logo must fit inside its frame.");
+            Require(brandFit.aspectRatio > 1.70f && brandFit.aspectRatio < 1.86f, "KAELIS brand logo must fit by the full source image aspect ratio.");
+            Require(FindChild<Mask>(canvasTransform, "BrandLogoFrame") == null, "KAELIS brand logo frame must not clip the logo.");
+            Require(FindChild<RectMask2D>(canvasTransform, "BrandLogoFrame") == null, "KAELIS brand logo frame must not rect-mask the logo.");
 
             Toggle demoToggle = FindChild<Toggle>(canvasTransform, "DemoModeToggle");
             demoToggle.isOn = true;
             Require(controller.DemoModeEnabled, "Demo toggle must store enabled state.");
 
+            KaleidoscopeDirector director = UnityEngine.Object.FindObjectOfType<KaleidoscopeDirector>();
+            Require(director != null, "Main scene must contain KaleidoscopeDirector for Enter Experience dispatch.");
+            KaleidoscopeCommandType dispatchedType = KaleidoscopeCommandType.None;
+            director.CommandDispatched += command => dispatchedType = command.Type;
+
             Button enterButton = FindChild<Button>(canvasTransform, "EnterExperienceButton");
             enterButton.onClick.Invoke();
-            Require(!canvasTransform.gameObject.activeSelf, "Enter Experience must hide the menu.");
+            Require(dispatchedType == KaleidoscopeCommandType.ToggleControlMenu, "Enter Experience must dispatch the same ToggleControlMenu command as middle mouse click.");
 
             InvokePrivate(controller, "OnDestroy");
             UnityEngine.Object.DestroyImmediate(canvasTransform.gameObject);
@@ -73,6 +103,32 @@ namespace Kaleidoscope2.Menu.Editor
             }
 
             return null;
+        }
+
+        private static T FindDescendant<T>(Transform root, string name) where T : Component
+        {
+            Require(root != null, "Root missing while searching for " + name + ".");
+            Transform[] children = root.GetComponentsInChildren<Transform>(true);
+            for (int index = 0; index < children.Length; index++)
+            {
+                if (children[index].name == name)
+                {
+                    return children[index].GetComponent<T>();
+                }
+            }
+
+            return null;
+        }
+
+        private static void RequireButtonLabel(Transform root, string buttonName, string expected)
+        {
+            Transform button = FindChild<Transform>(root, buttonName);
+            Require(button != null, buttonName + " missing while checking label.");
+            TMP_Text label = FindDescendant<TMP_Text>(button, "Label");
+            Require(label != null, buttonName + " label missing.");
+            Require(label.text == expected, buttonName + " label text mismatch.");
+            Require(label.enableAutoSizing, buttonName + " label must use controlled auto-size.");
+            Require(label.overflowMode != TextOverflowModes.Ellipsis, buttonName + " label must not ellipsize.");
         }
 
         private static void InvokePrivate(object target, string methodName)
