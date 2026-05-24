@@ -1,0 +1,294 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &1183593579218769630
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 7764245846923898268}
+  - component: {fileID: 8207961040049243025}
+  m_Layer: 0
+  m_Name: Artifact_PredatorCrystal
+  m_TagString: Untagged
+  m_Icon: {fileID: -964228994112308473, guid: 0000000000000000d000000000000000, type: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 2147483647
+  m_IsActive: 1
+--- !u!4 &7764245846923898268
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1183593579218769630}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &8207961040049243025
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1183593579218769630}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 959e7404e9855874ba7a5377d1766263, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  state:
+    activeSourceMode: 2
+    activeVisualMode: 3
+    mirrorSettings:
+      mirrorCount: 6
+      rotation: 140903.75
+      rotationSpeedUnits: -18.041403
+      forwardSpeedUnits: 0
+      zoom: 1.4992961
+      centerOffset: {x: 0, y: 0}
+      guidesVisible: 0
+    cameraSettings:
+      renderWidth: 1920
+      renderHeight: 1080
+    tunnelSettings:
+      bend: {x: 1, y: -0.7552361}
+      hoseOpeningUnits: 0
+      hoseWallCurvatureUnits: 0
+      hoseChromaticAberrationEnabled: 0
+    fiveDSettings:
+      flightSpeedUnits: 650
+      imageSwitchInterval: 20
+    sixDSettings:
+      depthWarpEnabled: 1
+      opticalLookEnabled: 1
+      volumetricIllusionEnabled: 1
+      depthStrength: 0.82
+      parallaxScale: 0.035
+      focusStrength: 0.38
+      focusFalloff: 1.75
+      opticalCompression: 0.52
+      centerPull: 0.74
+      volumetricDensity: 0.42
+      hazeStrength: 0.36
+      chromaticAmount: 0.0065
+      distortionStrength: 0.34
+      motionBreathing: 0.32
+    sevenDSettings:
+      strategy: 0
+      effectStrength: 0.92
+      patternScale: 1.15
+      motionSpeed: 0.7
+      sourceBlend: 0.996
+    diamondFocusSettings:
+      enabled: 1
+      shape: 0
+      shapeTransitionFromShape: 0
+      shapeTransitionToShape: 0
+      shapeTransitionActive: 1
+      shapeTransitionElapsed: 0
+      shapeTransitionDuration: 2
+      materialMode: 1
+      generatedMaterialKind: 0
+      generatedMaterialColor: {r: 0.66491634, g: 0.9433962, b: 0.6630473, a: 1}
+      generatedMaterialSeed: 52
+      targetRotationDirection: {x: 0, y: 0}
+      currentRotationDirection: {x: 0.31528288, y: -0.94899774}
+      rotationEuler: {x: -58779.33, y: 15663.1875, z: 5017.774}
+      rotationVelocity: {x: -50.76165, y: 16.864403, z: 4}
+      currentRotationSpeed: 53.639103
+      targetRotationSpeed: 53.639103
+      minRotationSpeed: 0
+      defaultRotationSpeed: 20
+      maxRotationSpeed: 240
+      speedAcceleration: 90
+      directionAcceleration: 3.5
+      transparency: 0.773
+      refractionStrength: 0.074
+      dispersionStrength: 1
+      reflectionStrength: 0.72
+      fresnelPower: 3.2
+      internalBrightness: 1
+      noiseDistortionStrength: 0.08
+      edgeHighlight: 1.35
+      chromaticAberrationBase: 0.009
+      chromaticAberrationExtra: 0.016
+      facetContrast: 1.45
+      internalGlow: 1.178
+      bloomBoostBase: 2.25
+      bloomBoostExtra: 1.25
+      screenScale: 0.84
+      diamondLikeRefraction: 1.8
+      spectralDispersion: 2.25
+      highEnergyCaustics: 1.85
+      multiBounceInternalReflections: 1.75
+      cinematicCrystalOptics: 1.45
+      physicallyBasedRefraction: 1.55
+      deepVolumetricLightScattering: 1.35
+      crystalSolidity: 1
+      blueWhitePlasmaEnergy: 2.05
+      directTransmission: 0.06
+      totalInternalReturn: 1.65
+      spectralFireIntensity: 1.85
+      facetDepthContrast: 1.22
+      opticalIOR: 2.42
+      directedLightIntensity: 0
+      opticalCaustics: 0.8
+      opticalDispersion: 1.45
+      totalInternalReflection: 1.45
+      crystalLightRigSettings:
+        rigEnabled: 1
+        orbitSpeed: 12
+        lightIntensity: 8
+        activeLightCountLimit: 8
+        glintIntensity: 1.05
+        rimIntensity: 0.95
+        spectralIntensity: 0.72
+        pulseAmount: 0.28
+        pulseSpeed: 1.15
+        diagnosticsRigEnabled: 1
+        activeOrbitLights: 0
+        resolvedGlintIntensity: 0
+        resolvedRimIntensity: 0
+        resolvedSpectralIntensity: 0
+        orbitPhaseRadians: 0
+      crystalSimulationMode: 0
+      premiumCrystalScalePercent: 100
+      premiumCrystalWheelScaleEnabled: 1
+      premiumCrystalWheelScaleStepPercent: 10
+      premiumOpticsBrightness: 1
+      premiumOpticsContrast: 1.1
+      premiumOpticsBloomGlow: 0.8
+      premiumOpticsFacetHighlights: 1.2
+      premiumOpticsRefractionStrength: 1
+      premiumOpticsReflectionStrength: 1.1
+      premiumOpticsInternalReflections: 1.25
+      premiumOpticsBackgroundDistortion: 0.9
+      premiumOpticsDirectTransparency: 0.08
+      premiumOpticsPrismDispersion: 1
+      premiumOpticsChromaticAberration: 0.45
+      premiumOpticsRainbowEdge: 0.85
+      premiumOpticsSpectralSplit: 0.65
+      premiumOpticsCrystalDepth: 1
+      premiumOpticsCaustics: 0
+      premiumHiddenReflectionBackgroundEnabled: 1
+      premiumMirrorFacetsEnabled: 1
+      premiumInternalReflectionsEnabled: 0
+      premiumDispersionEnabled: 0
+      premiumRefractionDistortionEnabled: 1
+      premiumOpalIridescenceEnabled: 0
+      premiumFacetHighlightsEnabled: 1
+      premiumShapeMorphingEnabled: 0
+      premiumDebugOpticalDiagnosticsEnabled: 1
+      debugMode: 3
+      enableRandomVariants: 1
+      preserveClassicMode: 1
+      currentShapeName: Faceted Cube
+      currentModeName: High-Purity Diamond
+      kaleidoscopeTexBindingStatus: Bound
+    classicMotionSettings:
+      flightSpeedUnits: 0
+      imageOffset: {x: -9.21, y: 3.93}
+      imageOffsetVelocity: {x: 0, y: 0}
+      imageShiftInertiaEnabled: 0
+    tunnelMotionSettings:
+      flightSpeedUnits: 0
+      imageOffset: {x: 0.44673663, y: -0.27188492}
+      imageOffsetVelocity: {x: 0, y: 0}
+      imageShiftInertiaEnabled: 0
+    hoseMotionSettings:
+      flightSpeedUnits: 0
+      imageOffset: {x: 0, y: 0}
+      imageOffsetVelocity: {x: 0, y: 0}
+      imageShiftInertiaEnabled: 0
+    sixDMotionSettings:
+      flightSpeedUnits: 0
+      imageOffset: {x: 0, y: 0}
+      imageOffsetVelocity: {x: 0, y: 0}
+      imageShiftInertiaEnabled: 0
+    sevenDMotionSettings:
+      flightSpeedUnits: 0
+      imageOffset: {x: 0, y: 0}
+      imageOffsetVelocity: {x: 0, y: 0}
+      imageShiftInertiaEnabled: 0
+    tunnelBendSettings:
+      bendSpeed: 13
+      bendLimit: 1
+      bendReturnSpeed: 7
+      bendSmoothTime: 0.08
+      foldStrength: 0.45
+      foldShadowStrength: 0.55
+      darknessDepth: 0.85
+      endLightVisibility: 0.25
+    tunnelBendState:
+      bendOffset: {x: 0, y: 0}
+      bendVelocity: {x: 0, y: 0}
+    imageFilePath: 
+    imageFolderPath: "F:/- Wallpapers Nature Final/Oboi-assorted-9-29.12.2021/3D
+      \u0413\u0440\u0430\u0444\u0438\u043A\u0430, \u0414\u0438\u0437\u0430\u0439\u043D,
+      \u0418\u043D\u0442\u0435\u0440\u044C\u0435\u0440, \u0417\u0430\u043C\u043A\u0438,
+      \u0420\u0430\u0437\u043D\u043E\u0435"
+    audioFilePath: 
+    audioFolderPath: 
+    controlMenuVisible: 0
+    hotkeysHelpVisible: 0
+    secondDisplayOutputEnabled: 1
+    mouseWheelVisualScaleEnabled: 1
+    mouseWheelVisualScaleStepPercent: 10
+    activePreset: None
+    tunnelEnabled: 1
+    recordingStatus: 0
+    qualityLevel: 0
+    imageReanimation:
+      active: 0
+      durationSeconds: 10
+      elapsedSeconds: 0
+      snapshot:
+        mirrorRotationSpeedUnits: 0
+        mirrorForwardSpeedUnits: 0
+        mirrorZoom: 1
+        mirrorCenterOffset: {x: 0, y: 0}
+        tunnelBend: {x: 0, y: 0}
+        hoseOpeningUnits: 0
+        hoseWallCurvatureUnits: 0
+        tunnelBendOffset: {x: 0, y: 0}
+        tunnelBendVelocity: {x: 0, y: 0}
+        fiveDFlightSpeedUnits: 0
+        classicMotion:
+          flightSpeedUnits: 0
+          imageOffset: {x: 0, y: 0}
+          imageOffsetVelocity: {x: 0, y: 0}
+        tunnelMotion:
+          flightSpeedUnits: 0
+          imageOffset: {x: 0, y: 0}
+          imageOffsetVelocity: {x: 0, y: 0}
+        hoseMotion:
+          flightSpeedUnits: 0
+          imageOffset: {x: 0, y: 0}
+          imageOffsetVelocity: {x: 0, y: 0}
+        sixDMotion:
+          flightSpeedUnits: 0
+          imageOffset: {x: 0, y: 0}
+          imageOffsetVelocity: {x: 0, y: 0}
+        sevenDMotion:
+          flightSpeedUnits: 0
+          imageOffset: {x: 0, y: 0}
+          imageOffsetVelocity: {x: 0, y: 0}
+    diagnostics:
+      framesPerSecond: 129.59587
+      hudVisible: 0
+      moduleStatuses: []
+      warnings:
+      - '[DisplayOutput] Display 2 is not available. Connect a second monitor and
+        press F12 again.'
+      errors: []
+      missingReferences: []
+  tickModules: 1
+  keepRunningInBackground: 1
