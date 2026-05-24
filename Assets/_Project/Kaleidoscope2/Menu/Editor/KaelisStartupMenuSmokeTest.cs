@@ -1,6 +1,7 @@
 using System;
 using System.Reflection;
 using Kaleidoscope2.Core;
+using Kaleidoscope2.DiamondFocus.RealMesh;
 using Kaleidoscope2.Menu;
 using TMPro;
 using UnityEditor;
@@ -93,6 +94,7 @@ namespace Kaleidoscope2.Menu.Editor
             Require(director != null, "Main scene must contain KaleidoscopeDirector for menu command dispatch.");
             KaleidoscopeCommandType dispatchedType = KaleidoscopeCommandType.None;
             director.CommandDispatched += command => dispatchedType = command.Type;
+            ValidatePremiumCrystalMeshes();
 
             FindChild<Button>(canvasTransform, "ModesButton").onClick.Invoke();
             Require(modesPanel.gameObject.activeSelf, "Modes button must open Modes section.");
@@ -124,6 +126,11 @@ namespace Kaleidoscope2.Menu.Editor
             Require(classicModeRow.HasTooltipData, "Modes rows must carry tooltip anchor data.");
             Require(classicModeRow.IsSelected, "Classic 2D command must remain selected after click.");
             Require(dispatchedType == KaleidoscopeCommandType.SetVisualMode, "Classic 2D section action must use the public SetVisualMode command.");
+            Button premiumModeCommand = FindChild<Button>(modesPanel, "Premium3DCrystalCommand");
+            Require(premiumModeCommand != null, "Modes panel must expose Premium 3D Crystal command.");
+            premiumModeCommand.onClick.Invoke();
+            Require(director.State.DiamondFocusSettings.Enabled, "Premium 3D command must enable DiamondFocus.");
+            Require(director.State.DiamondFocusSettings.CrystalSimulationMode == CrystalRenderMode.RealMesh3D, "Premium 3D command must switch to RealMesh3D.");
 
             FindChild<Button>(canvasTransform, "OpticsButton").onClick.Invoke();
             Require(!modesPanel.gameObject.activeSelf && opticsPanel.gameObject.activeSelf, "Optics button must switch to Optics section only.");
@@ -134,6 +141,11 @@ namespace Kaleidoscope2.Menu.Editor
             Require(brightnessSlider.GetComponent<KaelisMenuInteractiveRow>().TooltipKeys.Contains("Home / End"), "Sliders must show slider-specific keyboard hints.");
             Require(FindDescendant<Transform>(brightnessSlider.transform, "RightGold") != null, "Interactive hover frames must include the right frame edge.");
             Require(FindChild<KaelisMenuToggleControl>(opticsPanel, "CausticsToggle") != null, "Optics panel must expose a premium Caustics toggle.");
+            Slider brightnessUnitySlider = brightnessSlider.GetComponentInChildren<Slider>(true);
+            Require(brightnessUnitySlider != null, "Brightness slider must include a Unity Slider.");
+            dispatchedType = KaleidoscopeCommandType.None;
+            brightnessUnitySlider.value = 1.7f;
+            Require(dispatchedType == KaleidoscopeCommandType.SetPremiumCrystalOptic, "Brightness slider must dispatch SetPremiumCrystalOptic.");
             FindChild<Button>(canvasTransform, "PresetsButton").onClick.Invoke();
             Require(!opticsPanel.gameObject.activeSelf && presetsPanel.gameObject.activeSelf, "Presets button must switch to Presets section only.");
             Button diamondPreset = FindChild<Button>(presetsPanel, "DiamondPalaceCommand");
@@ -145,11 +157,27 @@ namespace Kaleidoscope2.Menu.Editor
             Button applyPreset = FindChild<Button>(presetsPanel, "ApplyPresetButton");
             Require(applyPreset != null, "Presets panel must expose Apply Selected button.");
             Require(applyPreset.interactable, "Apply Selected button must become active after a preset is selected.");
+            dispatchedType = KaleidoscopeCommandType.None;
+            applyPreset.onClick.Invoke();
+            Require(dispatchedType == KaleidoscopeCommandType.ApplyPremiumCrystalPreset, "Apply Selected must dispatch the Premium3D preset command.");
+            Require(director.State.ActivePreset == "Diamond Palace", "Apply Selected must store the applied factory preset label.");
             FindChild<Button>(canvasTransform, "SettingsButton").onClick.Invoke();
             Require(!presetsPanel.gameObject.activeSelf && settingsPanel.gameObject.activeSelf, "Settings button must switch to Settings section only.");
             Require(FindChild<KaelisMenuSliderControl>(settingsPanel, "UIScaleSlider") != null, "Settings panel must expose UI Scale slider.");
             Require(FindChild<KaelisMenuSliderControl>(settingsPanel, "TargetFPSSlider") != null, "Settings panel must expose Target FPS slider.");
             Require(FindChild<KaelisMenuToggleControl>(settingsPanel, "InvertZoomToggle") != null, "Settings panel must expose Invert Zoom toggle.");
+            KaelisMenuToggleControl wheelScaleToggle = FindChild<KaelisMenuToggleControl>(settingsPanel, "MouseWheelCrystalScaleToggle");
+            Require(wheelScaleToggle != null, "Settings panel must expose Mouse Wheel Crystal Scale toggle.");
+            dispatchedType = KaleidoscopeCommandType.None;
+            wheelScaleToggle.Button.onClick.Invoke();
+            Require(dispatchedType == KaleidoscopeCommandType.SetPremiumCrystalWheelScaleEnabled, "Mouse Wheel Crystal Scale toggle must dispatch the runtime wheel setting.");
+            KaelisMenuSliderControl scaleStepSlider = FindChild<KaelisMenuSliderControl>(settingsPanel, "CrystalScaleStepSlider");
+            Require(scaleStepSlider != null, "Settings panel must expose Crystal Scale Step slider.");
+            Slider scaleStepUnitySlider = scaleStepSlider.GetComponentInChildren<Slider>(true);
+            Require(scaleStepUnitySlider != null, "Crystal Scale Step must include a Unity Slider.");
+            dispatchedType = KaleidoscopeCommandType.None;
+            scaleStepUnitySlider.value = 15f;
+            Require(dispatchedType == KaleidoscopeCommandType.SetPremiumCrystalWheelScaleStepPercent, "Crystal Scale Step must dispatch the runtime wheel step setting.");
             Button languageCommand = FindChild<Button>(settingsPanel, "LanguageCommand");
             Require(languageCommand != null, "Settings panel must expose real Language selector.");
             Require(languageCommand.GetComponent<KaelisMenuInteractiveRow>().TooltipKeys.Contains("change language"), "Language selector must have truthful language-change hotkey hint.");
@@ -207,6 +235,21 @@ namespace Kaleidoscope2.Menu.Editor
             UnityEngine.Object.DestroyImmediate(canvasTransform.gameObject);
 
             Debug.Log("[KAELIS Menu SmokeTest] Startup menu hierarchy and core button behavior verified.");
+        }
+
+        private static void ValidatePremiumCrystalMeshes()
+        {
+            Array shapes = Enum.GetValues(typeof(CrystalShape));
+            for (int index = 0; index < shapes.Length; index++)
+            {
+                CrystalShape shape = (CrystalShape)shapes.GetValue(index);
+                Mesh mesh = RealCrystalShapeLibrary.CreateMesh(shape);
+                Require(mesh != null, "Premium3D mesh must be generated for " + shape + ".");
+                Require(RealCrystalVolumetricMeshFactory.HasVolume(mesh), "Premium3D mesh must have real volume for " + shape + ".");
+                Require(RealCrystalShapeLibrary.HasSideFaces(mesh), "Premium3D mesh must have side faces for " + shape + ".");
+                Require(RealCrystalShapeLibrary.HasSeparatedFrontBack(mesh), "Premium3D mesh must separate front/back depth for " + shape + ".");
+                UnityEngine.Object.DestroyImmediate(mesh);
+            }
         }
 
         private static T FindChild<T>(Transform root, string name) where T : Component

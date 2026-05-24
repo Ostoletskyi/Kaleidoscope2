@@ -890,6 +890,10 @@ namespace Kaleidoscope2.InputSystem
             premiumCrystalScalePercent = settings != null
                 ? settings.PremiumCrystalScalePercent
                 : DiamondFocusSettings.PremiumCrystalScalePercentDefault;
+            if (settings == null || !settings.PremiumCrystalWheelScaleEnabled)
+            {
+                return;
+            }
 
             float wheelDelta = UnityEngine.Input.mouseScrollDelta.y;
             if (Mathf.Abs(wheelDelta) <= 0.0001f || !premiumCrystalVisibleForWheel)
@@ -897,7 +901,10 @@ namespace Kaleidoscope2.InputSystem
                 return;
             }
 
-            float scaleDelta = wheelDelta * Mathf.Max(0f, premiumCrystalScaleWheelStepPercent);
+            float stepPercent = settings != null
+                ? settings.PremiumCrystalWheelScaleStepPercent
+                : premiumCrystalScaleWheelStepPercent;
+            float scaleDelta = wheelDelta * Mathf.Max(0f, stepPercent);
             if (Mathf.Abs(scaleDelta) <= 0.0001f)
             {
                 return;

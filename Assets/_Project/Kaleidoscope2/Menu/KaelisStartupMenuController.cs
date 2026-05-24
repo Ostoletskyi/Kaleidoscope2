@@ -45,6 +45,11 @@ namespace Kaleidoscope2.Menu
             if (view.SectionController != null)
             {
                 view.SectionController.SetCommandHandler(actionRouter.HandlePanelCommand);
+                view.SectionController.SetPremiumCrystalHandlers(
+                    actionRouter.HandlePremiumCrystalOptic,
+                    actionRouter.HandlePremiumCrystalEffect,
+                    actionRouter.HandlePremiumWheelScaleEnabled,
+                    actionRouter.HandlePremiumWheelScaleStep);
             }
 
             BindMenuButton(view.EnterButton, EnterExperience);

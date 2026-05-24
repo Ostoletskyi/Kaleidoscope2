@@ -16,6 +16,7 @@ namespace Kaleidoscope2.Menu
         private float largeStep;
         private string[] options;
         private string suffix;
+        private Action<float> changedHandler;
 
         public float Value
         {
@@ -39,6 +40,16 @@ namespace Kaleidoscope2.Menu
 
         internal static KaelisMenuSliderControl Create(RectTransform parent, KaelisMenuAssets assets, KaelisMenuTooltip tooltip, string title, string description, float min, float max, float defaultValue, string suffix, bool reserved, string[] options)
         {
+            return Create(parent, assets, tooltip, title, description, min, max, defaultValue, suffix, reserved ? KaelisMenuBindingStatus.Reserved : KaelisMenuBindingStatus.RealBinding, options);
+        }
+
+        internal static KaelisMenuSliderControl Create(RectTransform parent, KaelisMenuAssets assets, KaelisMenuTooltip tooltip, string title, string description, float min, float max, float defaultValue, string suffix, KaelisMenuBindingStatus status)
+        {
+            return Create(parent, assets, tooltip, title, description, min, max, defaultValue, suffix, status, null);
+        }
+
+        internal static KaelisMenuSliderControl Create(RectTransform parent, KaelisMenuAssets assets, KaelisMenuTooltip tooltip, string title, string description, float min, float max, float defaultValue, string suffix, KaelisMenuBindingStatus status, string[] options)
+        {
             RectTransform root = KaelisMenuUiPrimitives.CreateRect(ToObjectName(title) + "Slider", parent);
             KaelisMenuUiPrimitives.AddLayout(root.gameObject, -1f, 76f);
             Image surface = KaelisMenuUiPrimitives.AddImage(root, assets.SolidSprite, new Color(0.010f, 0.060f, 0.080f, 0.58f), true);
@@ -52,8 +63,9 @@ namespace Kaleidoscope2.Menu
             control.largeStep = control.smallStep * 10f;
 
             string rangeText = options != null ? string.Join(" / ", options) : Format(min, suffix) + " - " + Format(max, suffix);
+            string statusText = GetStatusLabel(status);
             control.row = root.gameObject.AddComponent<KaelisMenuInteractiveRow>();
-            control.row.Configure(surface, highlightGroup, flashGroup, tooltip, title, description + (reserved ? "\nStatus: RESERVED" : "\nStatus: REAL"), rangeText, control.FormatValue(defaultValue), KaelisMenuInputHintProvider.Get(KaelisMenuInputHintKind.Slider));
+            control.row.Configure(surface, highlightGroup, flashGroup, tooltip, title, description + "\nStatus: " + statusText, rangeText, control.FormatValue(defaultValue), KaelisMenuInputHintProvider.Get(KaelisMenuInputHintKind.Slider));
 
             TMP_Text label = KaelisMenuUiPrimitives.CreateText(root, "Label", title.ToUpperInvariant(), 14.5f, KaelisMenuStyle.TextPrimary, TextAlignmentOptions.Left, assets.GetFont(KaelisMenuFontRole.Button));
             label.characterSpacing = 3f;
@@ -61,7 +73,7 @@ namespace Kaleidoscope2.Menu
             labelRect.offsetMin = new Vector2(20f, 44f);
             labelRect.offsetMax = new Vector2(-270f, -5f);
 
-            TMP_Text badge = KaelisMenuUiPrimitives.CreateText(root, "BindingBadge", reserved ? "RESERVED" : "REAL", 11f, reserved ? KaelisMenuStyle.TextMuted : KaelisMenuStyle.GoldSoft, TextAlignmentOptions.Right, assets.GetFont(KaelisMenuFontRole.Status));
+            TMP_Text badge = KaelisMenuUiPrimitives.CreateText(root, "BindingBadge", statusText, 11f, GetStatusColor(status), TextAlignmentOptions.Right, assets.GetFont(KaelisMenuFontRole.Status));
             badge.characterSpacing = 2f;
             RectTransform badgeRect = (RectTransform)badge.transform;
             badgeRect.offsetMin = new Vector2(0f, 44f);
@@ -125,6 +137,11 @@ namespace Kaleidoscope2.Menu
             return control;
         }
 
+        internal void SetChangedHandler(Action<float> handler)
+        {
+            changedHandler = handler;
+        }
+
         private void Update()
         {
             if (row == null || slider == null || !row.IsActiveForKeyboard)
@@ -171,6 +188,11 @@ namespace Kaleidoscope2.Menu
             {
                 row.SetTooltipCurrent(formatted);
             }
+
+            if (changedHandler != null)
+            {
+                changedHandler(value);
+            }
         }
 
         private string FormatValue(float value)
@@ -187,6 +209,32 @@ namespace Kaleidoscope2.Menu
         private static string Format(float value, string suffix)
         {
             return value.ToString(suffix == "%" ? "0" : "0.00") + suffix;
+        }
+
+        private static string GetStatusLabel(KaelisMenuBindingStatus status)
+        {
+            switch (status)
+            {
+                case KaelisMenuBindingStatus.PartialBinding:
+                    return "PARTIAL";
+                case KaelisMenuBindingStatus.Reserved:
+                    return "RESERVED";
+                default:
+                    return "REAL";
+            }
+        }
+
+        private static Color GetStatusColor(KaelisMenuBindingStatus status)
+        {
+            switch (status)
+            {
+                case KaelisMenuBindingStatus.PartialBinding:
+                    return KaelisMenuStyle.Cyan;
+                case KaelisMenuBindingStatus.Reserved:
+                    return KaelisMenuStyle.TextMuted;
+                default:
+                    return KaelisMenuStyle.GoldSoft;
+            }
         }
 
         internal static void AddWideHighlight(RectTransform root, KaelisMenuAssets assets, out CanvasGroup highlightGroup, out CanvasGroup flashGroup)

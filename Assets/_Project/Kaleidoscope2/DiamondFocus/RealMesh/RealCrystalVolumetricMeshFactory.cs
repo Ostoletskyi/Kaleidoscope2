@@ -307,6 +307,29 @@ namespace Kaleidoscope2.DiamondFocus.RealMesh
                     return ResolveStepCutScale(absCos, absSin, 0.48f);
                 case CrystalSilhouette.Hexagon:
                     return new Vector2(1f, Mathf.Lerp(1f, 0.82f, Mathf.Pow(absSin, 2.2f)));
+                case CrystalSilhouette.Trilliant:
+                    {
+                        float tri = 0.72f + 0.38f * Mathf.Pow(Mathf.Abs(Mathf.Cos(angle * 3f)), 0.55f);
+                        return new Vector2(tri, tri);
+                    }
+                case CrystalSilhouette.Round:
+                    {
+                        float scallop = 1f + 0.06f * Mathf.Cos(angle * 16f);
+                        return new Vector2(scallop, scallop);
+                    }
+                case CrystalSilhouette.Oval:
+                    return new Vector2(1.28f, 0.72f);
+                case CrystalSilhouette.RadialShard:
+                    {
+                        float point = Mathf.Pow(Mathf.Max(0f, cos), 1.8f);
+                        float tail = Mathf.Pow(Mathf.Max(0f, -cos), 0.7f);
+                        return new Vector2(0.68f + point * 0.78f + tail * 0.22f, Mathf.Lerp(0.48f, 1.08f, absSin));
+                    }
+                case CrystalSilhouette.Mandala:
+                    {
+                        float rosette = 0.84f + 0.22f * Mathf.Pow(Mathf.Abs(Mathf.Cos(angle * 8f)), 0.45f);
+                        return new Vector2(rosette, rosette);
+                    }
                 default:
                     return Vector2.one;
             }
@@ -409,6 +432,21 @@ namespace Kaleidoscope2.DiamondFocus.RealMesh
                     break;
                 case CrystalShape.HexagonCut:
                     profile = CrystalProfile.Hexagon;
+                    break;
+                case CrystalShape.TrilliantCut:
+                    profile = CrystalProfile.Trilliant;
+                    break;
+                case CrystalShape.RoundCut:
+                    profile = CrystalProfile.Round;
+                    break;
+                case CrystalShape.OvalCut:
+                    profile = CrystalProfile.Oval;
+                    break;
+                case CrystalShape.RadialShardCut:
+                    profile = CrystalProfile.RadialShard;
+                    break;
+                case CrystalShape.MandalaCut:
+                    profile = CrystalProfile.Mandala;
                     break;
                 case CrystalShape.FacetedCube:
                     profile = CrystalProfile.Octagon;
@@ -733,6 +771,121 @@ namespace Kaleidoscope2.DiamondFocus.RealMesh
                     return profile;
                 }
             }
+
+            public static CrystalProfile Trilliant
+            {
+                get
+                {
+                    CrystalProfile profile = Brilliant;
+                    profile.Silhouette = CrystalSilhouette.Trilliant;
+                    profile.SideCount = 6;
+                    profile.TopY = 1.02f;
+                    profile.BottomY = -1.18f;
+                    profile.TableRadiusX = 0.24f;
+                    profile.TableRadiusZ = 0.24f;
+                    profile.CrownRadiusX = 0.74f;
+                    profile.CrownRadiusZ = 0.74f;
+                    profile.GirdleRadiusX = 1.18f;
+                    profile.GirdleRadiusZ = 1.18f;
+                    profile.PavilionRadiusX = 0.48f;
+                    profile.PavilionRadiusZ = 0.48f;
+                    profile.GirdleHalfThickness = 0.08f;
+                    profile.FacetAlternation = 0.9f;
+                    return profile;
+                }
+            }
+
+            public static CrystalProfile Round
+            {
+                get
+                {
+                    CrystalProfile profile = Brilliant;
+                    profile.Silhouette = CrystalSilhouette.Round;
+                    profile.SideCount = 32;
+                    profile.TopY = 1.0f;
+                    profile.BottomY = -1.0f;
+                    profile.TableRadiusX = 0.24f;
+                    profile.TableRadiusZ = 0.24f;
+                    profile.CrownRadiusX = 0.78f;
+                    profile.CrownRadiusZ = 0.78f;
+                    profile.GirdleRadiusX = 1.04f;
+                    profile.GirdleRadiusZ = 1.04f;
+                    profile.PavilionRadiusX = 0.74f;
+                    profile.PavilionRadiusZ = 0.74f;
+                    profile.GirdleHalfThickness = 0.12f;
+                    profile.FacetAlternation = 0.88f;
+                    return profile;
+                }
+            }
+
+            public static CrystalProfile Oval
+            {
+                get
+                {
+                    CrystalProfile profile = Brilliant;
+                    profile.Silhouette = CrystalSilhouette.Oval;
+                    profile.SideCount = 24;
+                    profile.TopY = 0.98f;
+                    profile.BottomY = -1.08f;
+                    profile.TableRadiusX = 0.3f;
+                    profile.TableRadiusZ = 0.26f;
+                    profile.CrownRadiusX = 0.82f;
+                    profile.CrownRadiusZ = 0.72f;
+                    profile.GirdleRadiusX = 1.08f;
+                    profile.GirdleRadiusZ = 1.0f;
+                    profile.PavilionRadiusX = 0.62f;
+                    profile.PavilionRadiusZ = 0.58f;
+                    profile.GirdleHalfThickness = 0.085f;
+                    profile.FacetAlternation = 0.93f;
+                    return profile;
+                }
+            }
+
+            public static CrystalProfile RadialShard
+            {
+                get
+                {
+                    CrystalProfile profile = Brilliant;
+                    profile.Silhouette = CrystalSilhouette.RadialShard;
+                    profile.SideCount = 12;
+                    profile.TopY = 1.12f;
+                    profile.BottomY = -1.18f;
+                    profile.TableRadiusX = 0.18f;
+                    profile.TableRadiusZ = 0.2f;
+                    profile.CrownRadiusX = 0.58f;
+                    profile.CrownRadiusZ = 0.52f;
+                    profile.GirdleRadiusX = 1.22f;
+                    profile.GirdleRadiusZ = 0.92f;
+                    profile.PavilionRadiusX = 0.5f;
+                    profile.PavilionRadiusZ = 0.42f;
+                    profile.GirdleHalfThickness = 0.075f;
+                    profile.FacetAlternation = 0.84f;
+                    return profile;
+                }
+            }
+
+            public static CrystalProfile Mandala
+            {
+                get
+                {
+                    CrystalProfile profile = Brilliant;
+                    profile.Silhouette = CrystalSilhouette.Mandala;
+                    profile.SideCount = 32;
+                    profile.TopY = 0.98f;
+                    profile.BottomY = -1.12f;
+                    profile.TableRadiusX = 0.28f;
+                    profile.TableRadiusZ = 0.28f;
+                    profile.CrownRadiusX = 0.76f;
+                    profile.CrownRadiusZ = 0.76f;
+                    profile.GirdleRadiusX = 1.12f;
+                    profile.GirdleRadiusZ = 1.12f;
+                    profile.PavilionRadiusX = 0.58f;
+                    profile.PavilionRadiusZ = 0.58f;
+                    profile.GirdleHalfThickness = 0.075f;
+                    profile.FacetAlternation = 0.82f;
+                    return profile;
+                }
+            }
         }
 
         private enum CrystalSilhouette
@@ -745,7 +898,12 @@ namespace Kaleidoscope2.DiamondFocus.RealMesh
             Cushion,
             Radiant,
             Octagon,
-            Hexagon
+            Hexagon,
+            Trilliant,
+            Round,
+            Oval,
+            RadialShard,
+            Mandala
         }
 
         private enum RingKind

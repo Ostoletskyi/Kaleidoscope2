@@ -97,6 +97,9 @@ namespace Kaleidoscope2.Menu
                 case KaelisMenuPanelCommand.ApplyClassicMode:
                     ApplyVisualMode(KaleidoscopeVisualMode.Classic, "CLASSIC 2D");
                     break;
+                case KaelisMenuPanelCommand.ApplyPremium3DMode:
+                    ApplyPremium3DMode();
+                    break;
                 case KaelisMenuPanelCommand.ApplyTunnelMode:
                     ApplyVisualMode(KaleidoscopeVisualMode.Tunnel, "4D TUNNEL");
                     break;
@@ -121,6 +124,9 @@ namespace Kaleidoscope2.Menu
                 case KaelisMenuPanelCommand.ClearRecordingOutputFolder:
                     ClearRecordingOutputFolder();
                     break;
+                case KaelisMenuPanelCommand.ApplySelectedPreset:
+                    ApplySelectedPremiumPreset();
+                    break;
                 case KaelisMenuPanelCommand.SaveAndExit:
                     SetStatus("SAVE RESERVED - EXITING");
                     Debug.Log("[KAELIS Menu] Save settings before exit is reserved; exiting without changing persistence.");
@@ -143,10 +149,58 @@ namespace Kaleidoscope2.Menu
             }
         }
 
+        public void HandlePremiumCrystalOptic(PremiumCrystalOpticsParameter parameter, float value)
+        {
+            bool dispatched = commandBridge != null && commandBridge.SetPremiumCrystalOptic(parameter, value);
+            SetStatus(dispatched
+                ? "OPTIC " + parameter.ToString().ToUpperInvariant() + " " + value.ToString("0.00")
+                : "OPTIC COMMAND UNAVAILABLE");
+        }
+
+        public void HandlePremiumCrystalEffect(PremiumCrystalEffectToggle effect, bool enabled)
+        {
+            bool dispatched = commandBridge != null && commandBridge.SetPremiumCrystalEffect(effect, enabled);
+            SetStatus(dispatched
+                ? "EFFECT " + DiamondFocusSettings.GetPremiumCrystalEffectLabel(effect).ToUpperInvariant() + " " + (enabled ? "ON" : "OFF")
+                : "EFFECT COMMAND UNAVAILABLE");
+        }
+
+        public void HandlePremiumWheelScaleEnabled(bool enabled)
+        {
+            bool dispatched = commandBridge != null && commandBridge.SetPremiumCrystalWheelScaleEnabled(enabled);
+            SetStatus(dispatched ? "WHEEL CRYSTAL SCALE " + (enabled ? "ON" : "OFF") : "WHEEL COMMAND UNAVAILABLE");
+        }
+
+        public void HandlePremiumWheelScaleStep(float stepPercent)
+        {
+            bool dispatched = commandBridge != null && commandBridge.SetPremiumCrystalWheelScaleStepPercent(stepPercent);
+            SetStatus(dispatched ? "WHEEL SCALE STEP " + stepPercent.ToString("0") + "%" : "WHEEL STEP COMMAND UNAVAILABLE");
+        }
+
         private void ApplyVisualMode(KaleidoscopeVisualMode visualMode, string label)
         {
             bool dispatched = commandBridge != null && commandBridge.ApplyVisualMode(visualMode, label);
             SetStatus(dispatched ? "MODE " + label : "MODE COMMAND UNAVAILABLE");
+        }
+
+        private void ApplyPremium3DMode()
+        {
+            bool dispatched = commandBridge != null && commandBridge.ApplyPremium3DMode();
+            SetStatus(dispatched ? "MODE PREMIUM 3D CRYSTAL" : "PREMIUM 3D COMMAND UNAVAILABLE");
+        }
+
+        private void ApplySelectedPremiumPreset()
+        {
+            if (sectionController == null || !sectionController.TryGetSelectedPremiumPreset(out PremiumCrystalFactoryPreset preset))
+            {
+                SetStatus("SELECT A FACTORY PRESET FIRST");
+                return;
+            }
+
+            bool dispatched = commandBridge != null && commandBridge.ApplyPremiumCrystalPreset(preset);
+            SetStatus(dispatched
+                ? "PRESET " + DiamondFocusSettings.GetPremiumCrystalFactoryPresetLabel(preset).ToUpperInvariant()
+                : "PRESET COMMAND UNAVAILABLE");
         }
 
         private void SelectImageFolder()

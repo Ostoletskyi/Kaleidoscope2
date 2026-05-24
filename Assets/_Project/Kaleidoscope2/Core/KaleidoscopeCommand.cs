@@ -83,7 +83,12 @@ namespace Kaleidoscope2.Core
         AdjustPremiumCrystalScalePercent = 75,
         SetPremiumCrystalScalePercent = 76,
         TogglePremiumCrystalEffect = 77,
-        ResetPremiumCrystalOpticalControls = 78
+        ResetPremiumCrystalOpticalControls = 78,
+        SetPremiumCrystalOptic = 79,
+        SetPremiumCrystalEffectEnabled = 80,
+        SetPremiumCrystalWheelScaleEnabled = 81,
+        SetPremiumCrystalWheelScaleStepPercent = 82,
+        ApplyPremiumCrystalPreset = 83
     }
 
     [Serializable]
@@ -660,6 +665,49 @@ namespace Kaleidoscope2.Core
             return new KaleidoscopeCommand(KaleidoscopeCommandType.TogglePremiumCrystalEffect)
             {
                 intValue = (int)effect
+            };
+        }
+
+        public static KaleidoscopeCommand SetPremiumCrystalEffectEnabled(PremiumCrystalEffectToggle effect, bool enabled)
+        {
+            return new KaleidoscopeCommand(KaleidoscopeCommandType.SetPremiumCrystalEffectEnabled)
+            {
+                intValue = (int)effect,
+                boolValue = enabled
+            };
+        }
+
+        public static KaleidoscopeCommand SetPremiumCrystalOptic(PremiumCrystalOpticsParameter parameter, float value)
+        {
+            return new KaleidoscopeCommand(KaleidoscopeCommandType.SetPremiumCrystalOptic)
+            {
+                intValue = (int)parameter,
+                floatValue = value
+            };
+        }
+
+        public static KaleidoscopeCommand SetPremiumCrystalWheelScaleEnabled(bool enabled)
+        {
+            return new KaleidoscopeCommand(KaleidoscopeCommandType.SetPremiumCrystalWheelScaleEnabled)
+            {
+                boolValue = enabled
+            };
+        }
+
+        public static KaleidoscopeCommand SetPremiumCrystalWheelScaleStepPercent(float percent)
+        {
+            return new KaleidoscopeCommand(KaleidoscopeCommandType.SetPremiumCrystalWheelScaleStepPercent)
+            {
+                floatValue = percent
+            };
+        }
+
+        public static KaleidoscopeCommand ApplyPremiumCrystalPreset(PremiumCrystalFactoryPreset preset)
+        {
+            return new KaleidoscopeCommand(KaleidoscopeCommandType.ApplyPremiumCrystalPreset)
+            {
+                intValue = (int)preset,
+                stringValue = DiamondFocusSettings.GetPremiumCrystalFactoryPresetLabel(preset)
             };
         }
 

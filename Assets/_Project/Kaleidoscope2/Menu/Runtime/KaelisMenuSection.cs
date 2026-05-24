@@ -15,6 +15,7 @@ namespace Kaleidoscope2.Menu
         None,
         CloseSection,
         ApplyClassicMode,
+        ApplyPremium3DMode,
         ApplyTunnelMode,
         ApplyFiveDMode,
         ShowDiagnostics,
@@ -23,10 +24,18 @@ namespace Kaleidoscope2.Menu
         SetRecordingEnabled,
         SelectRecordingOutputFolder,
         ClearRecordingOutputFolder,
+        ApplySelectedPreset,
         ReservedAction,
         CancelExit,
         SaveAndExit,
         ExitWithoutSaving
+    }
+
+    internal enum KaelisMenuBindingStatus
+    {
+        RealBinding,
+        PartialBinding,
+        Reserved
     }
 
     internal sealed class KaelisProductionOptions

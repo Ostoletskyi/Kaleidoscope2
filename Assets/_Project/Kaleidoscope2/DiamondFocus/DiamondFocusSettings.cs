@@ -68,6 +68,38 @@ namespace Kaleidoscope2.Core
         DebugOpticalDiagnostics = 8
     }
 
+    public enum PremiumCrystalOpticsParameter
+    {
+        Brightness = 0,
+        Contrast = 1,
+        BloomGlow = 2,
+        FacetHighlights = 3,
+        RefractionStrength = 4,
+        ReflectionStrength = 5,
+        InternalReflections = 6,
+        BackgroundDistortion = 7,
+        DirectTransparency = 8,
+        PrismDispersion = 9,
+        ChromaticAberration = 10,
+        RainbowEdge = 11,
+        SpectralSplit = 12,
+        CrystalDepth = 13,
+        Caustics = 14
+    }
+
+    public enum PremiumCrystalFactoryPreset
+    {
+        DiamondPalace = 0,
+        BlueIce = 1,
+        GoldenPrism = 2,
+        RubyNight = 3,
+        EmeraldDepth = 4,
+        OpalDream = 5,
+        CosmicGlass = 6,
+        DarkLuxury = 7,
+        AbsoluteMirror = 8
+    }
+
     [Serializable]
     public sealed class DiamondFocusSettings
     {
@@ -80,6 +112,23 @@ namespace Kaleidoscope2.Core
         public const float PremiumCrystalScalePercentMin = 20f;
         public const float PremiumCrystalScalePercentMax = 300f;
         public const float PremiumCrystalScalePercentDefault = 100f;
+        public const float PremiumCrystalWheelScaleStepPercentMin = 1f;
+        public const float PremiumCrystalWheelScaleStepPercentMax = 50f;
+        public const float PremiumCrystalWheelScaleStepPercentDefault = 10f;
+        public const float PremiumOpticsBrightnessDefault = 1f;
+        public const float PremiumOpticsContrastDefault = 1.1f;
+        public const float PremiumOpticsBloomGlowDefault = 0.8f;
+        public const float PremiumOpticsFacetHighlightsDefault = 1.2f;
+        public const float PremiumOpticsRefractionStrengthDefault = 1f;
+        public const float PremiumOpticsReflectionStrengthDefault = 1.1f;
+        public const float PremiumOpticsInternalReflectionsDefault = 1.25f;
+        public const float PremiumOpticsBackgroundDistortionDefault = 0.9f;
+        public const float PremiumOpticsDirectTransparencyDefault = 0.25f;
+        public const float PremiumOpticsPrismDispersionDefault = 1f;
+        public const float PremiumOpticsChromaticAberrationDefault = 0.45f;
+        public const float PremiumOpticsRainbowEdgeDefault = 0.85f;
+        public const float PremiumOpticsSpectralSplitDefault = 0.65f;
+        public const float PremiumOpticsCrystalDepthDefault = 1f;
         public const float OldCrystalBrightnessMin = CrystalLightRigSettings.LightIntensityMin;
         public const float OldCrystalBrightnessMax = CrystalLightRigSettings.LightIntensityMax;
         public const float PremiumCrystalBrightnessMin = OldCrystalBrightnessMin * 0.6f;
@@ -174,6 +223,25 @@ namespace Kaleidoscope2.Core
         [Header("Crystal Presentation")]
         [SerializeField, InspectorName("Crystal Simulation")] private CrystalRenderMode crystalSimulationMode = CrystalRenderMode.Billboard2D;
         [SerializeField, Range(PremiumCrystalScalePercentMin, PremiumCrystalScalePercentMax)] private float premiumCrystalScalePercent = PremiumCrystalScalePercentDefault;
+        [SerializeField] private bool premiumCrystalWheelScaleEnabled = true;
+        [SerializeField, Range(PremiumCrystalWheelScaleStepPercentMin, PremiumCrystalWheelScaleStepPercentMax)] private float premiumCrystalWheelScaleStepPercent = PremiumCrystalWheelScaleStepPercentDefault;
+
+        [Header("Premium3D Menu Optics")]
+        [SerializeField, Range(0.10f, 3f)] private float premiumOpticsBrightness = PremiumOpticsBrightnessDefault;
+        [SerializeField, Range(0.20f, 3f)] private float premiumOpticsContrast = PremiumOpticsContrastDefault;
+        [SerializeField, Range(0f, 5f)] private float premiumOpticsBloomGlow = PremiumOpticsBloomGlowDefault;
+        [SerializeField, Range(0f, 6f)] private float premiumOpticsFacetHighlights = PremiumOpticsFacetHighlightsDefault;
+        [SerializeField, Range(0f, 5f)] private float premiumOpticsRefractionStrength = PremiumOpticsRefractionStrengthDefault;
+        [SerializeField, Range(0f, 5f)] private float premiumOpticsReflectionStrength = PremiumOpticsReflectionStrengthDefault;
+        [SerializeField, Range(0f, 6f)] private float premiumOpticsInternalReflections = PremiumOpticsInternalReflectionsDefault;
+        [SerializeField, Range(0f, 5f)] private float premiumOpticsBackgroundDistortion = PremiumOpticsBackgroundDistortionDefault;
+        [SerializeField, Range(0f, 1f)] private float premiumOpticsDirectTransparency = PremiumOpticsDirectTransparencyDefault;
+        [SerializeField, Range(0f, 5f)] private float premiumOpticsPrismDispersion = PremiumOpticsPrismDispersionDefault;
+        [SerializeField, Range(0f, 3f)] private float premiumOpticsChromaticAberration = PremiumOpticsChromaticAberrationDefault;
+        [SerializeField, Range(0f, 5f)] private float premiumOpticsRainbowEdge = PremiumOpticsRainbowEdgeDefault;
+        [SerializeField, Range(0f, 4f)] private float premiumOpticsSpectralSplit = PremiumOpticsSpectralSplitDefault;
+        [SerializeField, Range(0.20f, 4f)] private float premiumOpticsCrystalDepth = PremiumOpticsCrystalDepthDefault;
+        [SerializeField, Range(0f, 1f)] private float premiumOpticsCaustics;
 
         [Header("Premium3D Effect Toggles")]
         [SerializeField] private bool premiumHiddenReflectionBackgroundEnabled = true;
@@ -286,6 +354,23 @@ namespace Kaleidoscope2.Core
         public string CrystalSimulationModeLabel { get { return CrystalSharedSettings.GetRenderModeLabel(crystalSimulationMode); } }
         public float PremiumCrystalScalePercent { get { return Mathf.Clamp(premiumCrystalScalePercent, PremiumCrystalScalePercentMin, PremiumCrystalScalePercentMax); } }
         public float PremiumCrystalScaleMultiplier { get { return PremiumCrystalScalePercent / 100f; } }
+        public bool PremiumCrystalWheelScaleEnabled { get { return premiumCrystalWheelScaleEnabled; } }
+        public float PremiumCrystalWheelScaleStepPercent { get { return Mathf.Clamp(premiumCrystalWheelScaleStepPercent, PremiumCrystalWheelScaleStepPercentMin, PremiumCrystalWheelScaleStepPercentMax); } }
+        public float PremiumOpticsBrightness { get { return Mathf.Clamp(premiumOpticsBrightness, 0.10f, 3f); } }
+        public float PremiumOpticsContrast { get { return Mathf.Clamp(premiumOpticsContrast, 0.20f, 3f); } }
+        public float PremiumOpticsBloomGlow { get { return Mathf.Clamp(premiumOpticsBloomGlow, 0f, 5f); } }
+        public float PremiumOpticsFacetHighlights { get { return Mathf.Clamp(premiumOpticsFacetHighlights, 0f, 6f); } }
+        public float PremiumOpticsRefractionStrength { get { return Mathf.Clamp(premiumOpticsRefractionStrength, 0f, 5f); } }
+        public float PremiumOpticsReflectionStrength { get { return Mathf.Clamp(premiumOpticsReflectionStrength, 0f, 5f); } }
+        public float PremiumOpticsInternalReflections { get { return Mathf.Clamp(premiumOpticsInternalReflections, 0f, 6f); } }
+        public float PremiumOpticsBackgroundDistortion { get { return Mathf.Clamp(premiumOpticsBackgroundDistortion, 0f, 5f); } }
+        public float PremiumOpticsDirectTransparency { get { return Mathf.Clamp01(premiumOpticsDirectTransparency); } }
+        public float PremiumOpticsPrismDispersion { get { return Mathf.Clamp(premiumOpticsPrismDispersion, 0f, 5f); } }
+        public float PremiumOpticsChromaticAberration { get { return Mathf.Clamp(premiumOpticsChromaticAberration, 0f, 3f); } }
+        public float PremiumOpticsRainbowEdge { get { return Mathf.Clamp(premiumOpticsRainbowEdge, 0f, 5f); } }
+        public float PremiumOpticsSpectralSplit { get { return Mathf.Clamp(premiumOpticsSpectralSplit, 0f, 4f); } }
+        public float PremiumOpticsCrystalDepth { get { return Mathf.Clamp(premiumOpticsCrystalDepth, 0.20f, 4f); } }
+        public float PremiumOpticsCaustics { get { return Mathf.Clamp01(premiumOpticsCaustics); } }
         public float ActiveCrystalBrightnessMin { get { return IsPremiumCrystalSimulation ? PremiumCrystalBrightnessMin : OldCrystalBrightnessMin; } }
         public float ActiveCrystalBrightnessMax { get { return IsPremiumCrystalSimulation ? PremiumCrystalBrightnessMax : OldCrystalBrightnessMax; } }
         public bool IsPremiumCrystalSimulation { get { return crystalSimulationMode == CrystalRenderMode.RealMesh3D; } }
@@ -295,6 +380,14 @@ namespace Kaleidoscope2.Core
             {
                 return "crystal visible " + (enabled && IsPremiumCrystalSimulation ? "true" : "false")
                     + ", current crystal scale percent " + PremiumCrystalScalePercent.ToString("0")
+                    + ", wheel scale " + (PremiumCrystalWheelScaleEnabled ? "enabled" : "disabled")
+                    + ", wheel step " + PremiumCrystalWheelScaleStepPercent.ToString("0") + "%"
+                    + ", direct transparency " + PremiumOpticsDirectTransparency.ToString("0.00")
+                    + ", refraction " + PremiumOpticsRefractionStrength.ToString("0.00")
+                    + ", reflection " + PremiumOpticsReflectionStrength.ToString("0.00")
+                    + ", dispersion " + PremiumOpticsPrismDispersion.ToString("0.00")
+                    + ", internal reflections " + PremiumOpticsInternalReflections.ToString("0.00")
+                    + ", depth " + PremiumOpticsCrystalDepth.ToString("0.00")
                     + ", old brightness min/max " + OldCrystalBrightnessMin.ToString("0.00") + "/" + OldCrystalBrightnessMax.ToString("0.00")
                     + ", new brightness min/max " + PremiumCrystalBrightnessMin.ToString("0.00") + "/" + PremiumCrystalBrightnessMax.ToString("0.00");
             }
@@ -541,6 +634,107 @@ namespace Kaleidoscope2.Core
             SetPremiumCrystalScalePercent(PremiumCrystalScalePercent + deltaPercent);
         }
 
+        public void SetPremiumCrystalWheelScaleEnabled(bool value)
+        {
+            premiumCrystalWheelScaleEnabled = value;
+        }
+
+        public void SetPremiumCrystalWheelScaleStepPercent(float value)
+        {
+            premiumCrystalWheelScaleStepPercent = Mathf.Clamp(value, PremiumCrystalWheelScaleStepPercentMin, PremiumCrystalWheelScaleStepPercentMax);
+        }
+
+        public void SetPremiumCrystalOptic(PremiumCrystalOpticsParameter parameter, float value)
+        {
+            switch (parameter)
+            {
+                case PremiumCrystalOpticsParameter.Brightness:
+                    premiumOpticsBrightness = Mathf.Clamp(value, 0.10f, 3f);
+                    break;
+                case PremiumCrystalOpticsParameter.Contrast:
+                    premiumOpticsContrast = Mathf.Clamp(value, 0.20f, 3f);
+                    break;
+                case PremiumCrystalOpticsParameter.BloomGlow:
+                    premiumOpticsBloomGlow = Mathf.Clamp(value, 0f, 5f);
+                    break;
+                case PremiumCrystalOpticsParameter.FacetHighlights:
+                    premiumOpticsFacetHighlights = Mathf.Clamp(value, 0f, 6f);
+                    break;
+                case PremiumCrystalOpticsParameter.RefractionStrength:
+                    premiumOpticsRefractionStrength = Mathf.Clamp(value, 0f, 5f);
+                    break;
+                case PremiumCrystalOpticsParameter.ReflectionStrength:
+                    premiumOpticsReflectionStrength = Mathf.Clamp(value, 0f, 5f);
+                    break;
+                case PremiumCrystalOpticsParameter.InternalReflections:
+                    premiumOpticsInternalReflections = Mathf.Clamp(value, 0f, 6f);
+                    break;
+                case PremiumCrystalOpticsParameter.BackgroundDistortion:
+                    premiumOpticsBackgroundDistortion = Mathf.Clamp(value, 0f, 5f);
+                    break;
+                case PremiumCrystalOpticsParameter.DirectTransparency:
+                    premiumOpticsDirectTransparency = Mathf.Clamp01(value);
+                    break;
+                case PremiumCrystalOpticsParameter.PrismDispersion:
+                    premiumOpticsPrismDispersion = Mathf.Clamp(value, 0f, 5f);
+                    break;
+                case PremiumCrystalOpticsParameter.ChromaticAberration:
+                    premiumOpticsChromaticAberration = Mathf.Clamp(value, 0f, 3f);
+                    break;
+                case PremiumCrystalOpticsParameter.RainbowEdge:
+                    premiumOpticsRainbowEdge = Mathf.Clamp(value, 0f, 5f);
+                    break;
+                case PremiumCrystalOpticsParameter.SpectralSplit:
+                    premiumOpticsSpectralSplit = Mathf.Clamp(value, 0f, 4f);
+                    break;
+                case PremiumCrystalOpticsParameter.CrystalDepth:
+                    premiumOpticsCrystalDepth = Mathf.Clamp(value, 0.20f, 4f);
+                    break;
+                case PremiumCrystalOpticsParameter.Caustics:
+                    premiumOpticsCaustics = Mathf.Clamp01(value);
+                    break;
+            }
+        }
+
+        public float GetPremiumCrystalOptic(PremiumCrystalOpticsParameter parameter)
+        {
+            switch (parameter)
+            {
+                case PremiumCrystalOpticsParameter.Brightness:
+                    return PremiumOpticsBrightness;
+                case PremiumCrystalOpticsParameter.Contrast:
+                    return PremiumOpticsContrast;
+                case PremiumCrystalOpticsParameter.BloomGlow:
+                    return PremiumOpticsBloomGlow;
+                case PremiumCrystalOpticsParameter.FacetHighlights:
+                    return PremiumOpticsFacetHighlights;
+                case PremiumCrystalOpticsParameter.RefractionStrength:
+                    return PremiumOpticsRefractionStrength;
+                case PremiumCrystalOpticsParameter.ReflectionStrength:
+                    return PremiumOpticsReflectionStrength;
+                case PremiumCrystalOpticsParameter.InternalReflections:
+                    return PremiumOpticsInternalReflections;
+                case PremiumCrystalOpticsParameter.BackgroundDistortion:
+                    return PremiumOpticsBackgroundDistortion;
+                case PremiumCrystalOpticsParameter.DirectTransparency:
+                    return PremiumOpticsDirectTransparency;
+                case PremiumCrystalOpticsParameter.PrismDispersion:
+                    return PremiumOpticsPrismDispersion;
+                case PremiumCrystalOpticsParameter.ChromaticAberration:
+                    return PremiumOpticsChromaticAberration;
+                case PremiumCrystalOpticsParameter.RainbowEdge:
+                    return PremiumOpticsRainbowEdge;
+                case PremiumCrystalOpticsParameter.SpectralSplit:
+                    return PremiumOpticsSpectralSplit;
+                case PremiumCrystalOpticsParameter.CrystalDepth:
+                    return PremiumOpticsCrystalDepth;
+                case PremiumCrystalOpticsParameter.Caustics:
+                    return PremiumOpticsCaustics;
+                default:
+                    return 0f;
+            }
+        }
+
         public void TogglePremiumCrystalEffect(PremiumCrystalEffectToggle effect)
         {
             SetPremiumCrystalEffectEnabled(effect, !GetPremiumCrystalEffectEnabled(effect));
@@ -616,6 +810,21 @@ namespace Kaleidoscope2.Core
 
         public void ResetPremiumCrystalOpticalControls()
         {
+            premiumOpticsBrightness = PremiumOpticsBrightnessDefault;
+            premiumOpticsContrast = PremiumOpticsContrastDefault;
+            premiumOpticsBloomGlow = PremiumOpticsBloomGlowDefault;
+            premiumOpticsFacetHighlights = PremiumOpticsFacetHighlightsDefault;
+            premiumOpticsRefractionStrength = PremiumOpticsRefractionStrengthDefault;
+            premiumOpticsReflectionStrength = PremiumOpticsReflectionStrengthDefault;
+            premiumOpticsInternalReflections = PremiumOpticsInternalReflectionsDefault;
+            premiumOpticsBackgroundDistortion = PremiumOpticsBackgroundDistortionDefault;
+            premiumOpticsDirectTransparency = PremiumOpticsDirectTransparencyDefault;
+            premiumOpticsPrismDispersion = PremiumOpticsPrismDispersionDefault;
+            premiumOpticsChromaticAberration = PremiumOpticsChromaticAberrationDefault;
+            premiumOpticsRainbowEdge = PremiumOpticsRainbowEdgeDefault;
+            premiumOpticsSpectralSplit = PremiumOpticsSpectralSplitDefault;
+            premiumOpticsCrystalDepth = PremiumOpticsCrystalDepthDefault;
+            premiumOpticsCaustics = 0f;
             premiumHiddenReflectionBackgroundEnabled = true;
             premiumMirrorFacetsEnabled = true;
             premiumInternalReflectionsEnabled = true;
@@ -626,6 +835,115 @@ namespace Kaleidoscope2.Core
             premiumShapeMorphingEnabled = true;
             premiumDebugOpticalDiagnosticsEnabled = false;
             debugMode = DiamondCrystalDebugMode.FinalCrystalComposite;
+        }
+
+        public void ApplyPremiumCrystalPreset(PremiumCrystalFactoryPreset preset)
+        {
+            SetEnabled(true);
+            SetCrystalSimulationMode(CrystalRenderMode.RealMesh3D);
+            CrystalLightRigSettings.SetRigEnabled(true);
+            ResetPremiumCrystalOpticalControls();
+
+            switch (preset)
+            {
+                case PremiumCrystalFactoryPreset.BlueIce:
+                    SetShape(DiamondFocusShape.ClassicDiamond);
+                    SetMaterialMode(DiamondCrystalMaterialMode.Sapphire);
+                    ApplyPremiumCrystalOptics(1.28f, 1.35f, 1.45f, 2.2f, 2.0f, 1.75f, 1.55f, 1.25f, 0.16f, 1.85f, 0.8f, 1.15f, 1.1f, 1.25f, 0.35f);
+                    break;
+
+                case PremiumCrystalFactoryPreset.GoldenPrism:
+                    SetShape(DiamondFocusShape.RhombicCrystal);
+                    SetMaterialMode(DiamondCrystalMaterialMode.Topaz);
+                    ApplyPremiumCrystalOptics(1.38f, 1.28f, 2.25f, 3.2f, 2.7f, 1.85f, 2.25f, 1.9f, 0.18f, 3.35f, 1.2f, 3.0f, 2.7f, 1.45f, 0.65f);
+                    break;
+
+                case PremiumCrystalFactoryPreset.RubyNight:
+                    SetShape(DiamondFocusShape.RhombicCrystal);
+                    SetMaterialMode(DiamondCrystalMaterialMode.Ruby);
+                    ApplyPremiumCrystalOptics(0.82f, 1.85f, 1.35f, 2.65f, 1.65f, 2.75f, 2.7f, 1.4f, 0.08f, 1.55f, 0.55f, 1.2f, 1.0f, 1.8f, 0.35f);
+                    break;
+
+                case PremiumCrystalFactoryPreset.EmeraldDepth:
+                    SetShape(DiamondFocusShape.OvalRingGem);
+                    SetMaterialMode(DiamondCrystalMaterialMode.Emerald);
+                    ApplyPremiumCrystalOptics(1.08f, 1.55f, 1.5f, 2.05f, 2.25f, 2.15f, 4.2f, 2.1f, 0.12f, 1.75f, 0.8f, 1.1f, 1.7f, 2.65f, 0.45f);
+                    break;
+
+                case PremiumCrystalFactoryPreset.OpalDream:
+                    SetShape(DiamondFocusShape.OvalRingGem);
+                    SetMaterialMode(DiamondCrystalMaterialMode.FuturisticPlastic);
+                    premiumOpalIridescenceEnabled = true;
+                    ApplyPremiumCrystalOptics(1.18f, 0.95f, 2.8f, 2.4f, 1.55f, 1.45f, 2.3f, 1.65f, 0.24f, 3.6f, 1.65f, 3.8f, 3.25f, 1.55f, 0.55f);
+                    break;
+
+                case PremiumCrystalFactoryPreset.CosmicGlass:
+                    SetShape(DiamondFocusShape.DiscoBall);
+                    SetMaterialMode(DiamondCrystalMaterialMode.Amethyst);
+                    ApplyPremiumCrystalOptics(1.42f, 1.2f, 3.2f, 3.4f, 2.55f, 2.1f, 3.3f, 2.85f, 0.18f, 4.2f, 1.8f, 4.4f, 3.55f, 1.85f, 0.8f);
+                    break;
+
+                case PremiumCrystalFactoryPreset.DarkLuxury:
+                    SetShape(DiamondFocusShape.ClassicDiamond);
+                    SetMaterialMode(DiamondCrystalMaterialMode.Garnet);
+                    ApplyPremiumCrystalOptics(0.7f, 2.15f, 1.15f, 2.45f, 1.25f, 3.45f, 2.5f, 1.2f, 0.05f, 1.2f, 0.45f, 0.8f, 0.8f, 1.75f, 0.25f);
+                    premiumHiddenReflectionBackgroundEnabled = true;
+                    premiumMirrorFacetsEnabled = true;
+                    break;
+
+                case PremiumCrystalFactoryPreset.AbsoluteMirror:
+                    SetShape(DiamondFocusShape.ClassicDiamond);
+                    SetMaterialMode(DiamondCrystalMaterialMode.AbsoluteMirror);
+                    ApplyPremiumCrystalOptics(1.12f, 1.75f, 1.85f, 3.75f, 0.85f, 5f, 2.9f, 1.4f, 0.02f, 2.4f, 0.9f, 1.8f, 1.65f, 1.55f, 0.35f);
+                    premiumHiddenReflectionBackgroundEnabled = true;
+                    premiumMirrorFacetsEnabled = true;
+                    premiumRefractionDistortionEnabled = true;
+                    premiumDispersionEnabled = true;
+                    break;
+
+                default:
+                    SetShape(DiamondFocusShape.ClassicDiamond);
+                    SetMaterialMode(DiamondCrystalMaterialMode.Diamond);
+                    ApplyPremiumCrystalOptics(1.45f, 1.38f, 2.1f, 3.1f, 2.35f, 2.4f, 2.65f, 1.75f, 0.14f, 2.75f, 1.0f, 2.4f, 2.0f, 1.65f, 0.55f);
+                    break;
+            }
+
+            ClampCrystalLightRigIntensityForCurrentMode();
+            RefreshInspectorLabels();
+        }
+
+        private void ApplyPremiumCrystalOptics(
+            float brightness,
+            float contrast,
+            float bloomGlow,
+            float facetHighlights,
+            float refractionStrength,
+            float reflectionStrength,
+            float internalReflections,
+            float backgroundDistortion,
+            float directTransparency,
+            float prismDispersion,
+            float chromaticAberration,
+            float rainbowEdge,
+            float spectralSplit,
+            float crystalDepth,
+            float caustics)
+        {
+            SetPremiumCrystalOptic(PremiumCrystalOpticsParameter.Brightness, brightness);
+            SetPremiumCrystalOptic(PremiumCrystalOpticsParameter.Contrast, contrast);
+            SetPremiumCrystalOptic(PremiumCrystalOpticsParameter.BloomGlow, bloomGlow);
+            SetPremiumCrystalOptic(PremiumCrystalOpticsParameter.FacetHighlights, facetHighlights);
+            SetPremiumCrystalOptic(PremiumCrystalOpticsParameter.RefractionStrength, refractionStrength);
+            SetPremiumCrystalOptic(PremiumCrystalOpticsParameter.ReflectionStrength, reflectionStrength);
+            SetPremiumCrystalOptic(PremiumCrystalOpticsParameter.InternalReflections, internalReflections);
+            SetPremiumCrystalOptic(PremiumCrystalOpticsParameter.BackgroundDistortion, backgroundDistortion);
+            SetPremiumCrystalOptic(PremiumCrystalOpticsParameter.DirectTransparency, directTransparency);
+            SetPremiumCrystalOptic(PremiumCrystalOpticsParameter.PrismDispersion, prismDispersion);
+            SetPremiumCrystalOptic(PremiumCrystalOpticsParameter.ChromaticAberration, chromaticAberration);
+            SetPremiumCrystalOptic(PremiumCrystalOpticsParameter.RainbowEdge, rainbowEdge);
+            SetPremiumCrystalOptic(PremiumCrystalOpticsParameter.SpectralSplit, spectralSplit);
+            SetPremiumCrystalOptic(PremiumCrystalOpticsParameter.CrystalDepth, crystalDepth);
+            SetPremiumCrystalOptic(PremiumCrystalOpticsParameter.Caustics, caustics);
         }
 
         public void SetCrystalLightRigIntensityForCurrentMode(float value)
@@ -729,6 +1047,31 @@ namespace Kaleidoscope2.Core
                     return "Debug optical diagnostics";
                 default:
                     return "Unknown Premium3D effect";
+            }
+        }
+
+        public static string GetPremiumCrystalFactoryPresetLabel(PremiumCrystalFactoryPreset value)
+        {
+            switch (value)
+            {
+                case PremiumCrystalFactoryPreset.BlueIce:
+                    return "Blue Ice";
+                case PremiumCrystalFactoryPreset.GoldenPrism:
+                    return "Golden Prism";
+                case PremiumCrystalFactoryPreset.RubyNight:
+                    return "Ruby Night";
+                case PremiumCrystalFactoryPreset.EmeraldDepth:
+                    return "Emerald Depth";
+                case PremiumCrystalFactoryPreset.OpalDream:
+                    return "Opal Dream";
+                case PremiumCrystalFactoryPreset.CosmicGlass:
+                    return "Cosmic Glass";
+                case PremiumCrystalFactoryPreset.DarkLuxury:
+                    return "Dark Luxury";
+                case PremiumCrystalFactoryPreset.AbsoluteMirror:
+                    return "Absolute Mirror";
+                default:
+                    return "Diamond Palace";
             }
         }
 

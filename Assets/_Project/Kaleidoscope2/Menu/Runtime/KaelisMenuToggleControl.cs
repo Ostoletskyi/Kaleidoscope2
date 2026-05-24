@@ -26,6 +26,11 @@ namespace Kaleidoscope2.Menu
 
         internal static KaelisMenuToggleControl Create(RectTransform parent, KaelisMenuAssets assets, KaelisMenuTooltip tooltip, string title, string description, bool defaultValue, bool reserved)
         {
+            return Create(parent, assets, tooltip, title, description, defaultValue, reserved ? KaelisMenuBindingStatus.Reserved : KaelisMenuBindingStatus.RealBinding);
+        }
+
+        internal static KaelisMenuToggleControl Create(RectTransform parent, KaelisMenuAssets assets, KaelisMenuTooltip tooltip, string title, string description, bool defaultValue, KaelisMenuBindingStatus status)
+        {
             RectTransform root = KaelisMenuUiPrimitives.CreateRect(ToObjectName(title) + "Toggle", parent);
             KaelisMenuUiPrimitives.AddLayout(root.gameObject, -1f, 62f);
             Image surface = KaelisMenuUiPrimitives.AddImage(root, assets.SolidSprite, new Color(0.010f, 0.060f, 0.080f, 0.58f), true);
@@ -33,7 +38,8 @@ namespace Kaleidoscope2.Menu
 
             KaelisMenuToggleControl control = root.gameObject.AddComponent<KaelisMenuToggleControl>();
             control.row = root.gameObject.AddComponent<KaelisMenuInteractiveRow>();
-            control.row.Configure(surface, highlightGroup, flashGroup, tooltip, title, description + (reserved ? "\nStatus: RESERVED" : "\nStatus: REAL"), "OFF / ON", defaultValue ? "ON" : "OFF", KaelisMenuInputHintProvider.Get(KaelisMenuInputHintKind.Toggle));
+            string statusText = GetStatusLabel(status);
+            control.row.Configure(surface, highlightGroup, flashGroup, tooltip, title, description + "\nStatus: " + statusText, "OFF / ON", defaultValue ? "ON" : "OFF", KaelisMenuInputHintProvider.Get(KaelisMenuInputHintKind.Toggle));
 
             control.button = root.gameObject.AddComponent<Button>();
             control.button.transition = Selectable.Transition.None;
@@ -46,7 +52,7 @@ namespace Kaleidoscope2.Menu
             labelRect.offsetMin = new Vector2(20f, 28f);
             labelRect.offsetMax = new Vector2(-260f, -4f);
 
-            TMP_Text badge = KaelisMenuUiPrimitives.CreateText(root, "BindingBadge", reserved ? "RESERVED" : "REAL", 11f, reserved ? KaelisMenuStyle.TextMuted : KaelisMenuStyle.GoldSoft, TextAlignmentOptions.Right, assets.GetFont(KaelisMenuFontRole.Status));
+            TMP_Text badge = KaelisMenuUiPrimitives.CreateText(root, "BindingBadge", statusText, 11f, GetStatusColor(status), TextAlignmentOptions.Right, assets.GetFont(KaelisMenuFontRole.Status));
             RectTransform badgeRect = (RectTransform)badge.transform;
             badgeRect.offsetMin = new Vector2(0f, 28f);
             badgeRect.offsetMax = new Vector2(-18f, -4f);
@@ -188,6 +194,32 @@ namespace Kaleidoscope2.Menu
             }
 
             return writeIndex > 0 ? new string(characters, 0, writeIndex) : "Toggle";
+        }
+
+        private static string GetStatusLabel(KaelisMenuBindingStatus status)
+        {
+            switch (status)
+            {
+                case KaelisMenuBindingStatus.PartialBinding:
+                    return "PARTIAL";
+                case KaelisMenuBindingStatus.Reserved:
+                    return "RESERVED";
+                default:
+                    return "REAL";
+            }
+        }
+
+        private static Color GetStatusColor(KaelisMenuBindingStatus status)
+        {
+            switch (status)
+            {
+                case KaelisMenuBindingStatus.PartialBinding:
+                    return KaelisMenuStyle.Cyan;
+                case KaelisMenuBindingStatus.Reserved:
+                    return KaelisMenuStyle.TextMuted;
+                default:
+                    return KaelisMenuStyle.GoldSoft;
+            }
         }
     }
 }

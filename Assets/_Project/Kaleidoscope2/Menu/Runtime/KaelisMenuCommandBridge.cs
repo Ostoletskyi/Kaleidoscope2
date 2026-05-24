@@ -28,6 +28,39 @@ namespace Kaleidoscope2.Menu
             return Dispatch(KaleidoscopeCommand.SetVisualMode(visualMode), label);
         }
 
+        public bool ApplyPremium3DMode()
+        {
+            bool enabled = Dispatch(KaleidoscopeCommand.SetDiamondFocusEnabled(true), "Enable Premium3D Diamond Focus");
+            bool mode = Dispatch(KaleidoscopeCommand.SetCrystalSimulationMode(CrystalRenderMode.RealMesh3D), "Set Premium3D RealMesh");
+            bool lights = Dispatch(KaleidoscopeCommand.SetCrystalLightRigEnabled(true), "Enable Premium3D Light Rig");
+            return enabled && mode && lights;
+        }
+
+        public bool SetPremiumCrystalOptic(PremiumCrystalOpticsParameter parameter, float value)
+        {
+            return Dispatch(KaleidoscopeCommand.SetPremiumCrystalOptic(parameter, value), "Premium3D Optic " + parameter);
+        }
+
+        public bool SetPremiumCrystalEffect(PremiumCrystalEffectToggle effect, bool enabled)
+        {
+            return Dispatch(KaleidoscopeCommand.SetPremiumCrystalEffectEnabled(effect, enabled), "Premium3D Effect " + effect);
+        }
+
+        public bool SetPremiumCrystalWheelScaleEnabled(bool enabled)
+        {
+            return Dispatch(KaleidoscopeCommand.SetPremiumCrystalWheelScaleEnabled(enabled), "Premium3D Wheel Scale");
+        }
+
+        public bool SetPremiumCrystalWheelScaleStepPercent(float percent)
+        {
+            return Dispatch(KaleidoscopeCommand.SetPremiumCrystalWheelScaleStepPercent(percent), "Premium3D Wheel Scale Step");
+        }
+
+        public bool ApplyPremiumCrystalPreset(PremiumCrystalFactoryPreset preset)
+        {
+            return Dispatch(KaleidoscopeCommand.ApplyPremiumCrystalPreset(preset), "Premium3D Factory Preset " + preset);
+        }
+
         public bool ShowDiagnostics()
         {
             return Dispatch(KaleidoscopeCommand.SetDiagnosticsVisible(true), "Show Diagnostics");

@@ -22,7 +22,12 @@ namespace Kaleidoscope2.Core
         CushionCut = 11,
         RadiantCut = 12,
         OctagonCut = 13,
-        HexagonCut = 14
+        HexagonCut = 14,
+        TrilliantCut = 15,
+        RoundCut = 16,
+        OvalCut = 17,
+        RadialShardCut = 18,
+        MandalaCut = 19
     }
 
     public enum CrystalMaterialMode

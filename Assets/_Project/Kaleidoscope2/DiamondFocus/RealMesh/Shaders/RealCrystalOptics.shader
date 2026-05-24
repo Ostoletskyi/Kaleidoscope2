@@ -6,7 +6,7 @@ Shader "Kaleidoscope2/RealCrystalOptics"
         _HiddenReflectionTex ("Hidden Reflection Texture", 2D) = "black" {}
         _HiddenReflectionTexValid ("Hidden Reflection Texture Valid", Float) = 0
         _HiddenReflectionStrength ("Hidden Reflection Strength", Range(0,1.5)) = 0.82
-        _DirectTransmission ("Direct Transmission", Range(0,1)) = 0.055
+        _DirectTransmission ("Direct Transmission", Range(0,0.35)) = 0.055
         _Tint ("Tint", Color) = (0.9, 0.98, 1, 1)
         _GemCoreColor ("Gem Core Color", Color) = (0.74, 0.9, 1, 1)
         _GemFireColor ("Gem Fire Color", Color) = (1, 0.86, 0.34, 1)
@@ -15,36 +15,38 @@ Shader "Kaleidoscope2/RealCrystalOptics"
         _Metallic ("Metallic", Range(0,1)) = 0.02
         _Smoothness ("Smoothness", Range(0,1)) = 0.96
         _Transparency ("Transparency", Range(0,1)) = 0
-        _RefractionStrength ("Refraction Strength", Range(0,0.12)) = 0.085
-        _ScreenRefractionStrength ("Screen Refraction Strength", Range(0,0.08)) = 0.028
+        _RefractionStrength ("Refraction Strength", Range(0,0.18)) = 0.085
+        _ScreenRefractionStrength ("Screen Refraction Strength", Range(0,0.16)) = 0.028
         _FresnelPower ("Fresnel Power", Range(0.5,8)) = 3.2
-        _ReflectionStrength ("Reflection Strength", Range(0,1)) = 0.6
+        _ReflectionStrength ("Reflection Strength", Range(0,1.5)) = 0.6
         _InternalBrightness ("Internal Brightness", Range(0,3)) = 0.68
         _MinimumTransmission ("Minimum Transmission", Range(0,1)) = 0.045
         _SpecularStrength ("Specular Strength", Range(0,1)) = 0.75
         _RimStrength ("Rim Response", Range(0,1.5)) = 0.75
         _BrightnessFloor ("Brightness Floor", Range(0,0.35)) = 0.035
         _GemTintStrength ("Gem Tint Strength", Range(0,1)) = 0.16
-        _OpticalDensity ("Optical Density", Range(0,2)) = 0.72
-        _FacetRefraction ("Facet Refraction", Range(0,2)) = 1.12
-        _ThicknessRefraction ("Thickness Refraction", Range(0,2)) = 1.05
-        _InternalReflectionStrength ("Internal Reflection", Range(0,2)) = 1.18
-        _DispersionStrength ("Spectral Dispersion", Range(0,2)) = 0.82
-        _FacetFire ("Facet Fire", Range(0,2)) = 0.68
+        _OpticalDensity ("Optical Density", Range(0,3)) = 0.72
+        _FacetRefraction ("Facet Refraction", Range(0,3)) = 1.12
+        _ThicknessRefraction ("Thickness Refraction", Range(0,3)) = 1.05
+        _InternalReflectionStrength ("Internal Reflection", Range(0,3)) = 1.18
+        _DispersionStrength ("Spectral Dispersion", Range(0,3)) = 0.82
+        _FacetFire ("Facet Fire", Range(0,3)) = 0.68
         _DepthAbsorption ("Depth Absorption", Range(0,1)) = 0.42
         _Clarity ("Clarity", Range(0,1)) = 0.9
         _FacetContrast ("Facet Contrast", Range(0,2.2)) = 1.5
         _RefractiveIndex ("Refractive Index", Range(1,2.9)) = 2.417
-        _PhysicalDispersion ("Physical Dispersion", Range(0,0.08)) = 0.044
-        _AbsorptionStrength ("Absorption Strength", Range(0,2)) = 0.38
-        _FresnelStrength ("Fresnel Strength", Range(0,2)) = 1.05
-        _BackgroundDistortionStrength ("Background Distortion", Range(0,2)) = 1.15
-        _SaturationBoost ("Saturation Boost", Range(0,2)) = 1.08
-        _ContrastBoost ("Contrast Boost", Range(0,2)) = 1.08
+        _PhysicalDispersion ("Physical Dispersion", Range(0,0.12)) = 0.044
+        _AbsorptionStrength ("Absorption Strength", Range(0,3)) = 0.38
+        _FresnelStrength ("Fresnel Strength", Range(0,3)) = 1.05
+        _BackgroundDistortionStrength ("Background Distortion", Range(0,3)) = 1.15
+        _SaturationBoost ("Saturation Boost", Range(0,3)) = 1.08
+        _ContrastBoost ("Contrast Boost", Range(0,3)) = 1.08
         _OpalIridescence ("Opal Iridescence", Range(0,1)) = 0
         _HighlightCompression ("Highlight Compression", Range(0,4)) = 1.25
-        _MaxCoreTransmission ("Max Core Transmission", Range(0,0.3)) = 0.045
+        _MaxCoreTransmission ("Max Core Transmission", Range(0,0.35)) = 0.045
         _CenterTransmissionBlock ("Center Transmission Block", Range(0,1.5)) = 0.95
+        _ChromaticAberrationScale ("Chromatic Aberration Scale", Range(0,3)) = 1
+        _SpectralSplitScale ("Spectral Split Scale", Range(0,4)) = 1
         _CoreDarkening ("Core Darkening", Range(0,1)) = 0.18
     }
     SubShader
@@ -102,6 +104,8 @@ Shader "Kaleidoscope2/RealCrystalOptics"
         half _HighlightCompression;
         half _MaxCoreTransmission;
         half _CenterTransmissionBlock;
+        half _ChromaticAberrationScale;
+        half _SpectralSplitScale;
         half _CoreDarkening;
 
         struct Input
@@ -157,17 +161,22 @@ Shader "Kaleidoscope2/RealCrystalOptics"
                 * _ThicknessRefraction
                 * distortionScale
                 * (0.22 + thickness * 0.92 + totalInternalFeel * 0.22 + deepCore * 0.58);
+            float splitScale = max(0.0, _SpectralSplitScale);
+            float chromaScale = max(0.0, _ChromaticAberrationScale);
+            float dispersionScale = 0.35 + chromaScale * 0.55 + splitScale * 0.45;
             float2 dispersionOffset = facetAxis
                 * _ScreenRefractionStrength
                 * _DispersionStrength
                 * (0.62 + _PhysicalDispersion * 18.0)
-                * (0.14 + fresnel * 0.58 + facetBreak * 0.34 + deepCore * 0.16);
+                * (0.14 + fresnel * 0.58 + facetBreak * 0.34 + deepCore * 0.16)
+                * dispersionScale;
 
             float2 refractedUv = saturate(screenUv + facetOffset + depthOffset);
             float2 frontLayerUv = saturate(screenUv + facetOffset * (0.42 + deepCore * 0.18) - depthOffset * 0.24 + facetAxis * deepCore * 0.018);
             float2 backLayerUv = saturate(screenUv - facetOffset * (0.72 + deepCore * 0.34) + depthOffset * (1.52 + deepCore * 0.42));
-            float2 echoLayerUv = saturate(screenUv - facetOffset * (1.32 + deepCore * 0.48) - depthOffset * (0.52 + deepCore * 0.22) + facetAxis * (fresnel * 0.035 + totalInternalFeel * 0.02 + deepCore * 0.04));
-            float2 reflectionUv = saturate(screenUv - facetOffset * (0.92 + deepCore * 0.32) - depthOffset * (0.4 + deepCore * 0.24) + facetAxis * (fresnel * 0.03 + deepCore * 0.05));
+            float echoScale = 0.65 + splitScale * 0.35;
+            float2 echoLayerUv = saturate(screenUv - facetOffset * (1.32 + deepCore * 0.48) - depthOffset * (0.52 + deepCore * 0.22) + facetAxis * (fresnel * 0.035 + totalInternalFeel * 0.02 + deepCore * 0.04) * echoScale);
+            float2 reflectionUv = saturate(screenUv - facetOffset * (0.92 + deepCore * 0.32) - depthOffset * (0.4 + deepCore * 0.24) + facetAxis * (fresnel * 0.03 + deepCore * 0.05) * echoScale);
 
             fixed3 sourceColor = tex2D(_KaleidoscopeTex, baseUv).rgb;
             fixed3 frontLayerColor = tex2D(_KaleidoscopeTex, frontLayerUv).rgb;
@@ -177,14 +186,14 @@ Shader "Kaleidoscope2/RealCrystalOptics"
             refractedColor.b = tex2D(_KaleidoscopeTex, saturate(refractedUv - dispersionOffset)).b;
             fixed3 backLayerColor = tex2D(_KaleidoscopeTex, backLayerUv).rgb;
             fixed3 echoLayerColor;
-            echoLayerColor.r = tex2D(_KaleidoscopeTex, saturate(echoLayerUv + dispersionOffset * 1.55)).r;
+            echoLayerColor.r = tex2D(_KaleidoscopeTex, saturate(echoLayerUv + dispersionOffset * (1.1 + splitScale * 0.45))).r;
             echoLayerColor.g = tex2D(_KaleidoscopeTex, saturate(echoLayerUv - dispersionOffset * 0.22)).g;
-            echoLayerColor.b = tex2D(_KaleidoscopeTex, saturate(echoLayerUv - dispersionOffset * 1.45)).b;
+            echoLayerColor.b = tex2D(_KaleidoscopeTex, saturate(echoLayerUv - dispersionOffset * (1.0 + splitScale * 0.45))).b;
             fixed3 internalReflectionColor = tex2D(_KaleidoscopeTex, reflectionUv).rgb;
             fixed3 centerEchoColor;
-            centerEchoColor.r = tex2D(_KaleidoscopeTex, saturate(backLayerUv + dispersionOffset * 2.1 - facetAxis * 0.035)).r;
+            centerEchoColor.r = tex2D(_KaleidoscopeTex, saturate(backLayerUv + dispersionOffset * (1.5 + splitScale * 0.6) - facetAxis * 0.035)).r;
             centerEchoColor.g = tex2D(_KaleidoscopeTex, saturate(echoLayerUv + facetAxis * 0.028)).g;
-            centerEchoColor.b = tex2D(_KaleidoscopeTex, saturate(reflectionUv - dispersionOffset * 2.0 + facetAxis * 0.02)).b;
+            centerEchoColor.b = tex2D(_KaleidoscopeTex, saturate(reflectionUv - dispersionOffset * (1.4 + splitScale * 0.6) + facetAxis * 0.02)).b;
             float hiddenReflectionValid = saturate(_HiddenReflectionTexValid);
             float hiddenReflectionAmount = hiddenReflectionValid * saturate(_HiddenReflectionStrength);
             float2 hiddenReflectionUv = saturate(0.5 + reflectedVector.xy * (0.34 + fresnel * 0.14 + deepCore * 0.12) + facetAxis * (facetBreak * 0.055 + fresnel * 0.045 + deepCore * 0.05) - facetOffset * 0.46 - depthOffset * (0.22 + deepCore * 0.18));
@@ -236,7 +245,7 @@ Shader "Kaleidoscope2/RealCrystalOptics"
                 lerp(rawTransmission, _MaxCoreTransmission, centerBlock)
             ));
             float internalGain = saturate(_InternalBrightness * (0.24 + thickness * 0.2 + fresnel * 0.18 + totalInternalFeel * 0.1));
-            float reflection = saturate(_ReflectionStrength);
+            float reflection = clamp(_ReflectionStrength, 0.0, 1.5);
             fixed3 tintedInternal = lerp(internalColor, internalColor * _Tint.rgb, saturate(_GemTintStrength + thickness * 0.18));
             fixed3 coreBody = _GemCoreColor.rgb * (0.045 + _BrightnessFloor * 0.2) * (1.0 - deepCore * _CoreDarkening);
             fixed3 glassBase = lerp(coreBody, tintedInternal, transmission);
@@ -263,7 +272,7 @@ Shader "Kaleidoscope2/RealCrystalOptics"
                 + spectralEdge * (0.52 + facetBreak * 0.16)
                 + _Tint.rgb * (_BrightnessFloor * (0.24 + edgeRim * 0.62));
             o.Emission = SoftCompressHighlights(emissionRaw, _HighlightCompression);
-            o.Alpha = saturate(max(_MinimumTransmission * 0.52, _Alpha * (1.0 - _Transparency * 0.28)) + fresnel * (0.2 + reflection * 0.24) + facetBreak * 0.045 + thickness * 0.038);
+            o.Alpha = saturate(max(_MinimumTransmission * 0.52, _Alpha * (1.0 - _Transparency * 0.62)) + fresnel * (0.2 + reflection * 0.24) + facetBreak * 0.045 + thickness * 0.038);
         }
         ENDCG
     }

@@ -435,6 +435,31 @@ namespace Kaleidoscope2.Core
                     state.DiamondFocusSettings.SetPremiumCrystalScalePercent(command.FloatValue);
                     return true;
 
+                case KaleidoscopeCommandType.SetPremiumCrystalOptic:
+                    state.DiamondFocusSettings.SetPremiumCrystalOptic((PremiumCrystalOpticsParameter)command.IntValue, command.FloatValue);
+                    return true;
+
+                case KaleidoscopeCommandType.SetPremiumCrystalEffectEnabled:
+                    state.DiamondFocusSettings.SetPremiumCrystalEffectEnabled((PremiumCrystalEffectToggle)command.IntValue, command.BoolValue);
+                    return true;
+
+                case KaleidoscopeCommandType.SetPremiumCrystalWheelScaleEnabled:
+                    state.DiamondFocusSettings.SetPremiumCrystalWheelScaleEnabled(command.BoolValue);
+                    return true;
+
+                case KaleidoscopeCommandType.SetPremiumCrystalWheelScaleStepPercent:
+                    state.DiamondFocusSettings.SetPremiumCrystalWheelScaleStepPercent(command.FloatValue);
+                    return true;
+
+                case KaleidoscopeCommandType.ApplyPremiumCrystalPreset:
+                    state.DiamondFocusSettings.ApplyPremiumCrystalPreset((PremiumCrystalFactoryPreset)command.IntValue);
+                    state.SetActivePreset(command.StringValue);
+                    return true;
+
+                case KaleidoscopeCommandType.ResetPremiumCrystalOpticalControls:
+                    state.DiamondFocusSettings.ResetPremiumCrystalOpticalControls();
+                    return true;
+
                 case KaleidoscopeCommandType.SetImageFilePath:
                     state.SetImageFilePath(command.StringValue);
                     return true;
