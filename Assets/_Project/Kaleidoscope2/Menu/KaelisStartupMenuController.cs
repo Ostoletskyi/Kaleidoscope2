@@ -1,5 +1,4 @@
 using System.Collections;
-using Kaleidoscope2.Core;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.EventSystems;
@@ -21,7 +20,8 @@ namespace Kaleidoscope2.Menu
 
         private KaelisMenuAssets assets;
         private KaelisStartupMenuView view;
-        private KaleidoscopeDirector director;
+        private KaelisMenuCommandBridge commandBridge;
+        private KaelisMenuActionRouter actionRouter;
         private Coroutine visibilityRoutine;
         private bool demoModeEnabled;
         private bool visible;
@@ -33,19 +33,26 @@ namespace Kaleidoscope2.Menu
 
         private void Awake()
         {
+            KaelisMenuLocalizationService.LoadSavedLanguage();
             assets = KaelisMenuAssets.Load(backgroundTexture, previewTexture, fallbackConceptTexture);
             EnsureEventSystem();
-            ResolveRuntimeDirector();
 
             view = new KaelisStartupMenuView(assets);
             view.Build(transform);
 
+            commandBridge = new KaelisMenuCommandBridge();
+            actionRouter = new KaelisMenuActionRouter(view.SectionController, view.ContentSelectionPanel, commandBridge, SetStatus, view.SetMainMenuVisible, HideStartupMenu);
+            if (view.SectionController != null)
+            {
+                view.SectionController.SetCommandHandler(actionRouter.HandlePanelCommand);
+            }
+
             BindMenuButton(view.EnterButton, EnterExperience);
-            BindMenuButton(view.ModesButton, () => LogPlaceholder("Modes"));
-            BindMenuButton(view.OpticsButton, () => LogPlaceholder("Optics"));
-            BindMenuButton(view.PresetsButton, () => LogPlaceholder("Presets"));
-            BindMenuButton(view.SettingsButton, () => LogPlaceholder("Settings"));
-            BindMenuButton(view.ExitButton, ExitApplication);
+            BindMenuButton(view.ModesButton, () => OpenSection(KaelisMenuSection.Modes));
+            BindMenuButton(view.OpticsButton, () => OpenSection(KaelisMenuSection.Optics));
+            BindMenuButton(view.PresetsButton, () => OpenSection(KaelisMenuSection.Presets));
+            BindMenuButton(view.SettingsButton, () => OpenSection(KaelisMenuSection.Settings));
+            BindMenuButton(view.ExitButton, () => OpenSection(KaelisMenuSection.Exit));
 
             if (view.DemoToggle != null)
             {
@@ -91,42 +98,18 @@ namespace Kaleidoscope2.Menu
 
         private void EnterExperience()
         {
-            ToggleRuntimeControlMenuFromUserAction();
-        }
-
-        private void ToggleRuntimeControlMenuFromUserAction()
-        {
-            if (director == null)
+            if (actionRouter != null)
             {
-                ResolveRuntimeDirector();
+                actionRouter.TriggerEnterExperience();
             }
+        }
 
-            if (director == null)
+        private void OpenSection(KaelisMenuSection section)
+        {
+            if (actionRouter != null)
             {
-                SetStatus("RUNTIME MENU UNAVAILABLE");
-                Debug.LogWarning("[KAELIS Menu] Enter Experience could not find KaleidoscopeDirector for ToggleControlMenu.");
-                return;
+                actionRouter.OpenSection(section);
             }
-
-            director.Dispatch(KaleidoscopeCommand.ToggleControlMenu());
-            SetStatus("RUNTIME MENU TOGGLED");
-            Debug.Log("[KAELIS Menu] Enter Experience dispatched ToggleControlMenu, matching middle mouse click.");
-        }
-
-        private void LogPlaceholder(string label)
-        {
-            SetStatus(label.ToUpperInvariant() + " PLACEHOLDER");
-            Debug.Log("[KAELIS Menu] " + label + " selected. Placeholder action for Menu Stage 01.");
-        }
-
-        private void ExitApplication()
-        {
-            Debug.Log("[KAELIS Menu] Exit selected.");
-#if UNITY_EDITOR
-            Debug.Log("[KAELIS Menu] Application.Quit skipped in the Unity editor.");
-#else
-            Application.Quit();
-#endif
         }
 
         private void UpdateDemoState(bool enabled)
@@ -136,10 +119,10 @@ namespace Kaleidoscope2.Menu
             if (view != null)
             {
                 view.SetDemoState(demoModeEnabled);
-                view.SetStatus(demoModeEnabled ? "SYSTEM READY     DEMO ON" : "SYSTEM READY     DEMO OFF");
+                view.SetStatus(demoModeEnabled ? "SYSTEM READY     DEMO RESERVED" : "SYSTEM READY     DEMO OFF");
             }
 
-            Debug.Log("[KAELIS Menu] Demo Mode stored: " + (demoModeEnabled ? "ON" : "OFF") + ".");
+            Debug.Log("[KAELIS Menu] Demo Mode reserved state stored: " + (demoModeEnabled ? "ON" : "OFF") + ".");
         }
 
         private void SetVisible(bool shouldShow, bool instant)
@@ -166,7 +149,13 @@ namespace Kaleidoscope2.Menu
                 view.Root.SetActive(visible);
                 if (visible)
                 {
-                    SetStatus(demoModeEnabled ? "SYSTEM READY     DEMO ON" : "SYSTEM READY     DEMO OFF");
+                    view.SetMainMenuVisible(true);
+                    if (view.ContentSelectionPanel != null)
+                    {
+                        view.ContentSelectionPanel.SetVisible(false);
+                    }
+
+                    SetStatus(demoModeEnabled ? "SYSTEM READY     DEMO RESERVED" : "SYSTEM READY     DEMO OFF");
                 }
 
                 return;
@@ -208,10 +197,15 @@ namespace Kaleidoscope2.Menu
             }
             else
             {
-                SetStatus(demoModeEnabled ? "SYSTEM READY     DEMO ON" : "SYSTEM READY     DEMO OFF");
+                SetStatus(demoModeEnabled ? "SYSTEM READY     DEMO RESERVED" : "SYSTEM READY     DEMO OFF");
             }
 
             visibilityRoutine = null;
+        }
+
+        private void HideStartupMenu()
+        {
+            SetVisible(false, false);
         }
 
         private void SetStatus(string value)
@@ -220,11 +214,6 @@ namespace Kaleidoscope2.Menu
             {
                 view.SetStatus(value);
             }
-        }
-
-        private void ResolveRuntimeDirector()
-        {
-            director = UnityEngine.Object.FindObjectOfType<KaleidoscopeDirector>();
         }
 
         private void EnsureEventSystem()

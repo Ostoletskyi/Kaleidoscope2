@@ -8,6 +8,7 @@ namespace Kaleidoscope2.Menu
     {
         private readonly KaelisMenuAssets assets;
         private KaelisMenuAnimator animator;
+        private CanvasGroup mainMenuCanvasGroup;
 
         public KaelisStartupMenuView(KaelisMenuAssets assets)
         {
@@ -27,6 +28,9 @@ namespace Kaleidoscope2.Menu
         public RawImage PreviewRawImage { get; private set; }
         public TMP_Text TitleText { get; private set; }
         public TMP_Text StatusText { get; private set; }
+        public KaelisMenuSectionController SectionController { get; private set; }
+        public KaelisContentSelectionPanel ContentSelectionPanel { get; private set; }
+        public KaelisMenuTooltip Tooltip { get; private set; }
 
         public void Build(Transform parent)
         {
@@ -55,22 +59,42 @@ namespace Kaleidoscope2.Menu
             animator = Root.AddComponent<KaelisMenuAnimator>();
 
             BuildBackground(canvasRect);
+            Tooltip = KaelisMenuTooltip.Create(canvasRect, assets);
 
             RectTransform safeFrame = KaelisMenuUiPrimitives.CreateRect("SafeFrame", canvasRect);
             KaelisMenuUiPrimitives.Stretch(safeFrame);
             safeFrame.offsetMin = KaelisMenuStyle.SafeFrameMin;
             safeFrame.offsetMax = KaelisMenuStyle.SafeFrameMax;
+            mainMenuCanvasGroup = safeFrame.gameObject.AddComponent<CanvasGroup>();
 
             BuildLeftPanel(safeFrame);
             BuildPreviewPanel(safeFrame);
             BuildStatusBar(safeFrame);
+            ContentSelectionPanel = new KaelisContentSelectionPanel(canvasRect, assets, Tooltip);
         }
 
         public void Dispose()
         {
             animator = null;
+            SectionController = null;
+            ContentSelectionPanel = null;
+            Tooltip = null;
+            mainMenuCanvasGroup = null;
             Root = null;
             CanvasGroup = null;
+        }
+
+        public void SetMainMenuVisible(bool visible)
+        {
+            if (mainMenuCanvasGroup == null)
+            {
+                return;
+            }
+
+            mainMenuCanvasGroup.gameObject.SetActive(visible);
+            mainMenuCanvasGroup.alpha = visible ? 1f : 0f;
+            mainMenuCanvasGroup.interactable = visible;
+            mainMenuCanvasGroup.blocksRaycasts = visible;
         }
 
         public void SetDemoState(bool enabled)
@@ -90,7 +114,7 @@ namespace Kaleidoscope2.Menu
         {
             if (StatusText != null)
             {
-                StatusText.text = value;
+                KaelisMenuLocalizationService.SetText(StatusText, value);
             }
         }
 
@@ -166,6 +190,50 @@ namespace Kaleidoscope2.Menu
             PresetsButton = KaelisMenuButton.CreateButton(buttonStack, "PresetsButton", "PRESETS", KaelisMenuButtonTone.Secondary, KaelisMenuIconKind.Star, assets, KaelisMenuStyle.StandardButtonHeight);
             SettingsButton = KaelisMenuButton.CreateButton(buttonStack, "SettingsButton", "SETTINGS", KaelisMenuButtonTone.Secondary, KaelisMenuIconKind.Settings, assets, KaelisMenuStyle.StandardButtonHeight);
             ExitButton = KaelisMenuButton.CreateButton(buttonStack, "ExitButton", "EXIT", KaelisMenuButtonTone.Exit, KaelisMenuIconKind.Exit, assets, KaelisMenuStyle.StandardButtonHeight);
+            ConfigureMainButtonTooltips();
+        }
+
+        private void ConfigureMainButtonTooltips()
+        {
+            if (Tooltip == null)
+            {
+                return;
+            }
+
+            if (EnterButton != null)
+            {
+                EnterButton.ConfigureTooltip(Tooltip, "ENTER EXPERIENCE", "Open the content selection flow for image and audio sources.", "Images required; music optional", "Ready", KaelisMenuInputHintProvider.Get(KaelisMenuInputHintKind.Action));
+            }
+
+            if (DemoButton != null)
+            {
+                DemoButton.ConfigureTooltip(Tooltip, "DEMO MODE", "Reserved for a dedicated demo playback task. Current click stores only the UI state.", "OFF / ON", "Reserved", KaelisMenuInputHintProvider.Get(KaelisMenuInputHintKind.Toggle));
+            }
+
+            if (ModesButton != null)
+            {
+                ModesButton.ConfigureTooltip(Tooltip, "MODES", "Open visual route selection cards.", "Classic / Tunnel / Flight / Reserved", "Section", KaelisMenuInputHintProvider.Get(KaelisMenuInputHintKind.Action));
+            }
+
+            if (OpticsButton != null)
+            {
+                OpticsButton.ConfigureTooltip(Tooltip, "OPTICS", "Open expressive crystal optics controls.", "Extended creative ranges", "Section", KaelisMenuInputHintProvider.Get(KaelisMenuInputHintKind.Action));
+            }
+
+            if (PresetsButton != null)
+            {
+                PresetsButton.ConfigureTooltip(Tooltip, "PRESETS", "Open factory look cards and reserved user preset actions.", "Factory profiles", "Section", KaelisMenuInputHintProvider.Get(KaelisMenuInputHintKind.Action));
+            }
+
+            if (SettingsButton != null)
+            {
+                SettingsButton.ConfigureTooltip(Tooltip, "SETTINGS", "Open application, audio, controls, system, and diagnostics settings.", "System controls", "Section", KaelisMenuInputHintProvider.Get(KaelisMenuInputHintKind.Action));
+            }
+
+            if (ExitButton != null)
+            {
+                ExitButton.ConfigureTooltip(Tooltip, "EXIT", "Open the exit confirmation panel. First click never quits immediately.", "Confirm required", "Safe", KaelisMenuInputHintProvider.Get(KaelisMenuInputHintKind.Action));
+            }
         }
 
         private void BuildPreviewPanel(RectTransform safeFrame)
@@ -237,6 +305,8 @@ namespace Kaleidoscope2.Menu
             RectTransform captionSubRect = (RectTransform)captionSub.transform;
             captionSubRect.offsetMin = new Vector2(0f, 20f);
             captionSubRect.offsetMax = new Vector2(0f, 60f);
+
+            SectionController = new KaelisMenuSectionController(display, assets, Tooltip);
         }
 
         private void BuildStatusBar(RectTransform safeFrame)

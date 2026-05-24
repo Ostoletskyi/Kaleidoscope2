@@ -17,6 +17,12 @@ namespace Kaleidoscope2.Menu
         private CanvasGroup pressedGroup;
         private CanvasGroup flashGroup;
         private TMP_Text labelText;
+        private KaelisMenuTooltip tooltip;
+        private string tooltipTitle;
+        private string tooltipBody;
+        private string tooltipRange;
+        private string tooltipCurrent;
+        private string tooltipKeys;
         private KaelisButtonPalette palette;
         private bool hovered;
         private bool pressed;
@@ -29,6 +35,15 @@ namespace Kaleidoscope2.Menu
 
         public Button Button { get; private set; }
         public Toggle Toggle { get; private set; }
+        public bool HasTooltipData
+        {
+            get { return tooltip != null && !string.IsNullOrWhiteSpace(tooltipTitle) && root != null; }
+        }
+
+        public string TooltipKeys
+        {
+            get { return tooltipKeys; }
+        }
 
         internal static KaelisMenuButton CreateButton(RectTransform parent, string name, string label, KaelisMenuButtonTone tone, KaelisMenuIconKind icon, KaelisMenuAssets assets, float height)
         {
@@ -85,15 +100,27 @@ namespace Kaleidoscope2.Menu
             selected = isSelected;
         }
 
+        internal void ConfigureTooltip(KaelisMenuTooltip tooltip, string title, string body, string range, string current, string keys)
+        {
+            this.tooltip = tooltip;
+            tooltipTitle = title;
+            tooltipBody = body;
+            tooltipRange = range;
+            tooltipCurrent = current;
+            tooltipKeys = keys;
+        }
+
         public void OnPointerEnter(PointerEventData eventData)
         {
             hovered = true;
+            ShowTooltip();
         }
 
         public void OnPointerExit(PointerEventData eventData)
         {
             hovered = false;
             pressed = false;
+            HideTooltip();
         }
 
         public void OnPointerDown(PointerEventData eventData)
@@ -109,12 +136,14 @@ namespace Kaleidoscope2.Menu
         public void OnSelect(BaseEventData eventData)
         {
             hovered = true;
+            ShowTooltip();
         }
 
         public void OnDeselect(BaseEventData eventData)
         {
             hovered = false;
             pressed = false;
+            HideTooltip();
         }
 
         private static RectTransform CreateRoot(RectTransform parent, string name, float height)
@@ -223,6 +252,22 @@ namespace Kaleidoscope2.Menu
             labelText.color = Color.Lerp(KaelisMenuStyle.TextSecondary, palette.Text, Mathf.Max(0.52f, lit));
             }
 
+        }
+
+        private void ShowTooltip()
+        {
+            if (tooltip != null)
+            {
+                tooltip.Show(root, tooltipTitle, tooltipBody, tooltipRange, tooltipCurrent, tooltipKeys);
+            }
+        }
+
+        private void HideTooltip()
+        {
+            if (tooltip != null)
+            {
+                tooltip.Hide();
+            }
         }
 
         private IEnumerator FlashThenInvoke(UnityAction action)

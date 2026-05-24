@@ -58,6 +58,11 @@ namespace Kaleidoscope2.Menu
             text.overflowMode = TextOverflowModes.Overflow;
             text.raycastTarget = false;
             Stretch(rect);
+            if (!string.IsNullOrEmpty(value))
+            {
+                KaelisMenuLocalizationService.Bind(text, value);
+            }
+
             return text;
         }
 
