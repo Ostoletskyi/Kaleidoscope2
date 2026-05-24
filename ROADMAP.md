@@ -1,385 +1,359 @@
-# ROADMAP.md — KAELIS Crystal + Menu Binding Roadmap
+# ROADMAP.md — KAELIS Crystal Breakthrough Roadmap
 
 ## Strategy
 
-KAELIS is moving from visual menu shell to real crystal-control integration.
+The previous implementation did not satisfy the user’s visual expectations.
 
-The user wants three stages:
-
-
-1. New AGENTS.md and ROADMAP.md for crystals and menu binding.
-2. Careful Codex planning.
-3. Implementation of the approved plan.
+The project now enters a bolder phase:
 
 
-This roadmap defines the work from parameter audit to Premium3D crystal improvement.
+Classic2D forms and transitions are protected.
+Premium3D optics and forms may be rebuilt until they become worthy.
+Menu controls must become real.
+Mouse wheel scaling must work in both Classic2D and Premium3D.
+Crystals must stop behaving like transparent bubbles.
+
+
+Work remains block-architected.
 
 ---
 
-# PHASE 0 — Safety Checkpoint
+# PHASE 0 — Safe Git Baseline
 
 Goal:
-Start from a safe state.
+Create confidence before bold changes.
 
 Tasks:
 
-- run `git status --short`;
-- confirm branch;
-- identify dirty files;
-- commit or stash current stable menu work if needed;
-- read AGENTS.md;
-- read ROADMAP.md;
-- compile current state before audit if possible.
+
+git status --short
+git branch --show-current
+git log --oneline -5
+
+
+If needed, create safety commit before large Premium3D changes.
 
 Acceptance:
 
-- current baseline is known;
-- no accidental broad rewrite begins.
+
+rollback point exists
+dirty files are understood
+Classic2D current behavior is protected
+
 
 ---
 
-# PHASE 1 — Full Menu Parameter Binding Audit
+# PHASE 1 — PLAN ONLY: Deep Reality Audit
 
 Goal:
-Determine exactly what every menu control does.
+Codex must stop claiming success without visual proof.
 
-Audit all controls in:
-
-
-Modes
-Optics
-Presets
-Settings
-Exit
-Enter Experience
-Production / Showcase / Recording if present
+Audit:
 
 
-For each control report:
+Classic2D forms and transitions
+Premium3D forms
+Premium3D transparency
+Premium3D absolute mirror
+Premium3D refraction/dispersion
+Mouse wheel scaling in Classic2D
+Mouse wheel scaling in Premium3D
+Menu sliders and bindings
+Preset application
 
 
-Control name
-Panel
-UI type: row / button / slider / toggle
-Current range
-Default value
-Tooltip/hotkeys
-Binding target
-File/class/method/property
-Affected mode(s)
-Expected visual effect
-Actual result
-Binding status: REAL / PARTIAL / RESERVED / DEAD / BROKEN
-Recommended fix
+Questions Codex must answer:
 
+
+1. Why do Premium3D forms still look like old forms?
+2. Where exactly are Classic2D forms generated?
+3. What makes Classic2D form switching beautiful?
+4. Which Classic2D concepts can be copied to Premium3D?
+5. Why does wheel scaling not affect Classic2D as expected?
+6. Why are Premium3D crystals still transparent?
+7. Which shader/material values still allow direct see-through?
+8. Is Absolute Mirror truly mirror-like or partial?
+9. Which sliders produce visible change and which do not?
+10. Which code must be rebuilt, not patched?
+
+
+Output must include exact files/classes/methods/properties.
+
+No implementation in this phase.
 
 Acceptance:
 
-- no menu control remains unknown;
-- dead controls are identified;
-- fake/reserved controls are clearly separated from real controls.
+
+clear root causes
+clear file map
+clear rebuild plan
+Classic2D protected boundaries identified
+
 
 ---
 
-# PHASE 2 — Optics Parameter Effect Audit
+# PHASE 2 — Premium3D Shape Transfer Plan
 
 Goal:
-Analyze whether optics ranges are strong enough and whether they lead to real visual change.
-
-Controls to audit:
-
-
-Brightness
-Contrast
-Bloom / Glow
-Facet Highlights
-Refraction Strength
-Reflection Strength
-Internal Reflections
-Background Distortion
-Direct Transparency
-Prism Dispersion
-Chromatic Aberration
-Rainbow Edge
-Spectral Split
-Caustics
-Spotlight Shadow
-Mirror Backdrop
-Crystal Depth
-Absolute Mirror / Mirror Material
-
-
-For each:
-
-
-Current shader/material/property target
-Current range
-Default
-What it should visually do
-What it actually does
-Whether effect is strong enough
-Proposed extended range
-Safety clamp
-Required implementation fix
-
-
-Acceptance:
-
-- all optics controls either work or are marked RESERVED/BROKEN;
-- ranges are proposed for dramatic visible effect.
-
----
-
-# PHASE 3 — Premium3D Crystal Transparency / Mirror / Refraction Audit
-
-Goal:
-Answer the user’s core questions.
-
-Questions:
-
-
-Is transparency fully removed/controlled?
-Can the center still show direct background incorrectly?
-Does mouse wheel scale every crystal shape?
-Does absolute mirror mode really work?
-Does facet refraction distort light correctly?
-Does dispersion visibly split light?
-Do internal reflections create depth?
-
+Create a real plan to transfer Classic2D shape language into Premium3D volume.
 
 Tasks:
 
-- inspect RealCrystalOptics shader/material path;
-- inspect CrystalSharedSettings;
-- inspect SpatialCrystalStage3D;
-- inspect RealCrystalVolumetricMeshFactory;
-- inspect input handling for mouse wheel scaling;
-- inspect material presets and gem modes;
-- inspect hidden reflection/background setup.
 
-Acceptance:
-
-- each question has a concrete answer;
-- broken/partial items have a fix plan.
-
----
-
-# PHASE 4 — Classic2D Shape Template Audit
-
-Goal:
-Identify the Classic2D shape/form language that must be transferred to Premium3D.
-
-Tasks:
-
-- inspect Classic2D mode shape/template code;
-- list all available shapes/templates/forms;
-- identify user-facing shape names;
-- identify parameters defining the shapes;
-- identify morph/transition behavior if any;
-- identify how these shapes are selected.
-
-Output table:
+List Classic2D visual forms/parameters
+List current Premium3D forms
+Compare them visually and structurally
+Define new Premium3D volumetric equivalents
+Define mesh generation strategy
+Define transition/morph strategy
+Define validation strategy
 
 
-Classic2D shape name
-File/class
-Parameters
-Visual description
-User-facing?
-Premium3D equivalent needed?
-Current Premium3D equivalent exists?
-Implementation difficulty
+Required mapping table:
+
+
+Classic2D inspiration
+Current Premium3D equivalent
+Problem with current equivalent
+New Premium3D volumetric form
+Mesh/facet/depth strategy
+Transition strategy
+Risk
 
 
 Acceptance:
 
-- Classic2D shape vocabulary is fully known;
-- no guesswork before Premium3D mesh work.
+
+Premium3D will not merely rename old shapes
+new forms are planned as real volumetric crystals
+Classic2D remains unchanged
+
 
 ---
 
-# PHASE 5 — Premium3D Shape Transfer Plan
+# PHASE 3 — Mouse Wheel Scaling For Both Modes
 
 Goal:
-Plan volumetric 3D equivalents of Classic2D shapes.
-
-For each Classic2D shape:
-
-
-Premium3D mesh type
-Silhouette preservation strategy
-Depth/thickness strategy
-Facet generation strategy
-Front/back/side face strategy
-UV/reflection/refraction compatibility
-Mouse wheel scaling support
-Material compatibility
-Morph compatibility
-Risk level
-
-
-Required:
-
-- Premium3D shape must be physically volumetric;
-- not just a flat billboard;
-- must have real side faces and depth;
-- must support optical material controls.
-
-Acceptance:
-
-- approved list of Premium3D shape tasks exists.
-
----
-
-# PHASE 6 — Menu Binding Architecture Plan
-
-Goal:
-Plan how menu controls connect to runtime safely.
-
-Required architecture:
-
-
-Menu slider/toggle
- -> KaelisMenuActionRouter
- -> KaelisMenuCommandBridge
- -> KaelisCrystalSettings / command / module API
- -> crystal runtime module / material / shader property
-
-
-Tasks:
-
-- identify existing safe APIs;
-- identify missing APIs;
-- propose minimal new APIs;
-- avoid random direct object poking;
-- define data model for optics settings.
-
-Potential classes:
-
-
-KaelisCrystalOpticsSettings
-KaelisCrystalShapeSettings
-KaelisCrystalMaterialSettings
-KaelisPremiumCrystalController
-KaelisMenuCrystalBindingBridge
-
-
-Acceptance:
-
-- every real menu control has a planned binding target;
-- no dead sliders remain.
-
----
-
-# PHASE 7 — Implementation Stage A: Binding Truth
-
-Goal:
-Make menu controls truthful before deep visual changes.
-
-Tasks:
-
-- mark dead controls as RESERVED or bind them;
-- ensure tooltips show real binding status;
-- ensure sliders update actual settings object;
-- add diagnostics showing value changes;
-- do not yet rewrite mesh system.
-
-Acceptance:
-
-- menu values are no longer fake;
-- diagnostics show control -> setting flow.
-
----
-
-# PHASE 8 — Implementation Stage B: Mouse Wheel Scaling
-
-Goal:
-All Premium3D crystal shapes support mouse-wheel scaling.
+Wheel scaling must behave consistently.
 
 Requirements:
 
 
-Range: 20% – 300%
-Default: 100%
-Works for every Premium3D shape
-No pulsing/breathing
-No background counter-scaling
-No shape-specific failure
+Premium3D: scale crystal 20%–300%
+Classic2D: scale/zoom visible crystal result clearly with wheel
+Settings: wheel enabled toggle and step value are real
+No pulsing
+No counter-scaling
+No background breathing
 
 
 Tasks:
 
-- find current scale control path;
-- centralize Premium3D crystal scale;
-- bind mouse wheel and Settings control if applicable;
-- update diagnostics.
+
+audit current wheel handling
+separate zoom vs crystal-scale semantics if needed
+add shared scale setting if appropriate
+bind menu Settings controls
+add diagnostics
+
 
 Acceptance:
 
-- all Premium3D shapes scale consistently.
+
+wheel changes Classic2D visible scale
+wheel changes Premium3D crystal scale
+all Premium3D shapes respond
+range is expressive
+
 
 ---
 
-# PHASE 9 — Implementation Stage C: Transparency / Mirror / Refraction
+# PHASE 4 — Remove Bubble Transparency
 
 Goal:
-Fix the core optical behavior.
+Premium3D must stop looking like a transparent bubble.
 
 Tasks:
 
-- reduce unwanted direct transparency;
-- make Direct Transparency control real;
-- make Absolute Mirror mode real;
-- strengthen reflection/background facet sampling;
-- strengthen facet-normal-based refraction;
-- strengthen prism dispersion;
-- add safe clamps;
-- update presets.
+
+audit all transparency/transmission shader paths
+remove hard-coded direct see-through defaults
+make Direct Transparency real
+set gemstone-like default
+increase center blocking
+increase facet reflection/refraction
+ensure no direct window through center
+
+
+Required default:
+
+
+low direct transmission
+strong center block
+visible facet reflection
+visible internal reflection
+controlled alpha
+
 
 Acceptance:
 
-- crystal no longer feels like soap bubble;
-- high refraction visibly distorts background;
-- absolute mirror clearly reflects environment;
-- prism split is visible.
+
+crystal is not a see-through window
+high transparency is optional, not default
+default resembles gemstone/diamond behavior
+
 
 ---
 
-# PHASE 10 — Implementation Stage D: Premium3D Shape Transfer
+# PHASE 5 — Absolute Mirror Real Implementation
 
 Goal:
-Create 3D volumetric versions of Classic2D crystal forms.
+Absolute Mirror must become visually obvious.
 
 Tasks:
 
-- implement selected shape factory methods;
-- preserve Classic2D silhouettes;
-- add real volume/depth;
-- support material/optics controls;
-- support mouse-wheel scaling;
-- support shape switching/morph if feasible.
+
+create real absolute mirror material/preset path
+force low direct transmission
+force high reflection
+force hidden reflection environment
+force high smoothness/facet reflection
+reduce refraction if needed
+ensure background reflection appears in facets
+
 
 Acceptance:
 
-- Premium3D offers recognizable counterparts to Classic2D shapes;
-- Classic2D remains unchanged.
+
+facets look mirror-polished
+not transparent
+not white plastic
+not dull grey
+
 
 ---
 
-# PHASE 11 — Presets Integration
+# PHASE 6 — Strong Facet Refraction / Dispersion
 
 Goal:
-Connect presets to real crystal/menu parameters.
+Refraction must be facet-based and dramatic.
 
 Tasks:
 
-- define factory presets;
-- set shape/material/optics values;
-- clamp ranges;
-- apply through command bridge;
-- mark user presets RESERVED if persistence not ready.
 
-Factory presets:
+increase effective refraction mapping
+ensure facet normals drive distortion
+increase dispersion/spectral split at high values
+add hard clamps for safety
+verify no NaN/whiteout
+make high values visibly surprising
+
+
+Acceptance:
+
+
+different facets bend image differently
+high refraction visibly warps background
+dispersion produces visible color split
+not a smooth bubble lens
+
+
+---
+
+# PHASE 7 — Real Premium3D Shape Implementation
+
+Goal:
+Implement new volumetric Premium3D shapes inspired by Classic2D.
+
+Possible shapes:
+
+
+Radial Shard Crystal
+Mandala Gem
+Star Diamond
+Polygon Prism
+Rhombic / Marquise Gem
+Round Disco Gem
+Trilliant / Tetrahedral Gem
+Oval / Ring Gem
+
+
+Requirements:
+
+
+real side faces
+front/back separation
+depth/thickness
+facet structure
+material compatibility
+wheel scaling
+diagnostics validation
+
+
+Acceptance:
+
+
+Premium3D forms are visibly new and better
+Classic2D shape inspiration is recognizable
+all shapes pass mesh validation
+
+
+---
+
+# PHASE 8 — Premium Shape Transition / Morph Pass
+
+Goal:
+Classic2D’s beautiful form changes must inspire Premium3D transitions.
+
+Tasks:
+
+
+audit Classic2D switching/morph feeling
+implement Premium3D smooth shape transitions where feasible
+avoid abrupt mesh popping
+crossfade/morph/scale/facet sparkle transition if topology differs
+
+
+Acceptance:
+
+
+Premium3D shape changes feel intentional and beautiful
+not abrupt or broken
+
+
+---
+
+# PHASE 9 — Menu Binding Truth Pass
+
+Goal:
+All relevant menu controls must control real parameters.
+
+Tasks:
+
+
+verify sliders update runtime values
+verify presets apply real payloads
+verify mode selection works
+verify wheel settings work
+verify reserved controls are marked honestly
+
+
+Acceptance:
+
+
+no decorative Premium3D sliders
+no fake preset apply
+no silent dead controls
+
+
+---
+
+# PHASE 10 — Preset Rebuild
+
+Goal:
+Presets must showcase the new capabilities.
+
+Presets:
 
 
 Diamond Palace
@@ -393,58 +367,110 @@ Dark Luxury
 Absolute Mirror
 
 
+Each preset must specify:
+
+
+shape
+material
+direct transparency
+reflection
+refraction
+dispersion
+internal reflection
+brightness/contrast
+bloom/glow
+scale if relevant
+
+
 Acceptance:
 
-- applying a preset visibly changes Premium3D output.
+
+each preset produces a distinct visual state
+Absolute Mirror is unmistakable
+Opal/Ruby/Diamond feel different
+
 
 ---
 
-# PHASE 12 — Validation / Regression Pass
+# PHASE 11 — Visual Acceptance Protocol
 
 Goal:
-Prove the work did not break core modes.
+No more “compile passed, therefore done”.
 
-Checklist:
+Codex must provide a manual visual test protocol:
 
 
-Classic2D unchanged
-Premium3D shows volumetric crystal
-All Premium3D shapes scale 20–300%
-Direct transparency controlled
-Absolute mirror works
-Refraction strong at high values
-Dispersion visible at high values
-Menu controls real or RESERVED
-No dead sliders
-No pulsing/breathing regression
-No duplicate physical/RT output regression
-Compile passes
-Smoke tests pass
+screenshots to capture
+slider min/default/max tests
+shape comparison tests
+Classic2D vs Premium3D comparison
+mirror test
+transparency test
+refraction test
+wheel scale test
+preset test
 
 
 Acceptance:
 
-- user can test and confirm visual improvement.
 
----
-
-# Current Active Task For Codex
-
-After replacing AGENTS.md and ROADMAP.md, run:
-
-
-PLAN ONLY:
-Perform a full audit and planning pass for KAELIS crystal/menu parameter bindings.
-Do not implement yet.
-Answer exactly which menu controls lead to which runtime parameters, which are dead, which are reserved, whether ranges are strong enough, whether Premium3D transparency/mirror/refraction/scaling work, and how Classic2D shapes should be transferred to volumetric Premium3D forms.
+user can judge visual result clearly
+failures lead to next targeted fix
 
 
 ---
 
-# Final Principle
+# PHASE 12 — Stabilization
 
-Do not add more fake controls.
+Goal:
+After visual acceptance, stabilize.
 
-Make the crystal respond.
-Make Premium3D physically expressive.
-Use Classic2D as shape inspiration, not as something to break.
+Tasks:
+
+
+remove dead Premium3D code
+clean diagnostics
+update smoke tests
+commit stable checkpoint
+
+
+Acceptance:
+
+
+project remains clean
+new functionality is not fragile
+
+
+---
+
+## Current Active Task
+
+After replacing AGENTS.md and ROADMAP.md, Codex must run:
+
+
+PLAN ONLY — KAELIS Crystal Breakthrough Planning
+
+Do not implement.
+
+Perform a deep audit of:
+- Classic2D forms/transitions
+- Premium3D forms
+- Premium3D transparency
+- Premium3D absolute mirror
+- Premium3D refraction/dispersion
+- mouse wheel scaling in both Classic2D and Premium3D
+- menu bindings and presets
+
+Produce a concrete rebuild plan with exact files/classes/methods and clear phases.
+
+Focus on why the previous pass did not visibly change what the user requested.
+
+
+---
+
+## Final Rule
+
+Classic2D beauty is protected.
+Premium3D weakness is not protected.
+
+Move forward boldly, but keep the architecture clean.

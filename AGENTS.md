@@ -1,82 +1,80 @@
-# AGENTS.md — KAELIS Crystal + Menu Integration Mode
+# AGENTS.md — KAELIS Crystal Breakthrough Mode
 
-## 0. Main Mission
+## 0. Main Decision
 
-KAELIS is now entering a crystal-control integration phase.
+The project is now in **Crystal Breakthrough Mode**.
 
-The goal is not to add more decorative placeholders. The goal is to make every menu setting lead to a real, visible, meaningful visual result.
+The previous cautious approach did not produce the requested visual result. Codex is now allowed to work more boldly on Premium3D crystal optics, crystal scaling, crystal shape transfer, and menu bindings.
 
-Main objective:
+The goal is not to preserve weak existing Premium3D behavior. The goal is to make KAELIS move forward.
+
+Main user criticism:
+
+- Premium3D forms still look like before.
+- Classic2D has the best crystal forms and the most beautiful form transitions.
+- Mouse wheel scaling works only in Premium3D, but should also affect Classic2D visual scale.
+- Premium3D crystals remain too transparent.
+- The user asked for gemstone-like refraction, not see-through glass.
+- Menu controls still do not produce enough visible difference.
+
+Therefore:
 
 
-Every menu control must map to a real parameter, command, or explicitly marked RESERVED future binding.
-Premium3D crystals must become expressive, physically volumetric versions of the Classic2D crystal/form language.
+Protect only what is truly successful.
+Free everything else for improvement.
 
-
-The user wants dramatic, visible, sometimes surprising image transformation:
-
-
-“so that the image can be admired and be surprising — like: was this even possible?”
-
-
-Tiny parameter changes are not enough.
-
----
-
-## 1. Protected Baseline
-
-The Classic2D mode is the visual quality baseline and must not be broken.
-
-Classic2D rules:
-
-- do not degrade Classic2D visuals;
-- do not rewrite Classic2D shader logic unless explicitly approved;
-- do not remove existing Classic2D shape/form behavior;
-- use Classic2D as reference for shape language and visual richness.
-
-Premium3D rules:
-
-- Premium3D is the active improvement zone;
-- Premium3D may be refactored if needed;
-- Premium3D must receive the same shape/form family as Classic2D, but as real 3D volumetric crystals;
-- Premium3D optics must be improved until controls produce clear visible results.
-
-Menu rules:
-
-- menu must expose meaningful controls;
-- menu controls must not lie;
-- controls without real binding must be marked RESERVED;
-- controls with real binding must visibly affect the result.
 
 ---
 
-## 2. Allowed Work Areas
+## 1. Absolute Protected Zone
 
-Codex may work in these areas for this phase:
+Do NOT modify or degrade:
+
+
+Classic2D mirror system
+Classic2D kaleidoscope shader behavior
+Classic2D existing crystal/form templates
+Classic2D existing form switching / morphing behavior
+
+
+This is the project’s current strongest visual asset.
+
+Classic2D forms and transitions are the reference and must remain intact.
+
+---
+
+## 2. Active Development Zone
+
+Codex may freely inspect, copy concepts from, refactor, extend, adapt, or rebuild:
+
+
+Premium3D crystal forms
+Premium3D volumetric mesh generation
+Premium3D material/optics system
+Premium3D shader/material parameters
+Premium3D reflection/refraction/transparency behavior
+Premium3D input binding
+Premium3D mouse wheel scaling
+Classic2D-inspired scaling behavior
+Menu optics bindings
+Menu modes/presets/settings bindings
+Crystal settings bridge
+Command routing
+Diagnostics
+Preset payloads
+
+
+Codex may change files under:
 
 
 Assets/_Project/Kaleidoscope2/Menu/**
 Assets/_Project/Kaleidoscope2/DiamondFocus/**
-Assets/_Project/Kaleidoscope2/CrystalStage3D/**
+Assets/_Project/Kaleidoscope2/Input/**
+Assets/_Project/Kaleidoscope2/Core/**
 Assets/_Project/Kaleidoscope2/Diagnostics/**
 
 
-Codex may also inspect, but not blindly rewrite:
-
-
-Classic2D-related code
-Mirror/**
-Input/**
-KaleidoscopeDirector.cs
-KaleidoscopeCommand.cs
-CrystalPresentationModule.cs
-RealCrystalVolumetricMeshFactory.cs
-RealCrystalOptics.shader
-SpatialCrystalStage3D.cs
-CrystalSharedSettings.cs
-
-
-If a safe public command/API is missing, Codex may propose or add a minimal clean bridge, but must report it.
+Codex may inspect Classic2D implementation and copy ideas, formulas, shape definitions, parameters, and transition logic into Premium3D equivalents, but must not damage the original Classic2D behavior.
 
 ---
 
@@ -105,323 +103,331 @@ If the planned fix absolutely requires a change outside the allowed zone, Codex 
 
 ---
 
-## 4. Parameter Truth Rule
+## 4. Block Architecture Requirement
 
-Every menu setting must be audited and classified:
+Even with expanded freedom, the architecture must remain block-based.
+
+Required separation:
+
+
+Classic2D reference system
+Premium3D crystal system
+Menu control system
+Command bridge
+Input system
+Preset system
+Diagnostics
+
+
+Preferred flow:
+
+
+Menu / Input
+    -> Command / Action Router
+        -> Crystal Settings / Mode Settings
+            -> Premium3D Renderer / Mesh / Material
+                -> Diagnostics
+
+
+No random cross-wiring.
+No hidden direct hacks from UI into shader values without a named bridge or settings object.
+No new giant god-class.
+
+---
+
+## 5. Classic2D As Source Of Inspiration
+
+Classic2D is not to be broken.
+Classic2D is to be studied.
+
+Codex must analyze:
+
+
+How Classic2D shapes are generated
+How Classic2D forms transition/morph
+Why Classic2D looks more beautiful
+Which parameters create its “wow” effect
+How scale/zoom/center/mirror geometry contribute to the result
+
+
+Then Codex must transfer the experience to Premium3D.
+
+Meaning:
+
+
+Classic2D remains 2D.
+Premium3D gets corresponding 3D volumetric crystal forms inspired by Classic2D.
+
+
+Do not simply rename existing Premium3D shapes.
+
+Premium3D shapes must become a real volumetric continuation of Classic2D visual language.
+
+---
+
+## 6. Premium3D Crystal Shape Requirements
+
+Premium3D crystals must:
+
+
+have real volume
+have real side faces
+have front/back depth
+preserve recognizable silhouette
+support all optics materials
+support mouse wheel scale
+support smooth form transitions where feasible
+look more interesting than current weak shapes
+
+
+Required shape direction:
+
+
+Classic2D-derived radial shard
+Classic2D-derived mandala crystal
+Classic2D-derived diamond/star form
+Classic2D-derived polygon crystal
+Classic2D-derived rhombic/marquise form
+Classic2D-derived round/disco multifacet form
+Classic2D-derived triangular/trilliant form
+Classic2D-derived oval/ring-like form
+
+
+If existing Premium3D forms are weak, Codex may replace them.
+
+---
+
+## 7. Mouse Wheel Scaling Requirement
+
+Mouse wheel scaling must work consistently.
+
+Required:
+
+
+Classic2D visible result responds to mouse wheel where appropriate.
+Premium3D crystal scale responds to mouse wheel.
+All Premium3D shapes respond.
+Range: 20% – 300%.
+Default: 100%.
+No pulsing.
+No background counter-scaling.
+No mode-specific failure.
+
+
+If Classic2D already uses wheel for zoom, Codex must analyze current behavior and reconcile it with user expectation:
+
+
+Wheel should visibly change crystal/visual scale in Classic2D too.
+
+
+Do not break existing Classic2D beauty.
+
+---
+
+## 8. Transparency Rule: No See-Through Crystal
+
+The user explicitly rejects “transparent bubble” crystals.
+
+Premium3D crystals must not look like empty glass.
+
+Required:
+
+
+No direct see-through window through the center.
+No soap-bubble lens look.
+No fully transparent crystal body.
+No background visible directly through the whole crystal.
+
+
+Correct behavior:
+
+
+The crystal may transmit light through facets.
+The crystal may refract the background.
+The crystal may show color and depth through optical paths.
+But it must never behave like fully transparent flat glass.
+
+
+A real cut diamond is optically clear as material, but visually it is not a simple transparent window. It bends, reflects, splits, blocks, and redirects light.
+
+Therefore Premium3D default must favor:
+
+
+low direct transmission
+strong facet refraction
+strong internal reflection
+strong Fresnel/edge reflection
+controlled opacity
+hidden reflection environment
+spectral dispersion
+
+
+Direct Transparency must become a real control, but the default should be gemstone-like, not window-like.
+
+---
+
+## 9. Absolute Mirror Requirement
+
+Absolute Mirror must be a real mode, not a label.
+
+Required:
+
+
+facets behave like polished mirror surfaces
+direct transmission is near zero
+reflection dominates
+hidden/backdrop reflection is visible in facets
+material looks luxurious and reflective
+not white, not flat, not opaque plastic
+
+
+---
+
+## 10. Facet Refraction Requirement
+
+Facet refraction must be real and obvious.
+
+Required:
+
+
+different facets distort the image differently
+distortion depends on facet normals
+high values produce dramatic but stable bending
+prism/dispersion is visible on edges and facets
+internal reflections create depth
+
+
+Wrong result:
+
+
+one smooth bubble lens
+flat transparent pane
+weak distortion invisible to user
+
+
+At high slider values, the result must be surprising and expressive.
+
+---
+
+## 11. Menu Control Truth Rule
+
+No fake controls.
+
+Every menu control must be one of:
 
 
 REAL_BINDING
 PARTIAL_BINDING
 RESERVED
-DEAD_CONTROL
-BROKEN_BINDING
+BROKEN
 
 
-Definitions:
+Target for this phase:
 
-### REAL_BINDING
-The UI control changes a real runtime parameter and the visual result is observable.
 
-### PARTIAL_BINDING
-The UI control changes something, but the visual result is weak, incomplete, or only affects one mode.
+Premium3D optics controls should become REAL_BINDING.
+Mouse wheel scaling controls should become REAL_BINDING.
+Preset Apply should become REAL_BINDING.
+Classic/Premium shape transfer controls should become REAL_BINDING where feasible.
 
-### RESERVED
-The UI control is intentionally future-facing and clearly labeled as unavailable.
-
-### DEAD_CONTROL
-The UI control exists but leads nowhere.
-
-### BROKEN_BINDING
-The UI control tries to call something but fails, does nothing, or changes the wrong parameter.
-
-Dead controls are not allowed to remain silently.
 
 ---
 
-## 5. Required Audit For Every Setting
+## 12. Preset Requirement
 
-For each menu setting, Codex must answer:
-
-
-Control name:
-Panel:
-Current UI range:
-Current default:
-Current binding target:
-Affected runtime file/class:
-Affected shader/material property if any:
-Affected modes:
-Expected visual effect:
-Actual observed/measured effect:
-Is range strong enough?
-Recommended range:
-Status: REAL / PARTIAL / RESERVED / DEAD / BROKEN
-Required fix:
-
-
-The audit must include:
-
-- Modes panel;
-- Optics panel;
-- Presets panel;
-- Settings panel;
-- Production/Recording controls if present;
-- Enter Experience content-selection flow;
-- mouse wheel crystal scaling;
-- crystal material mode toggles;
-- mirror/refraction/reflection controls.
-
----
-
-## 6. Premium3D Crystal Requirements
-
-Premium3D crystals must become real visual objects, not flat transparent overlays.
-
-### 6.1 Opacity / transparency
-Audit whether transparency is fully controlled.
-
-Required:
-
-- no unwanted direct see-through center;
-- no “soap bubble” look;
-- transparency must be controllable;
-- Direct Transparency must be a real setting;
-- default should hide direct background enough to feel like a gemstone.
-
-### 6.2 Mouse wheel scaling
-All Premium3D crystals and all Premium3D crystal shapes must support mouse-wheel scaling.
+Factory presets must become meaningful.
 
 Required:
 
 
-Mouse wheel up/down changes crystal size.
-Range must be large and expressive.
-Suggested size range: 20% – 300%.
-Default: 100%.
+Diamond Palace
+Blue Ice
+Golden Prism
+Ruby Night
+Emerald Depth
+Opal Dream
+Cosmic Glass
+Dark Luxury
+Absolute Mirror
 
 
-No shape may ignore scaling.
-
-### 6.3 Absolute mirror mode
-There must be a real absolute mirror / polished mirror mode.
-
-Required:
-
-- crystal facets become mirror-polished;
-- reflection dominates;
-- direct transparency is minimized;
-- hidden reflection/background environment is visible through facets;
-- should look like luxury mirror/prism material.
-
-If not currently implemented, mark as BROKEN/PARTIAL and plan a fix.
-
-### 6.4 Facet refraction
-Facet-based refraction must be real and visible.
-
-Required:
-
-- different facets bend background differently;
-- refraction direction depends on facet normals;
-- image distortion must be significant at high values;
-- prism/dispersion must split light/color near facets;
-- result must not be just a smooth lens/bubble.
-
-### 6.5 Internal reflections
-At high values, crystal must show deeper internal echo/reflection layers.
-
-Required:
-
-- stronger internal bounce feeling;
-- more depth;
-- no flat glass disc look.
-
-### 6.6 Premium shape language
-Premium3D must inherit the shape/form language of Classic2D.
-
-Meaning:
+Each preset should apply:
 
 
-Classic2D remains 2D as before.
-Premium3D gets corresponding volumetric 3D crystal versions of those shapes.
+mode
+shape
+material
+direct transparency
+reflection
+refraction
+dispersion
+internal reflections
+brightness/contrast
+bloom/glow
+scale if appropriate
 
 
-The target is the same family of visual shapes/forms, but with depth, facets, thickness, and physical crystal volume.
+Do not fake preset application.
 
 ---
 
-## 7. Shape Transfer Rule: Classic2D -> Premium3D
+## 13. Freedom With Responsibility
 
-Codex must inspect the Classic2D shape/template system and identify:
+Codex may change more than before.
 
-- what forms/templates exist;
-- how they are named;
-- what parameters define them;
-- which are user-facing;
-- which are internal.
-
-Then map each Classic2D form to a Premium3D volumetric counterpart.
-
-Example mapping format:
+Codex may:
 
 
-Classic2D shape: Star / radial shard / diamond / polygon / mandala / ...
-Premium3D shape: volumetric star-cut gem / faceted diamond / prism object / ...
-Mesh requirement: real side faces, front/back depth, non-flat thickness.
-Status: existing / needs new mesh / needs factory method.
+replace weak Premium3D mesh generation
+add new volumetric mesh factories
+add new crystal shape enum values
+add new settings objects
+add new command routes
+add new diagnostics
+add new menu bridges
+adjust shader/material properties
+expand ranges
+remove obsolete Premium3D dead code
 
 
-Required:
-- no fake 2D extrusion only;
-- must have real volume;
-- must preserve recognizable silhouette from Classic2D;
-- must work with material/optics controls;
-- must support mouse-wheel scaling.
-
----
-
-## 8. Menu Binding Requirements
-
-Menu controls must be connected through a safe binding architecture:
+But Codex must not:
 
 
-Menu UI
-  -> KaelisMenuActionRouter
-  -> KaelisMenuCommandBridge
-  -> safe runtime command/settings object
-  -> render/crystal module
-
-
-Do not wire sliders by random `FindObjectOfType` calls unless no safer path exists and it is reported.
-
-Preferred:
-
-- shared settings object;
-- explicit command;
-- public method on module;
-- central dispatcher.
-
-Every real binding must have:
-- clamp;
-- default;
-- min/max;
-- reset;
-- tooltip;
-- visible value;
-- validation.
-
----
-
-## 9. Range Philosophy
-
-Ranges must be large enough to produce dramatic visual variation.
-
-But they must not produce:
-- NaN;
-- white screen;
-- black screen;
-- broken mesh;
-- invisible crystal;
-- permanent overexposure;
-- camera clipping;
-- GPU errors.
-
-For each range, Codex must decide:
-
-
-Safe default range
-Creative extended range
-Hard clamp range
-
-
-Example:
-
-
-Refraction Strength:
-default 1.0
-UI range 0.0 – 5.0
-hard clamp 0.0 – 8.0
+break Classic2D forms
+break Classic2D transitions
+destroy block architecture
+hide failures behind vague reports
+claim visual success without validation
 
 
 ---
 
-## 10. Diagnostics Requirement
+## 14. Required Reporting
 
-Codex must add or extend menu/crystal diagnostics where useful.
+Every planning/implementation pass must report:
 
-Diagnostics should report:
 
-- active crystal shape;
-- active crystal material;
-- crystal scale percent;
-- transparency/direct transmission;
-- mirror strength;
-- refraction strength;
-- dispersion strength;
-- whether parameter bindings are real;
-- whether current menu slider changed runtime state;
-- whether physical stage RT is active;
-- whether hidden reflection/background texture is assigned.
+What Classic2D behavior was inspected
+What was copied/adapted into Premium3D
+What files changed
+What controls are real
+What controls are still reserved
+Whether Classic2D remained untouched
+Whether wheel scaling works in both modes
+Whether transparency is fully controlled
+Whether absolute mirror is real
+Whether facet refraction is visibly stronger
+Whether shape transfer produced new 3D volumetric shapes
+
 
 ---
 
-## 11. Planning Before Implementation
+## 15. Final Principle
 
-For this phase, Codex must not jump straight into code.
+The project can be rolled back with Git.
 
-Required workflow:
+Do not waste time preserving weak Premium3D code.
 
-
-Stage 1: Audit and map existing controls/parameters.
-Stage 2: Plan fixes and shape transfer.
-Stage 3: Implement only after approval.
-
-
-The audit must be concrete and file-based.
-
-No vague statements like:
-- “improved optics”
-- “enhanced crystal”
-- “made it better”
-
-Use exact file, class, method, property names.
-
----
-
-## 12. Validation
-
-Every implementation pass must include:
-
-- Unity compile result;
-- Editor compile result;
-- smoke test if available;
-- Play Mode manual checklist;
-- `git diff --name-only`;
-- protected path check;
-- before/after report for each affected control;
-- report of real vs reserved controls.
-
-Required visual checks:
-
-- all Premium3D shapes scale with mouse wheel;
-- direct see-through is reduced/controlled;
-- absolute mirror mode visibly works;
-- refraction produces strong facet-based distortion at high values;
-- prism dispersion is visible at high values;
-- Classic2D is unchanged;
-- menu still functions.
-
----
-
-## 13. Final Principle
-
-KAELIS must not have decorative controls.
-
-If a slider exists, it must either:
-
-
-1. visibly control something real,
-or
-2. clearly say RESERVED.
-
-
-Premium3D must become the volumetric, physical, expressive continuation of the Classic2D shape language.
+Preserve the beautiful Classic2D behavior.
+Use it as inspiration.
+Make Premium3D worthy of it.
