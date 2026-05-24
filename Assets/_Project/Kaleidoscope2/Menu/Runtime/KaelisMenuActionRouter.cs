@@ -185,6 +185,20 @@ namespace Kaleidoscope2.Menu
             SetStatus(dispatched ? "WHEEL SCALE STEP " + stepPercent.ToString("0") + "%" : "WHEEL STEP COMMAND UNAVAILABLE");
         }
 
+        public void HandleCrystalDebugMode(int direction)
+        {
+            bool dispatched = commandBridge != null && commandBridge.CycleCrystalDebugMode(direction);
+            SetStatus(dispatched ? "CRYSTAL DEBUG MODE CYCLED" : "DEBUG MODE COMMAND UNAVAILABLE");
+        }
+
+        public void HandleExperimentalCrystalPreset(CrystalExperimentPresetType preset)
+        {
+            bool dispatched = commandBridge != null && commandBridge.ApplyExperimentalCrystalPreset(preset);
+            SetStatus(dispatched
+                ? "EXPERIMENT " + CrystalExperimentPreset.GetLabel(preset).ToUpperInvariant()
+                : "EXPERIMENT COMMAND UNAVAILABLE");
+        }
+
         private void ApplyVisualMode(KaleidoscopeVisualMode visualMode, string label)
         {
             bool dispatched = commandBridge != null && commandBridge.ApplyVisualMode(visualMode, label);

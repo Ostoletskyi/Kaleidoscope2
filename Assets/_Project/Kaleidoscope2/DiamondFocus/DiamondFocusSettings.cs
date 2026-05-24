@@ -261,12 +261,18 @@ namespace Kaleidoscope2.Core
         [Header("Debug")]
         [SerializeField, InspectorName("DebugView")] private DiamondCrystalDebugMode debugMode = DiamondCrystalDebugMode.FinalCrystalComposite;
 
+        [Header("Experimental Crystal Lab")]
+        [SerializeField] private CrystalExperimentPresetType activeExperimentalCrystalPreset = CrystalExperimentPresetType.Normal;
+        [SerializeField] private string activeExperimentalCrystalPresetName = "Normal";
+
         [Header("Runtime Safety")]
         [SerializeField] private bool enableRandomVariants = true;
         [SerializeField] private bool preserveClassicMode = true;
         [SerializeField, InspectorName("CurrentShapeName")] private string currentShapeName = "Classic Diamond";
         [SerializeField, InspectorName("CurrentModeName")] private string currentModeName = "High-Purity Diamond";
         [SerializeField, InspectorName("KaleidoscopeTex Binding Status")] private string kaleidoscopeTexBindingStatus = "Unbound";
+
+        [NonSerialized] private CrystalExperimentPresetApplier crystalExperimentPresetApplier;
 
         public bool Enabled { get { return enabled; } }
         public DiamondFocusShape Shape { get { return shape; } }
@@ -385,6 +391,8 @@ namespace Kaleidoscope2.Core
                 return "crystal visible " + (enabled && IsPremiumCrystalSimulation ? "true" : "false")
                     + ", active shape " + ShapeLabel
                     + ", active material " + MaterialModeLabel
+                    + ", debug mode " + DebugModeLabel
+                    + ", experiment " + ActiveExperimentalCrystalPresetLabel
                     + ", shape transition " + (ShapeTransitionActive ? "active " + ShapeTransitionSmoothProgress.ToString("0.00") : "inactive")
                     + ", current crystal scale percent " + PremiumCrystalScalePercent.ToString("0")
                     + ", wheel scale " + (PremiumCrystalWheelScaleEnabled ? "enabled" : "disabled")
@@ -432,6 +440,9 @@ namespace Kaleidoscope2.Core
         public string GeneratedMaterialLabel { get { return GetGeneratedMaterialKindLabel(generatedMaterialKind); } }
         public DiamondCrystalDebugMode DebugMode { get { return debugMode; } }
         public DiamondCrystalDebugMode DebugView { get { return debugMode; } }
+        public string DebugModeLabel { get { return GetDebugModeLabel(debugMode); } }
+        public CrystalExperimentPresetType ActiveExperimentalCrystalPreset { get { return activeExperimentalCrystalPreset; } }
+        public string ActiveExperimentalCrystalPresetLabel { get { return activeExperimentalCrystalPresetName; } }
         public bool EnableRandomVariants { get { return enableRandomVariants; } }
         public bool PreserveClassicMode { get { return preserveClassicMode; } }
         public string CurrentShapeName { get { return currentShapeName; } }
@@ -963,6 +974,269 @@ namespace Kaleidoscope2.Core
             SetPremiumCrystalOptic(PremiumCrystalOpticsParameter.Caustics, caustics);
         }
 
+        public void ApplyExperimentalCrystalPreset(CrystalExperimentPresetType type)
+        {
+            EnsureCrystalExperimentPresetApplier().Apply(this, type);
+        }
+
+        public void RestorePreviousCrystalPreset()
+        {
+            EnsureCrystalExperimentPresetApplier().RestorePrevious(this);
+        }
+
+        internal void SetActiveExperimentalCrystalPreset(CrystalExperimentPresetType type)
+        {
+            activeExperimentalCrystalPreset = type;
+            activeExperimentalCrystalPresetName = CrystalExperimentPreset.GetLabel(type);
+        }
+
+        internal CrystalExperimentSnapshot CaptureCrystalExperimentState()
+        {
+            CrystalExperimentSnapshot snapshot = new CrystalExperimentSnapshot();
+            snapshot.Enabled = enabled;
+            snapshot.Shape = shape;
+            snapshot.ShapeTransitionFromShape = shapeTransitionFromShape;
+            snapshot.ShapeTransitionToShape = shapeTransitionToShape;
+            snapshot.ShapeTransitionActive = shapeTransitionActive;
+            snapshot.ShapeTransitionElapsed = shapeTransitionElapsed;
+            snapshot.MaterialMode = materialMode;
+            snapshot.GeneratedMaterialKind = generatedMaterialKind;
+            snapshot.GeneratedMaterialColor = generatedMaterialColor;
+            snapshot.GeneratedMaterialSeed = generatedMaterialSeed;
+            snapshot.DebugMode = debugMode;
+            snapshot.PremiumScalePercent = premiumCrystalScalePercent;
+            snapshot.PremiumBrightness = premiumOpticsBrightness;
+            snapshot.PremiumContrast = premiumOpticsContrast;
+            snapshot.PremiumBloomGlow = premiumOpticsBloomGlow;
+            snapshot.PremiumFacetHighlights = premiumOpticsFacetHighlights;
+            snapshot.PremiumRefraction = premiumOpticsRefractionStrength;
+            snapshot.PremiumReflection = premiumOpticsReflectionStrength;
+            snapshot.PremiumInternalReflections = premiumOpticsInternalReflections;
+            snapshot.PremiumBackgroundDistortion = premiumOpticsBackgroundDistortion;
+            snapshot.PremiumDirectTransparency = premiumOpticsDirectTransparency;
+            snapshot.PremiumPrismDispersion = premiumOpticsPrismDispersion;
+            snapshot.PremiumChromaticAberration = premiumOpticsChromaticAberration;
+            snapshot.PremiumRainbowEdge = premiumOpticsRainbowEdge;
+            snapshot.PremiumSpectralSplit = premiumOpticsSpectralSplit;
+            snapshot.PremiumCrystalDepth = premiumOpticsCrystalDepth;
+            snapshot.PremiumCaustics = premiumOpticsCaustics;
+            snapshot.HiddenReflection = premiumHiddenReflectionBackgroundEnabled;
+            snapshot.MirrorFacets = premiumMirrorFacetsEnabled;
+            snapshot.InternalReflectionsToggle = premiumInternalReflectionsEnabled;
+            snapshot.DispersionToggle = premiumDispersionEnabled;
+            snapshot.RefractionDistortion = premiumRefractionDistortionEnabled;
+            snapshot.OpalIridescence = premiumOpalIridescenceEnabled;
+            snapshot.FacetHighlightsToggle = premiumFacetHighlightsEnabled;
+            snapshot.ShapeMorphing = premiumShapeMorphingEnabled;
+            snapshot.OpticalDiagnostics = premiumDebugOpticalDiagnosticsEnabled;
+            snapshot.Transparency = transparency;
+            snapshot.RefractionStrength = refractionStrength;
+            snapshot.DispersionStrength = dispersionStrength;
+            snapshot.ReflectionStrength = reflectionStrength;
+            snapshot.FresnelPower = fresnelPower;
+            snapshot.InternalBrightness = internalBrightness;
+            snapshot.NoiseDistortionStrength = noiseDistortionStrength;
+            snapshot.EdgeHighlight = edgeHighlight;
+            snapshot.ChromaticAberrationBase = chromaticAberrationBase;
+            snapshot.ChromaticAberrationExtra = chromaticAberrationExtra;
+            snapshot.FacetContrast = facetContrast;
+            snapshot.InternalGlow = internalGlow;
+            snapshot.BloomBoostBase = bloomBoostBase;
+            snapshot.BloomBoostExtra = bloomBoostExtra;
+            snapshot.ScreenScale = screenScale;
+            snapshot.DiamondLikeRefraction = diamondLikeRefraction;
+            snapshot.SpectralDispersion = spectralDispersion;
+            snapshot.HighEnergyCaustics = highEnergyCaustics;
+            snapshot.MultiBounceInternalReflections = multiBounceInternalReflections;
+            snapshot.CinematicCrystalOptics = cinematicCrystalOptics;
+            snapshot.PhysicallyBasedRefraction = physicallyBasedRefraction;
+            snapshot.DeepVolumetricLightScattering = deepVolumetricLightScattering;
+            snapshot.CrystalSolidity = crystalSolidity;
+            snapshot.BlueWhitePlasmaEnergy = blueWhitePlasmaEnergy;
+            snapshot.DirectTransmission = directTransmission;
+            snapshot.TotalInternalReturn = totalInternalReturn;
+            snapshot.SpectralFireIntensity = spectralFireIntensity;
+            snapshot.FacetDepthContrast = facetDepthContrast;
+            snapshot.OpticalIor = opticalIOR;
+            snapshot.DirectedLightIntensity = directedLightIntensity;
+            snapshot.OpticalCaustics = opticalCaustics;
+            snapshot.OpticalDispersion = opticalDispersion;
+            snapshot.TotalInternalReflection = totalInternalReflection;
+            snapshot.LightRigEnabled = CrystalLightRigSettings.RigEnabled;
+            snapshot.LightRigIntensity = CrystalLightRigSettings.LightIntensity;
+            snapshot.ActiveLightCountLimit = CrystalLightRigSettings.ActiveLightCountLimit;
+            return snapshot;
+        }
+
+        internal void RestoreCrystalExperimentState(CrystalExperimentSnapshot snapshot)
+        {
+            if (snapshot == null)
+            {
+                return;
+            }
+
+            enabled = snapshot.Enabled;
+            shape = snapshot.Shape;
+            shapeTransitionFromShape = snapshot.ShapeTransitionFromShape;
+            shapeTransitionToShape = snapshot.ShapeTransitionToShape;
+            shapeTransitionActive = snapshot.ShapeTransitionActive;
+            shapeTransitionElapsed = snapshot.ShapeTransitionElapsed;
+            materialMode = snapshot.MaterialMode;
+            generatedMaterialKind = snapshot.GeneratedMaterialKind;
+            generatedMaterialColor = snapshot.GeneratedMaterialColor;
+            generatedMaterialSeed = snapshot.GeneratedMaterialSeed;
+            debugMode = snapshot.DebugMode;
+            premiumCrystalScalePercent = snapshot.PremiumScalePercent;
+            premiumOpticsBrightness = snapshot.PremiumBrightness;
+            premiumOpticsContrast = snapshot.PremiumContrast;
+            premiumOpticsBloomGlow = snapshot.PremiumBloomGlow;
+            premiumOpticsFacetHighlights = snapshot.PremiumFacetHighlights;
+            premiumOpticsRefractionStrength = snapshot.PremiumRefraction;
+            premiumOpticsReflectionStrength = snapshot.PremiumReflection;
+            premiumOpticsInternalReflections = snapshot.PremiumInternalReflections;
+            premiumOpticsBackgroundDistortion = snapshot.PremiumBackgroundDistortion;
+            premiumOpticsDirectTransparency = snapshot.PremiumDirectTransparency;
+            premiumOpticsPrismDispersion = snapshot.PremiumPrismDispersion;
+            premiumOpticsChromaticAberration = snapshot.PremiumChromaticAberration;
+            premiumOpticsRainbowEdge = snapshot.PremiumRainbowEdge;
+            premiumOpticsSpectralSplit = snapshot.PremiumSpectralSplit;
+            premiumOpticsCrystalDepth = snapshot.PremiumCrystalDepth;
+            premiumOpticsCaustics = snapshot.PremiumCaustics;
+            premiumHiddenReflectionBackgroundEnabled = snapshot.HiddenReflection;
+            premiumMirrorFacetsEnabled = snapshot.MirrorFacets;
+            premiumInternalReflectionsEnabled = snapshot.InternalReflectionsToggle;
+            premiumDispersionEnabled = snapshot.DispersionToggle;
+            premiumRefractionDistortionEnabled = snapshot.RefractionDistortion;
+            premiumOpalIridescenceEnabled = snapshot.OpalIridescence;
+            premiumFacetHighlightsEnabled = snapshot.FacetHighlightsToggle;
+            premiumShapeMorphingEnabled = snapshot.ShapeMorphing;
+            premiumDebugOpticalDiagnosticsEnabled = snapshot.OpticalDiagnostics;
+            transparency = snapshot.Transparency;
+            refractionStrength = snapshot.RefractionStrength;
+            dispersionStrength = snapshot.DispersionStrength;
+            reflectionStrength = snapshot.ReflectionStrength;
+            fresnelPower = snapshot.FresnelPower;
+            internalBrightness = snapshot.InternalBrightness;
+            noiseDistortionStrength = snapshot.NoiseDistortionStrength;
+            edgeHighlight = snapshot.EdgeHighlight;
+            chromaticAberrationBase = snapshot.ChromaticAberrationBase;
+            chromaticAberrationExtra = snapshot.ChromaticAberrationExtra;
+            facetContrast = snapshot.FacetContrast;
+            internalGlow = snapshot.InternalGlow;
+            bloomBoostBase = snapshot.BloomBoostBase;
+            bloomBoostExtra = snapshot.BloomBoostExtra;
+            screenScale = snapshot.ScreenScale;
+            diamondLikeRefraction = snapshot.DiamondLikeRefraction;
+            spectralDispersion = snapshot.SpectralDispersion;
+            highEnergyCaustics = snapshot.HighEnergyCaustics;
+            multiBounceInternalReflections = snapshot.MultiBounceInternalReflections;
+            cinematicCrystalOptics = snapshot.CinematicCrystalOptics;
+            physicallyBasedRefraction = snapshot.PhysicallyBasedRefraction;
+            deepVolumetricLightScattering = snapshot.DeepVolumetricLightScattering;
+            crystalSolidity = snapshot.CrystalSolidity;
+            blueWhitePlasmaEnergy = snapshot.BlueWhitePlasmaEnergy;
+            directTransmission = snapshot.DirectTransmission;
+            totalInternalReturn = snapshot.TotalInternalReturn;
+            spectralFireIntensity = snapshot.SpectralFireIntensity;
+            facetDepthContrast = snapshot.FacetDepthContrast;
+            opticalIOR = snapshot.OpticalIor;
+            directedLightIntensity = snapshot.DirectedLightIntensity;
+            opticalCaustics = snapshot.OpticalCaustics;
+            opticalDispersion = snapshot.OpticalDispersion;
+            totalInternalReflection = snapshot.TotalInternalReflection;
+            CrystalLightRigSettings.SetRigEnabled(snapshot.LightRigEnabled);
+            CrystalLightRigSettings.SetLightIntensity(snapshot.LightRigIntensity);
+            CrystalLightRigSettings.SetActiveLightCountLimit(snapshot.ActiveLightCountLimit);
+            RefreshInspectorLabels();
+        }
+
+        internal void ApplyCrystalExperimentPresetValues(CrystalExperimentPreset preset)
+        {
+            if (preset == null)
+            {
+                return;
+            }
+
+            SetEnabled(true);
+            premiumShapeMorphingEnabled = preset.ShapeMorphing;
+            BeginShapeTransition(preset.Shape);
+            SetMaterialMode(preset.MaterialMode);
+            SetDebugMode(preset.DebugMode);
+            SetPremiumCrystalScalePercent(preset.PremiumScalePercent);
+            ApplyPremiumCrystalOptics(
+                preset.Brightness,
+                preset.Contrast,
+                preset.BloomGlow,
+                preset.FacetHighlights,
+                preset.Refraction,
+                preset.Reflection,
+                preset.InternalReflections,
+                preset.BackgroundDistortion,
+                preset.DirectTransparency,
+                preset.PrismDispersion,
+                preset.ChromaticAberration,
+                preset.RainbowEdge,
+                preset.SpectralSplit,
+                preset.CrystalDepth,
+                preset.Caustics);
+
+            premiumHiddenReflectionBackgroundEnabled = preset.HiddenReflection;
+            premiumMirrorFacetsEnabled = preset.MirrorFacets;
+            premiumInternalReflectionsEnabled = preset.InternalReflectionToggle;
+            premiumDispersionEnabled = preset.DispersionToggle;
+            premiumRefractionDistortionEnabled = preset.RefractionDistortion;
+            premiumOpalIridescenceEnabled = preset.OpalIridescence;
+            premiumFacetHighlightsEnabled = preset.FacetHighlightToggle;
+            premiumDebugOpticalDiagnosticsEnabled = preset.OpticalDiagnostics;
+            transparency = Mathf.Clamp01(preset.Transparency);
+            refractionStrength = Mathf.Clamp(preset.RefractionStrength, 0f, 0.12f);
+            dispersionStrength = Mathf.Clamp(preset.DispersionStrength, 0f, 2f);
+            reflectionStrength = Mathf.Clamp01(preset.ReflectionStrength);
+            fresnelPower = Mathf.Clamp(preset.FresnelPower, 0.5f, 8f);
+            internalBrightness = Mathf.Clamp(preset.InternalBrightness, 0f, 3f);
+            noiseDistortionStrength = Mathf.Clamp01(preset.NoiseDistortionStrength);
+            edgeHighlight = Mathf.Clamp(preset.EdgeHighlight, 0f, 2f);
+            chromaticAberrationBase = Mathf.Clamp(preset.ChromaticAberration * 0.0085f, 0f, 0.04f);
+            chromaticAberrationExtra = Mathf.Clamp(preset.ChromaticAberration * 0.0105f, 0f, 0.04f);
+            facetContrast = Mathf.Clamp(preset.FacetContrast, 0f, 2f);
+            internalGlow = Mathf.Clamp(preset.InternalGlow, 0f, 1.5f);
+            bloomBoostBase = Mathf.Clamp(preset.BloomBoostBase, 0f, 3f);
+            bloomBoostExtra = Mathf.Clamp(preset.BloomBoostExtra, 0f, 3f);
+            screenScale = Mathf.Clamp(preset.ScreenScale, 0.1f, 1f);
+            diamondLikeRefraction = Mathf.Clamp(preset.DiamondLikeRefraction, 0f, 2f);
+            spectralDispersion = Mathf.Clamp(preset.SpectralDispersion, 0f, 3f);
+            highEnergyCaustics = Mathf.Clamp(preset.HighEnergyCaustics, 0f, 3f);
+            multiBounceInternalReflections = Mathf.Clamp(preset.MultiBounceInternalReflections, 0f, 3f);
+            cinematicCrystalOptics = Mathf.Clamp(preset.CinematicCrystalOptics, 0f, 2f);
+            physicallyBasedRefraction = Mathf.Clamp(preset.PhysicallyBasedRefraction, 0f, 2f);
+            deepVolumetricLightScattering = Mathf.Clamp(preset.DeepVolumetricLightScattering, 0f, 3f);
+            crystalSolidity = Mathf.Clamp01(preset.CrystalSolidity);
+            blueWhitePlasmaEnergy = Mathf.Clamp(preset.BlueWhitePlasmaEnergy, 0f, 3f);
+            directTransmission = Mathf.Clamp01(preset.DirectTransmission);
+            totalInternalReturn = Mathf.Clamp(preset.TotalInternalReturn, 0f, 3f);
+            spectralFireIntensity = Mathf.Clamp(preset.SpectralFireIntensity, 0f, 3f);
+            facetDepthContrast = Mathf.Clamp(preset.FacetDepthContrast, 0f, 2f);
+            opticalIOR = Mathf.Clamp(preset.OpticalIor, RefractionIndexMin, RefractionIndexMax);
+            directedLightIntensity = Mathf.Clamp(preset.DirectedLightIntensity, DirectedLightIntensityMin, DirectedLightIntensityMax);
+            opticalCaustics = Mathf.Clamp(preset.OpticalCaustics, 0f, 2f);
+            opticalDispersion = Mathf.Clamp(preset.OpticalDispersion, 0f, 2f);
+            totalInternalReflection = Mathf.Clamp(preset.TotalInternalReflection, 0f, 2f);
+            CrystalLightRigSettings.SetRigEnabled(preset.LightRigEnabled);
+            CrystalLightRigSettings.SetLightIntensity(preset.LightRigIntensity);
+            CrystalLightRigSettings.SetActiveLightCountLimit(preset.ActiveLightCount);
+            RefreshInspectorLabels();
+        }
+
+        private CrystalExperimentPresetApplier EnsureCrystalExperimentPresetApplier()
+        {
+            if (crystalExperimentPresetApplier == null)
+            {
+                crystalExperimentPresetApplier = new CrystalExperimentPresetApplier();
+            }
+
+            return crystalExperimentPresetApplier;
+        }
+
         public void SetCrystalLightRigIntensityForCurrentMode(float value)
         {
             CrystalLightRigSettings.SetLightIntensity(ClampCrystalLightRigIntensityForCurrentMode(value));
@@ -982,6 +1256,7 @@ namespace Kaleidoscope2.Core
         public void SetDebugMode(DiamondCrystalDebugMode value)
         {
             debugMode = value;
+            premiumDebugOpticalDiagnosticsEnabled = false;
         }
 
         public void CycleDebugMode(int direction)
@@ -994,6 +1269,7 @@ namespace Kaleidoscope2.Core
             }
 
             debugMode = (DiamondCrystalDebugMode)next;
+            premiumDebugOpticalDiagnosticsEnabled = false;
         }
 
         public void SetKaleidoscopeTexBindingStatus(bool bound)
@@ -1005,6 +1281,7 @@ namespace Kaleidoscope2.Core
         {
             currentShapeName = ShapeLabel;
             currentModeName = MaterialModeLabel;
+            activeExperimentalCrystalPresetName = CrystalExperimentPreset.GetLabel(activeExperimentalCrystalPreset);
         }
 
         public void SetRotationVelocity(Vector3 value)
@@ -1089,6 +1366,29 @@ namespace Kaleidoscope2.Core
                     return "Absolute Mirror";
                 default:
                     return "Diamond Palace";
+            }
+        }
+
+        public static string GetDebugModeLabel(DiamondCrystalDebugMode value)
+        {
+            switch (value)
+            {
+                case DiamondCrystalDebugMode.RawKaleidoscopeTex:
+                    return "Raw Kaleidoscope Texture";
+                case DiamondCrystalDebugMode.RefractionOnly:
+                    return "Refraction Only";
+                case DiamondCrystalDebugMode.ReflectionOnly:
+                    return "Reflection Only";
+                case DiamondCrystalDebugMode.DispersionOnly:
+                    return "Dispersion Only";
+                case DiamondCrystalDebugMode.SurfaceNormalOnly:
+                    return "Surface Normals";
+                case DiamondCrystalDebugMode.CrystalOff:
+                    return "Crystal Off";
+                case DiamondCrystalDebugMode.ArtifactStressTest:
+                    return "Artifact Stress Test";
+                default:
+                    return "Final Crystal Composite";
             }
         }
 

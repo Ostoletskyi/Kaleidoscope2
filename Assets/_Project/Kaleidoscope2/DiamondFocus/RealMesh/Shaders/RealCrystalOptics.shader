@@ -49,6 +49,7 @@ Shader "Kaleidoscope2/RealCrystalOptics"
         _SpectralSplitScale ("Spectral Split Scale", Range(0,4)) = 1
         _CoreDarkening ("Core Darkening", Range(0,1)) = 0.18
         _AbsoluteMirrorStrength ("Absolute Mirror Strength", Range(0,1)) = 0
+        _CrystalDebugMode ("Crystal Debug Mode", Float) = 0
     }
     SubShader
     {
@@ -109,6 +110,7 @@ Shader "Kaleidoscope2/RealCrystalOptics"
         half _SpectralSplitScale;
         half _CoreDarkening;
         half _AbsoluteMirrorStrength;
+        half _CrystalDebugMode;
 
         struct Input
         {
@@ -142,6 +144,17 @@ Shader "Kaleidoscope2/RealCrystalOptics"
             float fresnelCurve = pow(1.0 - ndv, max(0.5, _FresnelPower));
             float fresnel = saturate((fresnelCurve * 0.58 + schlick * 1.86) * _FresnelStrength);
             float intensity01 = saturate(_Intensity / 20.0);
+            float debugMode = floor(_CrystalDebugMode + 0.5);
+
+            if (debugMode > 5.5 && debugMode < 6.5)
+            {
+                o.Albedo = 0;
+                o.Specular = 0;
+                o.Smoothness = 0;
+                o.Emission = 0;
+                o.Alpha = 0;
+                return;
+            }
 
             float2 surfaceUv = saturate(IN.uv_KaleidoscopeTex);
             float2 screenUv = saturate(IN.screenPos.xy / max(0.0001, IN.screenPos.w));
@@ -275,6 +288,70 @@ Shader "Kaleidoscope2/RealCrystalOptics"
             fixed3 facetFire = (fixed3(1.0, 0.96, 0.9) * keyHighlight + _GemFireColor.rgb * (edgeHighlight * 0.86 + crownHighlight * 0.54) + opalLayer * edgeRim * _OpalIridescence * 0.32) * _FacetFire;
             fixed3 spectralEdge = fixed3(0.4, 0.76, 1.0) * edgeRim * _DispersionStrength * (0.16 + _PhysicalDispersion * 3.4);
             spectralEdge += _GemFireColor.rgb * pow(saturate(fresnel + facetBreak * 0.18), 2.6) * _DispersionStrength * (0.1 + _PhysicalDispersion * 2.2);
+
+            if (debugMode > 0.5 && debugMode < 1.5)
+            {
+                o.Albedo = sourceColor;
+                o.Specular = 0;
+                o.Smoothness = 0;
+                o.Emission = sourceColor * 0.08;
+                o.Alpha = 1;
+                return;
+            }
+
+            if (debugMode > 1.5 && debugMode < 2.5)
+            {
+                o.Albedo = refractedColor;
+                o.Specular = 0.04;
+                o.Smoothness = 0.55;
+                o.Emission = refractedColor * 0.16;
+                o.Alpha = 0.96;
+                return;
+            }
+
+            if (debugMode > 2.5 && debugMode < 3.5)
+            {
+                o.Albedo = mixedReflectionColor;
+                o.Specular = saturate(mixedReflectionColor * 0.8 + _Tint.rgb * 0.12);
+                o.Smoothness = 1.0;
+                o.Emission = mixedReflectionColor * 0.14;
+                o.Alpha = 0.98;
+                return;
+            }
+
+            if (debugMode > 3.5 && debugMode < 4.5)
+            {
+                fixed3 dispersionDebug = saturate(abs(refractedColor - sourceColor) * (2.2 + _SpectralSplitScale) + spectralEdge * 1.25 + facetFire * 0.18);
+                o.Albedo = dispersionDebug;
+                o.Specular = dispersionDebug * 0.35;
+                o.Smoothness = 0.82;
+                o.Emission = dispersionDebug * 0.45;
+                o.Alpha = 0.98;
+                return;
+            }
+
+            if (debugMode > 4.5 && debugMode < 5.5)
+            {
+                fixed3 normalDebug = normal * 0.5 + 0.5;
+                o.Albedo = normalDebug;
+                o.Specular = 0;
+                o.Smoothness = 0.2;
+                o.Emission = normalDebug * 0.08;
+                o.Alpha = 1;
+                return;
+            }
+
+            if (debugMode > 6.5 && debugMode < 7.5)
+            {
+                float uvStress = saturate(length(facetOffset + depthOffset) * 8.0);
+                fixed3 stressDebug = saturate(fixed3(facetBreak, deepCore, uvStress) + abs(refractedColor - mixedReflectionColor) * 0.85 + spectralEdge * 0.7);
+                o.Albedo = stressDebug;
+                o.Specular = stressDebug * 0.4;
+                o.Smoothness = 0.88;
+                o.Emission = stressDebug * 0.32;
+                o.Alpha = 0.98;
+                return;
+            }
 
             o.Albedo = max(glassBase * (0.64 + intensity01 * 0.36), _Tint.rgb * _BrightnessFloor);
             fixed3 specularOut = saturate(specularColor + fresnel * reflection * 0.3 + facetFire * 0.24 + spectralEdge * 0.12 + _Metallic * 0.08);

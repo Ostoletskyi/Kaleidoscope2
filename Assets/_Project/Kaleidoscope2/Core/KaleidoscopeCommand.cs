@@ -88,7 +88,11 @@ namespace Kaleidoscope2.Core
         SetPremiumCrystalEffectEnabled = 80,
         SetPremiumCrystalWheelScaleEnabled = 81,
         SetPremiumCrystalWheelScaleStepPercent = 82,
-        ApplyPremiumCrystalPreset = 83
+        ApplyPremiumCrystalPreset = 83,
+        CycleCrystalDebugMode = 84,
+        SetCrystalDebugMode = 85,
+        ApplyExperimentalCrystalPreset = 86,
+        RestorePreviousCrystalPreset = 87
     }
 
     [Serializable]
@@ -575,6 +579,22 @@ namespace Kaleidoscope2.Core
             };
         }
 
+        public static KaleidoscopeCommand CycleCrystalDebugMode(int direction)
+        {
+            return new KaleidoscopeCommand(KaleidoscopeCommandType.CycleCrystalDebugMode)
+            {
+                intValue = direction == 0 ? 1 : direction
+            };
+        }
+
+        public static KaleidoscopeCommand SetCrystalDebugMode(DiamondCrystalDebugMode mode)
+        {
+            return new KaleidoscopeCommand(KaleidoscopeCommandType.SetCrystalDebugMode)
+            {
+                intValue = (int)mode
+            };
+        }
+
         public static KaleidoscopeCommand AdjustDiamondRefractionIndex(float delta)
         {
             return new KaleidoscopeCommand(KaleidoscopeCommandType.AdjustDiamondRefractionIndex)
@@ -708,6 +728,24 @@ namespace Kaleidoscope2.Core
             {
                 intValue = (int)preset,
                 stringValue = DiamondFocusSettings.GetPremiumCrystalFactoryPresetLabel(preset)
+            };
+        }
+
+        public static KaleidoscopeCommand ApplyExperimentalCrystalPreset(CrystalExperimentPresetType preset)
+        {
+            return new KaleidoscopeCommand(KaleidoscopeCommandType.ApplyExperimentalCrystalPreset)
+            {
+                intValue = (int)preset,
+                stringValue = CrystalExperimentPreset.GetLabel(preset)
+            };
+        }
+
+        public static KaleidoscopeCommand RestorePreviousCrystalPreset()
+        {
+            return new KaleidoscopeCommand(KaleidoscopeCommandType.RestorePreviousCrystalPreset)
+            {
+                intValue = (int)CrystalExperimentPresetType.Normal,
+                stringValue = CrystalExperimentPreset.GetLabel(CrystalExperimentPresetType.Normal)
             };
         }
 

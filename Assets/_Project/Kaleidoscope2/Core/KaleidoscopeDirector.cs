@@ -460,6 +460,14 @@ namespace Kaleidoscope2.Core
                     state.SetActivePreset(command.StringValue);
                     return true;
 
+                case KaleidoscopeCommandType.ApplyExperimentalCrystalPreset:
+                    state.DiamondFocusSettings.ApplyExperimentalCrystalPreset((CrystalExperimentPresetType)command.IntValue);
+                    return true;
+
+                case KaleidoscopeCommandType.RestorePreviousCrystalPreset:
+                    state.DiamondFocusSettings.RestorePreviousCrystalPreset();
+                    return true;
+
                 case KaleidoscopeCommandType.ResetPremiumCrystalOpticalControls:
                     state.DiamondFocusSettings.ResetPremiumCrystalOpticalControls();
                     return true;

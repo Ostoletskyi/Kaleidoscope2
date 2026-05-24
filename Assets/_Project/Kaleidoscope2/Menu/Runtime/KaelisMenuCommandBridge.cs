@@ -68,6 +68,26 @@ namespace Kaleidoscope2.Menu
             return Dispatch(KaleidoscopeCommand.ApplyPremiumCrystalPreset(preset), "Premium3D Factory Preset " + preset);
         }
 
+        public bool CycleCrystalDebugMode(int direction)
+        {
+            return Dispatch(KaleidoscopeCommand.CycleCrystalDebugMode(direction), "Diamond Focus Debug Mode");
+        }
+
+        public bool SetCrystalDebugMode(DiamondCrystalDebugMode mode)
+        {
+            return Dispatch(KaleidoscopeCommand.SetCrystalDebugMode(mode), "Diamond Focus Debug Mode " + mode);
+        }
+
+        public bool ApplyExperimentalCrystalPreset(CrystalExperimentPresetType preset)
+        {
+            return Dispatch(KaleidoscopeCommand.ApplyExperimentalCrystalPreset(preset), "Experimental Crystal Preset " + preset);
+        }
+
+        public bool RestorePreviousCrystalPreset()
+        {
+            return Dispatch(KaleidoscopeCommand.RestorePreviousCrystalPreset(), "Restore Previous Crystal Preset");
+        }
+
         public bool ShowDiagnostics()
         {
             return Dispatch(KaleidoscopeCommand.SetDiagnosticsVisible(true), "Show Diagnostics");

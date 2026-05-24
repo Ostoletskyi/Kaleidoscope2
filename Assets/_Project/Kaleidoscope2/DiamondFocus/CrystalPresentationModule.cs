@@ -65,6 +65,7 @@ namespace Kaleidoscope2.DiamondFocus
                 : "Unknown";
             int activeLights = realMeshRenderer != null ? realMeshRenderer.ActiveLightCount : 0;
             string source = sharedSettings != null ? sharedSettings.SourceTextureStatus : "Unbound";
+            string debug = sharedSettings != null ? sharedSettings.DebugModeLabel : "Final Crystal Composite";
             string active = activeRenderer != null
                 ? CrystalSharedSettings.GetRenderModeLabel(activeRenderMode)
                 : "None";
@@ -96,6 +97,7 @@ namespace Kaleidoscope2.DiamondFocus
                 + ", mode " + mode
                 + ", active renderer " + active
                 + ", source " + source
+                + ", debug " + debug
                 + ", billboard " + billboardState
                 + ", real mesh " + realMeshState
                 + ", " + realMeshVolume

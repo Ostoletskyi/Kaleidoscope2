@@ -131,6 +131,8 @@ namespace Kaleidoscope2.DiamondFocus
                 || command.Type == KaleidoscopeCommandType.PreviousDiamondShape
                 || command.Type == KaleidoscopeCommandType.CycleDiamondMaterialMode
                 || command.Type == KaleidoscopeCommandType.SetDiamondMaterialMode
+                || command.Type == KaleidoscopeCommandType.CycleCrystalDebugMode
+                || command.Type == KaleidoscopeCommandType.SetCrystalDebugMode
                 || command.Type == KaleidoscopeCommandType.AdjustDiamondRefractionIndex
                 || command.Type == KaleidoscopeCommandType.SetDiamondRefractionIndex
                 || command.Type == KaleidoscopeCommandType.AdjustDiamondDirectedLightIntensity
@@ -191,6 +193,16 @@ namespace Kaleidoscope2.DiamondFocus
 
                 case KaleidoscopeCommandType.SetDiamondMaterialMode:
                     materialModeController.SetMode(settings, (DiamondCrystalMaterialMode)command.IntValue);
+                    break;
+
+                case KaleidoscopeCommandType.CycleCrystalDebugMode:
+                    settings.CycleDebugMode(command.IntValue);
+                    ReportDebugMode(settings);
+                    break;
+
+                case KaleidoscopeCommandType.SetCrystalDebugMode:
+                    settings.SetDebugMode((DiamondCrystalDebugMode)Mathf.Clamp(command.IntValue, 0, 7));
+                    ReportDebugMode(settings);
                     break;
 
                 case KaleidoscopeCommandType.AdjustDiamondRefractionIndex:
@@ -386,7 +398,7 @@ namespace Kaleidoscope2.DiamondFocus
                 + ", Background Blur " + backgroundBlur + " (radius " + maxBlurRadius.ToString("0.0") + ", iterations " + Mathf.Max(1, blurIterations) + ", downsample " + Mathf.Max(1, blurDownsample) + ")"
                 + ", cinematic optics " + settings.CinematicCrystalOptics.ToString("0.00")
                 + ", caustics " + settings.HighEnergyCaustics.ToString("0.00")
-                + ", debug " + settings.DebugMode
+                + ", debug " + settings.DebugModeLabel
                 + ", source " + sourceBinding
                 + ", variants " + (settings.EnableRandomVariants ? "on" : "off")
                 + ", preserve classic " + (settings.PreserveClassicMode ? "on" : "off")
@@ -856,6 +868,16 @@ namespace Kaleidoscope2.DiamondFocus
             }
 
             Debug.Log("[DiamondFocusModule] Premium3D effects " + settings.PremiumCrystalEffectStatus + ".", this);
+        }
+
+        private void ReportDebugMode(DiamondFocusSettings settings)
+        {
+            if (settings == null)
+            {
+                return;
+            }
+
+            Debug.Log("[DiamondFocusModule] Diamond Focus debug mode " + settings.DebugModeLabel + " (" + settings.DebugMode + ").", this);
         }
 
         private Texture ResolveKaleidoscopeTexture(Texture sourceTexture, out bool textureValid)

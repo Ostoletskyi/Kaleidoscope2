@@ -1,6 +1,7 @@
 using System;
 using System.Reflection;
 using Kaleidoscope2.Core;
+using Kaleidoscope2.DiamondFocus;
 using Kaleidoscope2.DiamondFocus.RealMesh;
 using Kaleidoscope2.Menu;
 using Kaleidoscope2.Menu.FX;
@@ -42,6 +43,12 @@ namespace Kaleidoscope2.Menu.Editor
             Require(canvasTransform.GetComponent<GraphicRaycaster>() != null, "MainMenuCanvas must receive UI raycasts.");
             Require(FindChild<Transform>(canvasTransform, "MenuAtmosphereFX") != null, "Menu atmosphere FX root missing.");
             Require(FindChild<Image>(canvasTransform, "LightBandCausticOverlay") != null, "Menu atmosphere light band overlay missing.");
+            Require(FindChild<PremiumMenuMotionController>(canvasTransform, "MainMenuCanvas") != null, "Premium menu motion controller missing.");
+            for (int stripeIndex = 1; stripeIndex <= 5; stripeIndex++)
+            {
+                Require(FindChild<Image>(canvasTransform, "PremiumLightStripe_" + stripeIndex.ToString()) != null, "Premium menu light stripe " + stripeIndex.ToString() + " missing.");
+            }
+
             Require(FindChild<MenuDispersionDustController>(canvasTransform, "DispersionDust") != null, "Menu dispersion dust controller missing.");
             Require(FindChild<MenuCrystalShimmerController>(canvasTransform, "CrystalShimmerHighlights") != null, "Menu crystal shimmer controller missing.");
 
@@ -97,6 +104,13 @@ namespace Kaleidoscope2.Menu.Editor
 
             KaleidoscopeDirector director = UnityEngine.Object.FindObjectOfType<KaleidoscopeDirector>();
             Require(director != null, "Main scene must contain KaleidoscopeDirector for menu command dispatch.");
+            DiamondFocusModule diamondFocusModule = UnityEngine.Object.FindObjectOfType<DiamondFocusModule>();
+            Require(diamondFocusModule != null, "Main scene must contain DiamondFocusModule for crystal debug command routing.");
+            if (!IsModuleRegistered(director, diamondFocusModule.ModuleId))
+            {
+                director.RegisterModule(diamondFocusModule);
+            }
+
             KaleidoscopeCommandType dispatchedType = KaleidoscopeCommandType.None;
             director.CommandDispatched += command => dispatchedType = command.Type;
             ValidatePremiumCrystalMeshes();
@@ -178,6 +192,21 @@ namespace Kaleidoscope2.Menu.Editor
             applyPreset.onClick.Invoke();
             Require(dispatchedType == KaleidoscopeCommandType.ApplyPremiumCrystalPreset, "Apply Selected must dispatch the Premium3D preset command.");
             Require(director.State.ActivePreset == "Diamond Palace", "Apply Selected must store the applied factory preset label.");
+            Button alienArtifact = FindChild<Button>(presetsPanel, "AlienArtifactCoreCommand");
+            Require(alienArtifact != null, "Presets panel must expose Alien Artifact Core experiment.");
+            dispatchedType = KaleidoscopeCommandType.None;
+            alienArtifact.onClick.Invoke();
+            Require(dispatchedType == KaleidoscopeCommandType.ApplyExperimentalCrystalPreset, "Experiment card must dispatch ApplyExperimentalCrystalPreset.");
+            Require(director.State.DiamondFocusSettings.ActiveExperimentalCrystalPreset == CrystalExperimentPresetType.AlienArtifactCore, "Experiment card must update runtime crystal experiment state.");
+            Button normalExperiment = FindChild<Button>(presetsPanel, "NormalRestorePreviousCommand");
+            Require(normalExperiment != null, "Presets panel must expose Normal / Restore Previous experiment control.");
+            normalExperiment.onClick.Invoke();
+            Require(director.State.DiamondFocusSettings.ActiveExperimentalCrystalPreset == CrystalExperimentPresetType.Normal, "Normal experiment must restore previous crystal state marker.");
+            director.State.DiamondFocusSettings.SetDebugMode(DiamondCrystalDebugMode.FinalCrystalComposite);
+            dispatchedType = KaleidoscopeCommandType.None;
+            director.Dispatch(KaleidoscopeCommand.CycleCrystalDebugMode(1));
+            Require(dispatchedType == KaleidoscopeCommandType.CycleCrystalDebugMode, "Diamond Focus debug hotkey command must dispatch CycleCrystalDebugMode.");
+            Require(director.State.DiamondFocusSettings.DebugMode == DiamondCrystalDebugMode.RawKaleidoscopeTex, "CycleCrystalDebugMode must advance the runtime Diamond Focus debug mode.");
             FindChild<Button>(canvasTransform, "SettingsButton").onClick.Invoke();
             Require(!presetsPanel.gameObject.activeSelf && settingsPanel.gameObject.activeSelf, "Settings button must switch to Settings section only.");
             Require(FindChild<KaelisMenuSliderControl>(settingsPanel, "UIScaleSlider") != null, "Settings panel must expose UI Scale slider.");
@@ -355,6 +384,26 @@ namespace Kaleidoscope2.Menu.Editor
             Require(property != null, "Tooltip " + propertyName + " property missing.");
             bool value = Convert.ToBoolean(property.GetValue(tooltip, null));
             Require(value, "Tooltip must use anchor-based placement.");
+        }
+
+        private static bool IsModuleRegistered(KaleidoscopeDirector director, string moduleId)
+        {
+            if (director == null || string.IsNullOrEmpty(moduleId))
+            {
+                return false;
+            }
+
+            var modules = director.RegisteredModules;
+            for (int index = 0; index < modules.Count; index++)
+            {
+                IKaleidoscopeModule module = modules[index];
+                if (module != null && module.ModuleId == moduleId)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private static void Require(bool condition, string message)

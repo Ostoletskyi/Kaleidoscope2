@@ -83,6 +83,7 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
         private static readonly int CrystalChromaticAberrationScaleId = Shader.PropertyToID("_ChromaticAberrationScale");
         private static readonly int CrystalSpectralSplitScaleId = Shader.PropertyToID("_SpectralSplitScale");
         private static readonly int CrystalAbsoluteMirrorStrengthId = Shader.PropertyToID("_AbsoluteMirrorStrength");
+        private static readonly int CrystalDebugModeId = Shader.PropertyToID("_CrystalDebugMode");
 
         private Transform owner;
         private GameObject root;
@@ -1728,6 +1729,7 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
             float chromaticAberrationScale = settings != null ? settings.ChromaticAberrationScale : 1f;
             float spectralSplitScale = settings != null ? settings.SpectralSplitScale : 1f;
             float absoluteMirrorStrength = settings != null ? settings.AbsoluteMirrorStrength : 0f;
+            float debugMode = settings != null ? (float)settings.DebugMode : 0f;
             float metallic;
             float smoothness;
             ResolveCrystalSurface(materialMode, out metallic, out smoothness);
@@ -1845,6 +1847,7 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
             SetMaterialFloatIfPresent(material, CrystalChromaticAberrationScaleId, chromaticAberrationScale);
             SetMaterialFloatIfPresent(material, CrystalSpectralSplitScaleId, spectralSplitScale);
             SetMaterialFloatIfPresent(material, CrystalAbsoluteMirrorStrengthId, absoluteMirrorStrength);
+            SetMaterialFloatIfPresent(material, CrystalDebugModeId, debugMode);
             material.renderQueue = (int)RenderQueue.Transparent;
         }
 

@@ -147,6 +147,12 @@ namespace Kaleidoscope2.Menu
             KaelisMenuUiPrimitives.AddAmbientBand(canvasRect, "CyanTopHaze", new Vector2(0f, 0.70f), new Vector2(1f, 1f), new Color(0.15f, 0.62f, 0.76f, 0.12f), assets.SolidSprite);
             KaelisMenuUiPrimitives.AddAmbientBand(canvasRect, "DeepBottomHaze", new Vector2(0f, 0f), new Vector2(1f, 0.34f), new Color(0f, 0.028f, 0.045f, 0.22f), assets.SolidSprite);
 
+            PremiumMenuMotionController premiumMotion = PremiumMenuMotionController.Ensure(Root);
+            if (premiumMotion != null)
+            {
+                premiumMotion.Build(canvasRect, assets.SolidSprite);
+            }
+
             RectTransform shimmer = KaelisMenuUiPrimitives.CreateRect("PrismaticSheen", canvasRect);
             shimmer.anchorMin = new Vector2(-0.06f, 0.82f);
             shimmer.anchorMax = new Vector2(1.08f, 0.90f);

@@ -53,7 +53,9 @@ namespace Kaleidoscope2.Menu
                     actionRouter.HandlePremiumCrystalEffect,
                     actionRouter.HandlePremiumCrystalShape,
                     actionRouter.HandlePremiumWheelScaleEnabled,
-                    actionRouter.HandlePremiumWheelScaleStep);
+                    actionRouter.HandlePremiumWheelScaleStep,
+                    actionRouter.HandleCrystalDebugMode,
+                    actionRouter.HandleExperimentalCrystalPreset);
             }
 
             BindMenuButton(view.EnterButton, EnterExperience);

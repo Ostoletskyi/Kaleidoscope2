@@ -91,7 +91,9 @@ namespace Kaleidoscope2.InputSystem
         [SerializeField] private KeyCode diamondSpeedIncreaseKey = KeyCode.E;
         [SerializeField] private KeyCode diamondNextShapeKey = KeyCode.KeypadPlus;
         [SerializeField] private KeyCode diamondPreviousShapeKey = KeyCode.KeypadMinus;
-        [SerializeField] private KeyCode diamondNextMaterialModeKey = KeyCode.KeypadPeriod;
+        [SerializeField] private KeyCode diamondDebugModeCycleKey = KeyCode.KeypadPeriod;
+        [SerializeField] private KeyCode diamondNextMaterialModeKey = KeyCode.KeypadDivide;
+        [SerializeField] private KeyCode diamondNextMaterialModeAlternateKey = KeyCode.KeypadDivide;
         [SerializeField] private KeyCode diamondRefractionIncreaseKey = KeyCode.Home;
         [SerializeField] private KeyCode diamondRefractionDecreaseKey = KeyCode.End;
         [SerializeField] private KeyCode diamondLightIntensityIncreaseKey = KeyCode.PageUp;
@@ -681,7 +683,8 @@ namespace Kaleidoscope2.InputSystem
 
             classicVisualScalePercent = mirror.Zoom * 100f;
             string sharedWheelStatus = director.State.MouseWheelVisualScaleStatus;
-            return CreateStatus("Zoom " + mirror.Zoom.ToString("0.00") + ", Rotation " + mirror.RotationSpeed.ToString("0") + ", 3D bend " + bend.ToString("0.00") + ", 4D hose " + hoseBend.ToString("0.00") + ", G " + opening.ToString("0") + ", Shch " + curvature.ToString("0") + ", 4D CA " + (chromaticAberration ? "on" : "off") + ", 5D flight " + flightSpeed.ToString("0") + ", mode flight " + modeFlightSpeed.ToString("0") + ", 2D inertia " + (classicInertia ? "on" : "off") + ", 7D " + sevenDStrategy + ", Display 2 " + secondDisplay + ", Premium3D crystal visible " + (premiumCrystalVisibleForWheel ? "true" : "false") + ", wheel target " + mouseWheelVisualScaleTarget + ", Premium3D mouse wheel consumed " + (premiumCrystalMouseWheelConsumed ? "true" : "false") + ", Classic2D mouse wheel consumed " + (classicVisualWheelConsumed ? "true" : "false") + ", function keys active " + (premiumCrystalFunctionKeysActive ? "true" : "false") + ", function key consumed " + (premiumCrystalFunctionKeyConsumed ? "true" : "false") + ", current crystal scale percent " + premiumCrystalScalePercent.ToString("0") + ", Classic2D visual scale percent " + classicVisualScalePercent.ToString("0") + ", " + sharedWheelStatus + ".");
+            string debugMode = diamondSettings != null ? diamondSettings.DebugModeLabel : "none";
+            return CreateStatus("Zoom " + mirror.Zoom.ToString("0.00") + ", Rotation " + mirror.RotationSpeed.ToString("0") + ", 3D bend " + bend.ToString("0.00") + ", 4D hose " + hoseBend.ToString("0.00") + ", G " + opening.ToString("0") + ", Shch " + curvature.ToString("0") + ", 4D CA " + (chromaticAberration ? "on" : "off") + ", 5D flight " + flightSpeed.ToString("0") + ", mode flight " + modeFlightSpeed.ToString("0") + ", 2D inertia " + (classicInertia ? "on" : "off") + ", 7D " + sevenDStrategy + ", Display 2 " + secondDisplay + ", Diamond debug " + debugMode + ", Premium3D crystal visible " + (premiumCrystalVisibleForWheel ? "true" : "false") + ", wheel target " + mouseWheelVisualScaleTarget + ", Premium3D mouse wheel consumed " + (premiumCrystalMouseWheelConsumed ? "true" : "false") + ", Classic2D mouse wheel consumed " + (classicVisualWheelConsumed ? "true" : "false") + ", function keys active " + (premiumCrystalFunctionKeysActive ? "true" : "false") + ", function key consumed " + (premiumCrystalFunctionKeyConsumed ? "true" : "false") + ", current crystal scale percent " + premiumCrystalScalePercent.ToString("0") + ", Classic2D visual scale percent " + classicVisualScalePercent.ToString("0") + ", " + sharedWheelStatus + ".");
         }
 
         private void CycleVisualMode()
@@ -833,7 +836,13 @@ namespace Kaleidoscope2.InputSystem
                 director.Dispatch(KaleidoscopeCommand.PreviousDiamondShape());
             }
 
-            if (IsDiamondMaterialModeKeyPressed())
+            bool debugModeKeyPressed = IsDiamondDebugModeKeyPressed();
+            if (debugModeKeyPressed)
+            {
+                director.Dispatch(KaleidoscopeCommand.CycleCrystalDebugMode(1));
+            }
+
+            if (!debugModeKeyPressed && IsDiamondMaterialModeKeyPressed())
             {
                 director.Dispatch(KaleidoscopeCommand.CycleDiamondMaterialMode(1));
             }
@@ -1119,13 +1128,26 @@ namespace Kaleidoscope2.InputSystem
                 return;
             }
 
-            Debug.Log("[InputModule] KeyCode.KeypadDecimal is not available in this Unity version. Numpad Del/Decimal falls back to KeypadPeriod.", this);
+            Debug.Log("[InputModule] KeyCode.KeypadDecimal is not available in this Unity version. Diamond Focus debug mode uses KeypadPeriod.", this);
         }
 
         private bool IsDiamondMaterialModeKeyPressed()
         {
-            bool pressed = UnityEngine.Input.GetKeyDown(diamondNextMaterialModeKey);
-            if (diamondKeypadDecimalAvailable && diamondKeypadDecimalKey != diamondNextMaterialModeKey)
+            bool pressed = diamondNextMaterialModeKey != KeyCode.None
+                && UnityEngine.Input.GetKeyDown(diamondNextMaterialModeKey);
+            if (diamondNextMaterialModeAlternateKey != KeyCode.None && diamondNextMaterialModeAlternateKey != diamondNextMaterialModeKey)
+            {
+                pressed = pressed || UnityEngine.Input.GetKeyDown(diamondNextMaterialModeAlternateKey);
+            }
+
+            return pressed;
+        }
+
+        private bool IsDiamondDebugModeKeyPressed()
+        {
+            bool pressed = diamondDebugModeCycleKey != KeyCode.None
+                && UnityEngine.Input.GetKeyDown(diamondDebugModeCycleKey);
+            if (diamondKeypadDecimalAvailable && diamondKeypadDecimalKey != diamondDebugModeCycleKey)
             {
                 pressed = pressed || UnityEngine.Input.GetKeyDown(diamondKeypadDecimalKey);
             }

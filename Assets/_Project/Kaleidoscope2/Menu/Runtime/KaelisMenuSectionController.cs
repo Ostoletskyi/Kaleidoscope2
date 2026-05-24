@@ -34,6 +34,8 @@ namespace Kaleidoscope2.Menu
         private Action<DiamondFocusShape> premiumShapeHandler;
         private Action<bool> premiumWheelScaleEnabledHandler;
         private Action<float> premiumWheelScaleStepHandler;
+        private Action<int> crystalDebugModeHandler;
+        private Action<CrystalExperimentPresetType> experimentalCrystalPresetHandler;
 
         public KaelisMenuSectionController(RectTransform parent, KaelisMenuAssets assets, KaelisMenuTooltip tooltip)
         {
@@ -70,13 +72,17 @@ namespace Kaleidoscope2.Menu
             Action<PremiumCrystalEffectToggle, bool> effectHandler,
             Action<DiamondFocusShape> shapeHandler,
             Action<bool> wheelScaleEnabledHandler,
-            Action<float> wheelScaleStepHandler)
+            Action<float> wheelScaleStepHandler,
+            Action<int> debugModeHandler,
+            Action<CrystalExperimentPresetType> experimentPresetHandler)
         {
             premiumOpticsHandler = opticsHandler;
             premiumEffectHandler = effectHandler;
             premiumShapeHandler = shapeHandler;
             premiumWheelScaleEnabledHandler = wheelScaleEnabledHandler;
             premiumWheelScaleStepHandler = wheelScaleStepHandler;
+            crystalDebugModeHandler = debugModeHandler;
+            experimentalCrystalPresetHandler = experimentPresetHandler;
         }
 
         public void SetActiveSection(KaelisMenuSection section)
@@ -226,6 +232,19 @@ namespace Kaleidoscope2.Menu
             AddActionChip(actions, "RenamePresetButton", "RENAME", KaelisMenuPanelCommand.ReservedAction, KaelisMenuStyle.TextMuted);
             AddActionChip(actions, "DeletePresetButton", "DELETE", KaelisMenuPanelCommand.ReservedAction, KaelisMenuStyle.Red);
             AddActionChip(actions, "ResetFactoryPresetButton", "RESET FACTORY", KaelisMenuPanelCommand.ReservedAction, KaelisMenuStyle.Cyan);
+
+            AddGroupLabel(panel.Content, "EXPERIMENTAL CRYSTAL LAB");
+            AddExperimentalPresetCard(panel.Content, CrystalExperimentPresetType.Normal, "Normal / Restore Previous", "Restores the user crystal state cached before entering the experimental lab.", KaelisMenuStyle.Cyan);
+            AddExperimentalPresetCard(panel.Content, CrystalExperimentPresetType.AlienArtifactCore, "Alien Artifact Core", "Dense unstable inner crystal with strong internal refraction and visible core formation.", KaelisMenuStyle.GoldSoft);
+            AddExperimentalPresetCard(panel.Content, CrystalExperimentPresetType.PredatorCrystal, "Predator Crystal", "High contrast green-yellow spectral refraction with alien-tech edge behavior.", KaelisMenuStyle.Cyan);
+            AddExperimentalPresetCard(panel.Content, CrystalExperimentPresetType.SingularityPrism, "Singularity Prism", "Pulls the background into a dark central prism with heavy bending.", KaelisMenuStyle.TextMuted);
+            AddExperimentalPresetCard(panel.Content, CrystalExperimentPresetType.RecursiveEye, "Recursive Eye", "Mandala recursion and inner tunnel energy inside the crystal body.", KaelisMenuStyle.Cyan);
+            AddExperimentalPresetCard(panel.Content, CrystalExperimentPresetType.GhostDiamond, "Ghost Diamond", "Almost transparent body with rim clarity and subtle internal echoes.", KaelisMenuStyle.Cyan);
+            AddExperimentalPresetCard(panel.Content, CrystalExperimentPresetType.PlasmaLattice, "Plasma Lattice", "Bright internal grid-like energy with high spectral glow.", KaelisMenuStyle.GoldSoft);
+            AddExperimentalPresetCard(panel.Content, CrystalExperimentPresetType.ObsidianCore, "Obsidian Core", "Dark solid gem with low transparency, strong rim light, and deep shadows.", KaelisMenuStyle.TextMuted);
+            AddExperimentalPresetCard(panel.Content, CrystalExperimentPresetType.BrokenFacetStorm, "Broken Facet Storm", "Aggressive facet distortion with sharp broken highlights and chaotic internal returns.", KaelisMenuStyle.Red);
+            AddExperimentalPresetCard(panel.Content, CrystalExperimentPresetType.LiquidGlass, "Liquid Glass", "Smooth flowing refraction, softer edges, and liquid optical mass.", KaelisMenuStyle.Cyan);
+            AddExperimentalPresetCard(panel.Content, CrystalExperimentPresetType.CelestialReactor, "Celestial Reactor", "Bright core bloom with controlled caustic-like reflections and spectral heat.", KaelisMenuStyle.GoldSoft);
         }
 
         private void BuildSettingsPanel()
@@ -421,6 +440,21 @@ namespace Kaleidoscope2.Menu
             {
                 SelectPresetRow(row, preset);
                 row.Flash();
+            });
+        }
+
+        private void AddExperimentalPresetCard(RectTransform parent, CrystalExperimentPresetType preset, string title, string description, Color accent)
+        {
+            KaelisMenuInteractiveRow row = AddCommandRow(parent, title, description, preset == CrystalExperimentPresetType.Normal ? "RESTORE" : "EXPERIMENT", "ApplyExperimentalCrystalPreset(" + preset + ")", KaelisMenuPanelCommand.ReservedAction, accent, 62f);
+            Button button = row.GetComponent<Button>();
+            button.onClick.RemoveAllListeners();
+            button.onClick.AddListener(() =>
+            {
+                row.Flash();
+                if (experimentalCrystalPresetHandler != null)
+                {
+                    experimentalCrystalPresetHandler(preset);
+                }
             });
         }
 

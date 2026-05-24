@@ -58,6 +58,8 @@ namespace Kaleidoscope2.Control
 
         private Text modeValueText;
         private Text crystalSimulationValueText;
+        private Text crystalDebugModeValueText;
+        private Text experimentalCrystalPresetValueText;
         private Text imagePathText;
         private Text audioPathText;
         private Text guidesValueText;
@@ -271,6 +273,18 @@ namespace Kaleidoscope2.Control
                 crystalSimulationValueText.text = diamond != null ? diamond.CrystalSimulationModeLabel : "2D Performance";
             }
 
+            if (crystalDebugModeValueText != null)
+            {
+                DiamondFocusSettings diamond = state != null ? state.DiamondFocusSettings : null;
+                crystalDebugModeValueText.text = diamond != null ? diamond.DebugModeLabel : "Final Crystal Composite";
+            }
+
+            if (experimentalCrystalPresetValueText != null)
+            {
+                DiamondFocusSettings diamond = state != null ? state.DiamondFocusSettings : null;
+                experimentalCrystalPresetValueText.text = diamond != null ? diamond.ActiveExperimentalCrystalPresetLabel : "Normal";
+            }
+
             if (guidesValueText != null)
             {
                 guidesValueText.text = mirror != null && mirror.GuidesVisible ? "Вкл" : "Выкл";
@@ -442,6 +456,16 @@ namespace Kaleidoscope2.Control
             RectTransform crystalSimulationRow = CreateRow(panel, "Crystal Simulation:", out crystalSimulationValueText);
             CreateButton(crystalSimulationRow, "ToggleCrystalSimulation", "2D / 3D", ButtonColor, ToggleCrystalSimulationMode);
 
+            RectTransform crystalDebugRow = CreateRow(panel, "Debug Mode:", out crystalDebugModeValueText);
+            SetLayoutPreferred(crystalDebugModeValueText.gameObject, 250f, 40f);
+            SetLayoutPreferred(CreateButton(crystalDebugRow, "PreviousCrystalDebugMode", "Previous", MutedButtonColor, () => CycleCrystalDebugMode(-1)).gameObject, 88f, 40f);
+            SetLayoutPreferred(CreateButton(crystalDebugRow, "NextCrystalDebugMode", "Next", ButtonColor, () => CycleCrystalDebugMode(1)).gameObject, 72f, 40f);
+
+            RectTransform experimentRow = CreateRow(panel, "Experiment:", out experimentalCrystalPresetValueText);
+            SetLayoutPreferred(experimentalCrystalPresetValueText.gameObject, 250f, 40f);
+            SetLayoutPreferred(CreateButton(experimentRow, "PreviousCrystalExperiment", "Previous", MutedButtonColor, () => CycleExperimentalCrystalPreset(-1)).gameObject, 88f, 40f);
+            SetLayoutPreferred(CreateButton(experimentRow, "NextCrystalExperiment", "Next", ButtonColor, () => CycleExperimentalCrystalPreset(1)).gameObject, 72f, 40f);
+
             CreateRow(panel, "4D Г:", out hoseOpeningValueText);
             CreateRow(panel, "4D Щ:", out hoseWallCurvatureValueText);
             RectTransform chromaticAberrationRow = CreateRow(panel, "4D CA:", out hoseChromaticAberrationValueText);
@@ -504,7 +528,8 @@ namespace Kaleidoscope2.Control
                 "Diamond Focus: Num8/2/4/6 — разгон вращения вверх / вниз / влево / вправо\n" +
                 "Diamond Focus: Num7/9/1/3 — разгон вращения по диагоналям\n" +
                 "Diamond Focus: Num+ / Num- — следующая / предыдущая форма алмаза, плавный переход 2 секунды\n" +
-                "Diamond Focus: NumDel / Num, — режим материала кристалла\n" +
+                "Diamond Focus: NumDel / Num, — режим отладки кристалла\n" +
+                "Diamond Focus: Num/ — режим материала кристалла\n" +
                 "Diamond Focus: Home / End — повысить / понизить коэффициент преломления 0..10\n" +
                 "Diamond Focus: PageUp / PageDown — свет на кристалл -10..+10\n" +
                 "Diamond Focus: M — включить/выключить отдельный световой риг вокруг кристалла\n" +
@@ -938,6 +963,30 @@ namespace Kaleidoscope2.Control
             }
 
             director.Dispatch(KaleidoscopeCommand.ToggleCrystalSimulationMode());
+            SyncUiFromState();
+        }
+
+        private void CycleCrystalDebugMode(int direction)
+        {
+            if (director == null || director.State == null || director.State.DiamondFocusSettings == null)
+            {
+                return;
+            }
+
+            director.Dispatch(KaleidoscopeCommand.CycleCrystalDebugMode(direction));
+            SyncUiFromState();
+        }
+
+        private void CycleExperimentalCrystalPreset(int direction)
+        {
+            if (director == null || director.State == null || director.State.DiamondFocusSettings == null)
+            {
+                return;
+            }
+
+            DiamondFocusSettings settings = director.State.DiamondFocusSettings;
+            CrystalExperimentPresetType next = CrystalExperimentPreset.Cycle(settings.ActiveExperimentalCrystalPreset, direction);
+            director.Dispatch(KaleidoscopeCommand.ApplyExperimentalCrystalPreset(next));
             SyncUiFromState();
         }
 

@@ -62,6 +62,7 @@ namespace Kaleidoscope2.Core
         [SerializeField] private bool premiumFacetHighlightsEnabled = true;
         [SerializeField] private bool premiumShapeMorphingEnabled = true;
         [SerializeField] private bool premiumDebugOpticalDiagnosticsEnabled;
+        [SerializeField] private DiamondCrystalDebugMode debugMode = DiamondCrystalDebugMode.FinalCrystalComposite;
         [SerializeField, Range(0f, 1f)] private float realMeshAlpha = 0.58f;
         [SerializeField, Range(0f, 1f)] private float transparency;
         [SerializeField, Range(0f, 0.28f)] private float refractionStrength = 0.04f;
@@ -134,6 +135,8 @@ namespace Kaleidoscope2.Core
         public bool PremiumFacetHighlightsEnabled { get { return premiumFacetHighlightsEnabled; } }
         public bool PremiumShapeMorphingEnabled { get { return premiumShapeMorphingEnabled; } }
         public bool PremiumDebugOpticalDiagnosticsEnabled { get { return premiumDebugOpticalDiagnosticsEnabled; } }
+        public DiamondCrystalDebugMode DebugMode { get { return debugMode; } }
+        public string DebugModeLabel { get { return DiamondFocusSettings.GetDebugModeLabel(debugMode); } }
         public string RealMeshPlacementStatus
         {
             get
@@ -206,7 +209,8 @@ namespace Kaleidoscope2.Core
                     + ", opal toggle " + FormatEnabled(PremiumOpalIridescenceEnabled)
                     + ", facet highlights " + FormatEnabled(PremiumFacetHighlightsEnabled)
                     + ", shape morphing " + FormatEnabled(PremiumShapeMorphingEnabled)
-                    + ", optical diagnostics " + FormatEnabled(PremiumDebugOpticalDiagnosticsEnabled);
+                    + ", optical diagnostics " + FormatEnabled(PremiumDebugOpticalDiagnosticsEnabled)
+                    + ", debug mode " + DebugModeLabel;
             }
         }
 
@@ -260,6 +264,7 @@ namespace Kaleidoscope2.Core
             premiumFacetHighlightsEnabled = diamondSettings.PremiumFacetHighlightsEnabled;
             premiumShapeMorphingEnabled = diamondSettings.PremiumShapeMorphingEnabled;
             premiumDebugOpticalDiagnosticsEnabled = diamondSettings.PremiumDebugOpticalDiagnosticsEnabled;
+            debugMode = diamondSettings.DebugMode;
             ApplyMenuOptics(diamondSettings, lightRigSettings);
             sourceTextureStatus = diamondSettings.KaleidoscopeTexBindingStatus;
         }
