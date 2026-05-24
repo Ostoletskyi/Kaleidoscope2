@@ -1,348 +1,427 @@
-# AGENTS.md — KAELIS Menu Actions Mode
+# AGENTS.md — KAELIS Crystal + Menu Integration Mode
 
 ## 0. Main Mission
 
-The startup menu visuals are now close enough to continue with interaction architecture.
+KAELIS is now entering a crystal-control integration phase.
 
-The new priority is:
+The goal is not to add more decorative placeholders. The goal is to make every menu setting lead to a real, visible, meaningful visual result.
 
-```text
-Turn KAELIS menu buttons into real, safe, well-structured actions.
-```
+Main objective:
 
-The menu must stop being only a beautiful shell. Each button must open or trigger the correct menu section/action through a clean command layer.
 
-This document replaces the previous “visual-only” menu focus.
+Every menu control must map to a real parameter, command, or explicitly marked RESERVED future binding.
+Premium3D crystals must become expressive, physically volumetric versions of the Classic2D crystal/form language.
 
----
 
-## 1. Non-Negotiable Protected Systems
+The user wants dramatic, visible, sometimes surprising image transformation:
 
-Do not modify these systems directly during menu action work:
 
-```text
-Classic2D rendering
-Premium3D rendering
-DiamondFocus
-crystal shaders
-Mirror/**
-Source/**
-RuntimeMenuController internals
-OutputPreview internals
-camera/render pipeline logic
-kaleidoscope render modules
-```
+“so that the image can be admired and be surprising — like: was this even possible?”
 
-Exception: a menu button may call an already existing public command/method if that method is clearly intended for user interaction.
 
-Do not duplicate render logic inside menu code.
+Tiny parameter changes are not enough.
 
 ---
 
-## 2. Menu Is Allowed To Change
+## 1. Protected Baseline
 
-Codex may freely modify:
+The Classic2D mode is the visual quality baseline and must not be broken.
 
-```text
+Classic2D rules:
+
+- do not degrade Classic2D visuals;
+- do not rewrite Classic2D shader logic unless explicitly approved;
+- do not remove existing Classic2D shape/form behavior;
+- use Classic2D as reference for shape language and visual richness.
+
+Premium3D rules:
+
+- Premium3D is the active improvement zone;
+- Premium3D may be refactored if needed;
+- Premium3D must receive the same shape/form family as Classic2D, but as real 3D volumetric crystals;
+- Premium3D optics must be improved until controls produce clear visible results.
+
+Menu rules:
+
+- menu must expose meaningful controls;
+- menu controls must not lie;
+- controls without real binding must be marked RESERVED;
+- controls with real binding must visibly affect the result.
+
+---
+
+## 2. Allowed Work Areas
+
+Codex may work in these areas for this phase:
+
+
 Assets/_Project/Kaleidoscope2/Menu/**
-```
+Assets/_Project/Kaleidoscope2/DiamondFocus/**
+Assets/_Project/Kaleidoscope2/CrystalStage3D/**
+Assets/_Project/Kaleidoscope2/Diagnostics/**
 
-Allowed inside Menu/**:
 
-- menu section panels;
-- button callbacks;
-- menu navigation;
-- UI state management;
-- menu-only overlays;
-- menu-only animations;
-- menu-only command adapters;
-- menu-only placeholder panels;
-- menu-only tests;
-- menu-only asset helpers.
+Codex may also inspect, but not blindly rewrite:
 
-Codex may create new menu-only files such as:
 
-```text
-KaelisMenuActionRouter.cs
-KaelisMenuSectionController.cs
-KaelisMenuSectionPanel.cs
-KaelisModesPanel.cs
-KaelisOpticsPanel.cs
-KaelisPresetsPanel.cs
-KaelisSettingsPanel.cs
-KaelisExitPanel.cs
-KaelisMenuCommandBridge.cs
-KaelisMenuActionSmokeTest.cs
-```
+Classic2D-related code
+Mirror/**
+Input/**
+KaleidoscopeDirector.cs
+KaleidoscopeCommand.cs
+CrystalPresentationModule.cs
+RealCrystalVolumetricMeshFactory.cs
+RealCrystalOptics.shader
+SpatialCrystalStage3D.cs
+CrystalSharedSettings.cs
+
+
+If a safe public command/API is missing, Codex may propose or add a minimal clean bridge, but must report it.
 
 ---
 
-## 3. Architecture Rule
+## 3. Forbidden / High-Risk Areas
 
-Menu buttons must not directly poke random runtime objects.
+Do not casually modify:
 
-Preferred architecture:
 
-```text
-Button click
-    -> KaelisMenuActionRouter
-        -> SectionController or CommandBridge
-            -> safe public runtime command OR placeholder
-```
+Source/**
+OutputPreview internals
+RuntimeMenuController internals
+camera/render pipeline logic
+global render settings
+scene-wide camera setup
+Classic2D shader internals
 
-Do not let button callbacks contain large business logic.
 
-Bad:
+Exception:
+If the planned fix absolutely requires a change outside the allowed zone, Codex must first report:
 
-```csharp
-button.onClick.AddListener(() => {
-    FindObjectOfType<SomeModule>().someField = 10;
-    FindObjectOfType<AnotherModule>().Reset();
-    Camera.main.enabled = false;
-});
-```
-
-Good:
-
-```csharp
-button.onClick.AddListener(() =>
-    actionRouter.OpenSection(KaelisMenuSection.Modes));
-```
-
-or:
-
-```csharp
-button.onClick.AddListener(() =>
-    actionRouter.TriggerEnterExperience());
-```
+- why it is required;
+- what file must change;
+- what behavior is protected;
+- expected risk;
+- validation plan.
 
 ---
 
-## 4. Button Responsibilities
+## 4. Parameter Truth Rule
 
-### ENTER EXPERIENCE
+Every menu setting must be audited and classified:
 
-Purpose: start the main user interaction.
 
-Required behavior:
-- trigger the same underlying action as middle mouse click, if that is the current primary runtime menu/action;
-- do not create a parallel fake implementation;
-- reuse the same safe public command/method;
-- hide or transition the startup menu only if that is part of the same intended behavior.
+REAL_BINDING
+PARTIAL_BINDING
+RESERVED
+DEAD_CONTROL
+BROKEN_BINDING
 
-If the middle mouse click currently opens/toggles the runtime control menu, Enter Experience must do the same.
 
-### DEMO MODE
+Definitions:
 
-Demo Mode is intentionally excluded from this action wiring stage.
+### REAL_BINDING
+The UI control changes a real runtime parameter and the visual result is observable.
 
-Do not implement full Demo Mode yet.
+### PARTIAL_BINDING
+The UI control changes something, but the visual result is weak, incomplete, or only affects one mode.
 
-Allowed:
-- keep current toggle state;
-- show placeholder status;
-- prepare future hook only.
+### RESERVED
+The UI control is intentionally future-facing and clearly labeled as unavailable.
 
-Do not wire audio/images/presets until a dedicated Demo Mode task.
+### DEAD_CONTROL
+The UI control exists but leads nowhere.
 
-### MODES
+### BROKEN_BINDING
+The UI control tries to call something but fails, does nothing, or changes the wrong parameter.
 
-Purpose: open the Modes section panel.
+Dead controls are not allowed to remain silently.
 
-This section should contain mode choices such as:
+---
 
-```text
-Classic 2D
-Premium 3D Crystal
-4D Tunnel / Funnel
-5D Endless Flight
-Experimental / Coming Soon
-```
+## 5. Required Audit For Every Setting
 
-Only bind to real mode switching if a safe public command already exists.
+For each menu setting, Codex must answer:
 
-Otherwise use clear placeholders and logs.
 
-### OPTICS
+Control name:
+Panel:
+Current UI range:
+Current default:
+Current binding target:
+Affected runtime file/class:
+Affected shader/material property if any:
+Affected modes:
+Expected visual effect:
+Actual observed/measured effect:
+Is range strong enough?
+Recommended range:
+Status: REAL / PARTIAL / RESERVED / DEAD / BROKEN
+Required fix:
 
-Purpose: open the Optics section panel.
 
-This section contains visual/optical controls such as:
+The audit must include:
 
-```text
-Refraction
-Reflection
-Prism Dispersion
-Facet Highlights
-Bloom / Glow
-Caustics
-Background Distortion
-Crystal Transparency
-```
+- Modes panel;
+- Optics panel;
+- Presets panel;
+- Settings panel;
+- Production/Recording controls if present;
+- Enter Experience content-selection flow;
+- mouse wheel crystal scaling;
+- crystal material mode toggles;
+- mirror/refraction/reflection controls.
 
-Do not directly modify protected shaders or render modules unless a safe public parameter API already exists.
+---
 
-If safe binding is unclear, create placeholder controls.
+## 6. Premium3D Crystal Requirements
 
-### PRESETS
+Premium3D crystals must become real visual objects, not flat transparent overlays.
 
-Purpose: open the Presets section panel.
-
-This section contains:
-
-```text
-Factory Presets
-User Presets
-Apply
-Save Current
-Rename
-Delete
-Reset Factory
-```
-
-Do not invent persistence unless the project already has a safe preset system.
-
-Placeholders are acceptable.
-
-### SETTINGS
-
-Purpose: open the Settings section panel.
-
-This section contains application/system settings:
-
-```text
-Display
-Audio
-Controls
-System
-Diagnostics
-```
-
-Settings must not become a dumping ground for visual optics. Visual controls belong in Optics.
-
-### EXIT
-
-Purpose: open an exit confirmation panel.
+### 6.1 Opacity / transparency
+Audit whether transparency is fully controlled.
 
 Required:
-- first click on Exit opens confirmation;
-- do not immediately quit;
-- panel shows Cancel and Exit Application;
-- Cancel returns to previous/neutral menu state;
-- Exit Application calls Application.Quit in build and logs in Editor.
+
+- no unwanted direct see-through center;
+- no “soap bubble” look;
+- transparency must be controllable;
+- Direct Transparency must be a real setting;
+- default should hide direct background enough to feel like a gemstone.
+
+### 6.2 Mouse wheel scaling
+All Premium3D crystals and all Premium3D crystal shapes must support mouse-wheel scaling.
+
+Required:
+
+
+Mouse wheel up/down changes crystal size.
+Range must be large and expressive.
+Suggested size range: 20% – 300%.
+Default: 100%.
+
+
+No shape may ignore scaling.
+
+### 6.3 Absolute mirror mode
+There must be a real absolute mirror / polished mirror mode.
+
+Required:
+
+- crystal facets become mirror-polished;
+- reflection dominates;
+- direct transparency is minimized;
+- hidden reflection/background environment is visible through facets;
+- should look like luxury mirror/prism material.
+
+If not currently implemented, mark as BROKEN/PARTIAL and plan a fix.
+
+### 6.4 Facet refraction
+Facet-based refraction must be real and visible.
+
+Required:
+
+- different facets bend background differently;
+- refraction direction depends on facet normals;
+- image distortion must be significant at high values;
+- prism/dispersion must split light/color near facets;
+- result must not be just a smooth lens/bubble.
+
+### 6.5 Internal reflections
+At high values, crystal must show deeper internal echo/reflection layers.
+
+Required:
+
+- stronger internal bounce feeling;
+- more depth;
+- no flat glass disc look.
+
+### 6.6 Premium shape language
+Premium3D must inherit the shape/form language of Classic2D.
+
+Meaning:
+
+
+Classic2D remains 2D as before.
+Premium3D gets corresponding volumetric 3D crystal versions of those shapes.
+
+
+The target is the same family of visual shapes/forms, but with depth, facets, thickness, and physical crystal volume.
 
 ---
 
-## 5. Section System Rule
+## 7. Shape Transfer Rule: Classic2D -> Premium3D
 
-Only one section panel may be open at a time.
+Codex must inspect the Classic2D shape/template system and identify:
 
-Expected behavior:
+- what forms/templates exist;
+- how they are named;
+- what parameters define them;
+- which are user-facing;
+- which are internal.
 
-```text
-Click MODES    -> Modes panel opens
-Click OPTICS   -> Optics panel replaces Modes panel
-Click PRESETS  -> Presets panel replaces current panel
-Click SETTINGS -> Settings panel replaces current panel
-Click EXIT     -> Exit confirmation replaces current panel or overlays it
-ESC            -> follows existing startup menu behavior
-```
+Then map each Classic2D form to a Premium3D volumetric counterpart.
 
-The right preview panel should remain visually present whenever possible.
+Example mapping format:
 
-Section panels should feel like premium glass overlays, not debug UI.
 
----
+Classic2D shape: Star / radial shard / diamond / polygon / mandala / ...
+Premium3D shape: volumetric star-cut gem / faceted diamond / prism object / ...
+Mesh requirement: real side faces, front/back depth, non-flat thickness.
+Status: existing / needs new mesh / needs factory method.
 
-## 6. Real Binding vs Placeholder Rule
 
-Codex must clearly distinguish:
-
-```text
-REAL BINDING
-PLACEHOLDER
-UNSAFE / NEEDS FUTURE TASK
-```
-
-Do not pretend a placeholder changes the engine.
-
-If a button only logs intent, report it honestly.
-
-Example report:
-
-```text
-MODES / Classic2D: placeholder only; no safe public command found.
-OPTICS / Bloom: placeholder only; real binding deferred.
-ENTER EXPERIENCE: real binding; calls same path as middle mouse click.
-```
+Required:
+- no fake 2D extrusion only;
+- must have real volume;
+- must preserve recognizable silhouette from Classic2D;
+- must work with material/optics controls;
+- must support mouse-wheel scaling.
 
 ---
 
-## 7. Visual Direction For Panels
+## 8. Menu Binding Requirements
 
-New section panels must match current KAELIS style:
+Menu controls must be connected through a safe binding architecture:
 
-- blue/cyan glass;
-- gold accents;
-- gemstone luxury;
-- clear typography;
-- no Unity-default controls;
-- no debug wireframe;
-- no flat grey panels;
-- no noisy technical clutter.
 
-Controls should be visually premium even when placeholders.
+Menu UI
+  -> KaelisMenuActionRouter
+  -> KaelisMenuCommandBridge
+  -> safe runtime command/settings object
+  -> render/crystal module
 
----
 
-## 8. Safety Rules
+Do not wire sliders by random `FindObjectOfType` calls unless no safer path exists and it is reported.
 
-Before implementation:
+Preferred:
 
-- run git status;
-- read AGENTS.md and ROADMAP.md;
-- inspect current menu action code;
-- trace middle mouse click action before wiring Enter Experience.
+- shared settings object;
+- explicit command;
+- public method on module;
+- central dispatcher.
 
-During implementation:
-
-- keep changes inside Menu/** if possible;
-- do not touch protected rendering systems;
-- do not use GameObject.Find or Camera.main unless already project-approved;
-- avoid FindObjectOfType unless there is no safer existing reference;
-- prefer serialized references or explicit command bridge;
-- keep menu tests updated.
-
-After implementation:
-
-- run compile;
-- run menu smoke test;
-- run git diff --name-only;
-- report protected path check;
-- report real bindings vs placeholders.
+Every real binding must have:
+- clamp;
+- default;
+- min/max;
+- reset;
+- tooltip;
+- visible value;
+- validation.
 
 ---
 
-## 9. Validation Requirements
+## 9. Range Philosophy
 
-A task is not done unless:
+Ranges must be large enough to produce dramatic visual variation.
 
-- all main menu buttons have explicit behavior;
-- Demo Mode is left intentionally unchanged except safe state display;
-- Enter Experience reuses the same action path as middle mouse click;
-- section switching works;
-- Exit confirmation works;
-- only one section panel is open at a time;
-- no protected systems changed;
-- compile passes;
-- smoke test covers button actions.
+But they must not produce:
+- NaN;
+- white screen;
+- black screen;
+- broken mesh;
+- invisible crystal;
+- permanent overexposure;
+- camera clipping;
+- GPU errors.
+
+For each range, Codex must decide:
+
+
+Safe default range
+Creative extended range
+Hard clamp range
+
+
+Example:
+
+
+Refraction Strength:
+default 1.0
+UI range 0.0 – 5.0
+hard clamp 0.0 – 8.0
+
 
 ---
 
-## 10. Final Principle
+## 10. Diagnostics Requirement
 
-Do not build a beautiful dead menu.
+Codex must add or extend menu/crystal diagnostics where useful.
 
-Do not wire buttons by hacking render modules.
+Diagnostics should report:
 
-Build a clean action layer between the beautiful KAELIS menu and the engine.
+- active crystal shape;
+- active crystal material;
+- crystal scale percent;
+- transparency/direct transmission;
+- mirror strength;
+- refraction strength;
+- dispersion strength;
+- whether parameter bindings are real;
+- whether current menu slider changed runtime state;
+- whether physical stage RT is active;
+- whether hidden reflection/background texture is assigned.
+
+---
+
+## 11. Planning Before Implementation
+
+For this phase, Codex must not jump straight into code.
+
+Required workflow:
+
+
+Stage 1: Audit and map existing controls/parameters.
+Stage 2: Plan fixes and shape transfer.
+Stage 3: Implement only after approval.
+
+
+The audit must be concrete and file-based.
+
+No vague statements like:
+- “improved optics”
+- “enhanced crystal”
+- “made it better”
+
+Use exact file, class, method, property names.
+
+---
+
+## 12. Validation
+
+Every implementation pass must include:
+
+- Unity compile result;
+- Editor compile result;
+- smoke test if available;
+- Play Mode manual checklist;
+- `git diff --name-only`;
+- protected path check;
+- before/after report for each affected control;
+- report of real vs reserved controls.
+
+Required visual checks:
+
+- all Premium3D shapes scale with mouse wheel;
+- direct see-through is reduced/controlled;
+- absolute mirror mode visibly works;
+- refraction produces strong facet-based distortion at high values;
+- prism dispersion is visible at high values;
+- Classic2D is unchanged;
+- menu still functions.
+
+---
+
+## 13. Final Principle
+
+KAELIS must not have decorative controls.
+
+If a slider exists, it must either:
+
+
+1. visibly control something real,
+or
+2. clearly say RESERVED.
+
+
+Premium3D must become the volumetric, physical, expressive continuation of the Classic2D shape language.

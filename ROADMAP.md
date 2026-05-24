@@ -1,485 +1,450 @@
-# ROADMAP.md — KAELIS Menu Actions Roadmap
+# ROADMAP.md — KAELIS Crystal + Menu Binding Roadmap
 
 ## Strategy
 
-The visual foundation of the KAELIS startup menu is now good enough to begin interaction work.
+KAELIS is moving from visual menu shell to real crystal-control integration.
 
-The next goal is:
+The user wants three stages:
 
-```text
-Make the menu functional without damaging the rendering engine.
-```
 
-The menu must become an interaction shell with clean section panels and safe command routing.
+1. New AGENTS.md and ROADMAP.md for crystals and menu binding.
+2. Careful Codex planning.
+3. Implementation of the approved plan.
+
+
+This roadmap defines the work from parameter audit to Premium3D crystal improvement.
 
 ---
 
 # PHASE 0 — Safety Checkpoint
 
-Goal: start from a safe state.
+Goal:
+Start from a safe state.
 
 Tasks:
 
-- run git status;
-- confirm current branch;
-- commit current visual menu state if approved;
-- verify changed files are limited to Menu/**;
+- run `git status --short`;
+- confirm branch;
+- identify dirty files;
+- commit or stash current stable menu work if needed;
 - read AGENTS.md;
-- read ROADMAP.md.
+- read ROADMAP.md;
+- compile current state before audit if possible.
 
 Acceptance:
 
-- rollback point exists;
-- no protected systems are dirty.
+- current baseline is known;
+- no accidental broad rewrite begins.
 
 ---
 
-# PHASE 1 — Action Audit
+# PHASE 1 — Full Menu Parameter Binding Audit
 
-Goal: understand current input/action paths before wiring buttons.
+Goal:
+Determine exactly what every menu control does.
 
-Tasks:
+Audit all controls in:
 
-- inspect startup menu button callbacks;
-- inspect middle mouse click handling;
-- identify what action middle mouse click currently triggers;
-- identify existing public command methods;
-- identify whether RuntimeMenuController has safe public methods;
-- identify any existing mode switch API;
-- identify existing settings/preset APIs if present.
 
-Report:
-
-```text
-Button/action path found
-Safe public methods available
-Unsafe direct module access to avoid
-Real bindings possible now
-Placeholders required
-```
-
-Acceptance:
-
-- Enter Experience target action is known;
-- safe command boundary is clear.
-
----
-
-# PHASE 2 — Menu Action Router
-
-Goal: create a clean button action layer.
-
-Create menu-only class:
-
-```text
-KaelisMenuActionRouter
-```
-
-Responsibilities:
-
-- receive button actions;
-- open/close sections;
-- route Enter Experience;
-- route Exit confirmation;
-- expose DemoMode state without implementing Demo Mode;
-- keep one active section at a time;
-- call command bridge when real runtime action is safe.
-
-Acceptance:
-
-- menu buttons no longer contain large inline logic;
-- action flow is centralized.
-
----
-
-# PHASE 3 — Command Bridge
-
-Goal: safely connect menu UI to existing runtime actions.
-
-Create menu-only class if needed:
-
-```text
-KaelisMenuCommandBridge
-```
-
-Responsibilities:
-
-- call existing safe public runtime commands;
-- provide clear placeholder logs when safe binding does not exist;
-- avoid direct manipulation of protected modules.
-
-Important:
-
-Do not invent duplicate render behavior.
-
-Acceptance:
-
-- Enter Experience uses same action as middle mouse click where possible;
-- unsafe bindings are not faked.
-
----
-
-# PHASE 4 — Section Controller
-
-Goal: implement section navigation.
-
-Create:
-
-```text
-KaelisMenuSectionController
-```
-
-Responsibilities:
-
-- register section panels;
-- show one active section at a time;
-- hide previous section;
-- handle neutral/closed state;
-- provide soft fade/slide transitions.
-
-Sections:
-
-```text
 Modes
 Optics
 Presets
 Settings
 Exit
-```
+Enter Experience
+Production / Showcase / Recording if present
 
-Demo Mode is excluded from section implementation for now.
 
-Acceptance:
+For each control report:
 
-- clicking menu buttons opens corresponding panels;
-- only one panel visible;
-- transitions feel premium.
 
----
+Control name
+Panel
+UI type: row / button / slider / toggle
+Current range
+Default value
+Tooltip/hotkeys
+Binding target
+File/class/method/property
+Affected mode(s)
+Expected visual effect
+Actual result
+Binding status: REAL / PARTIAL / RESERVED / DEAD / BROKEN
+Recommended fix
 
-# PHASE 5 — Modes Panel
-
-Goal: create functional Modes UI shell.
-
-Panel content:
-
-```text
-Classic 2D
-Premium 3D Crystal
-4D Tunnel / Funnel
-5D Endless Flight
-Experimental / Coming Soon
-```
-
-Each entry should include:
-
-- title;
-- short description;
-- selected/active state;
-- disabled state if not implemented.
-
-Binding rule:
-
-- bind only if safe public command exists;
-- otherwise placeholder log.
 
 Acceptance:
 
-- Modes button opens Modes panel;
-- cards look premium;
-- no rendering modules directly modified.
+- no menu control remains unknown;
+- dead controls are identified;
+- fake/reserved controls are clearly separated from real controls.
 
 ---
 
-# PHASE 6 — Optics Panel
+# PHASE 2 — Optics Parameter Effect Audit
 
-Goal: create visual optics controls shell.
+Goal:
+Analyze whether optics ranges are strong enough and whether they lead to real visual change.
 
-Controls:
+Controls to audit:
 
-```text
-Refraction
-Reflection
-Prism Dispersion
-Facet Highlights
+
+Brightness
+Contrast
 Bloom / Glow
-Caustics
+Facet Highlights
+Refraction Strength
+Reflection Strength
+Internal Reflections
 Background Distortion
-Crystal Transparency
-```
+Direct Transparency
+Prism Dispersion
+Chromatic Aberration
+Rainbow Edge
+Spectral Split
+Caustics
+Spotlight Shadow
+Mirror Backdrop
+Crystal Depth
+Absolute Mirror / Mirror Material
 
-Control types:
 
-- premium sliders;
-- toggles;
-- small info labels;
-- disabled state when unsupported.
+For each:
 
-Binding rule:
 
-- bind only to safe public APIs;
-- otherwise placeholder log.
+Current shader/material/property target
+Current range
+Default
+What it should visually do
+What it actually does
+Whether effect is strong enough
+Proposed extended range
+Safety clamp
+Required implementation fix
+
 
 Acceptance:
 
-- Optics panel exists;
-- controls are visually consistent;
-- no shader/render hack.
+- all optics controls either work or are marked RESERVED/BROKEN;
+- ranges are proposed for dramatic visible effect.
 
 ---
 
-# PHASE 7 — Presets Panel
+# PHASE 3 — Premium3D Crystal Transparency / Mirror / Refraction Audit
 
-Goal: create presets shell.
+Goal:
+Answer the user’s core questions.
 
-Content:
+Questions:
 
-```text
-Factory Presets
-User Presets
-Apply
-Save Current
-Rename
-Delete
-Reset Factory
-```
 
-Initial presets may be placeholders:
+Is transparency fully removed/controlled?
+Can the center still show direct background incorrectly?
+Does mouse wheel scale every crystal shape?
+Does absolute mirror mode really work?
+Does facet refraction distort light correctly?
+Does dispersion visibly split light?
+Do internal reflections create depth?
 
-```text
+
+Tasks:
+
+- inspect RealCrystalOptics shader/material path;
+- inspect CrystalSharedSettings;
+- inspect SpatialCrystalStage3D;
+- inspect RealCrystalVolumetricMeshFactory;
+- inspect input handling for mouse wheel scaling;
+- inspect material presets and gem modes;
+- inspect hidden reflection/background setup.
+
+Acceptance:
+
+- each question has a concrete answer;
+- broken/partial items have a fix plan.
+
+---
+
+# PHASE 4 — Classic2D Shape Template Audit
+
+Goal:
+Identify the Classic2D shape/form language that must be transferred to Premium3D.
+
+Tasks:
+
+- inspect Classic2D mode shape/template code;
+- list all available shapes/templates/forms;
+- identify user-facing shape names;
+- identify parameters defining the shapes;
+- identify morph/transition behavior if any;
+- identify how these shapes are selected.
+
+Output table:
+
+
+Classic2D shape name
+File/class
+Parameters
+Visual description
+User-facing?
+Premium3D equivalent needed?
+Current Premium3D equivalent exists?
+Implementation difficulty
+
+
+Acceptance:
+
+- Classic2D shape vocabulary is fully known;
+- no guesswork before Premium3D mesh work.
+
+---
+
+# PHASE 5 — Premium3D Shape Transfer Plan
+
+Goal:
+Plan volumetric 3D equivalents of Classic2D shapes.
+
+For each Classic2D shape:
+
+
+Premium3D mesh type
+Silhouette preservation strategy
+Depth/thickness strategy
+Facet generation strategy
+Front/back/side face strategy
+UV/reflection/refraction compatibility
+Mouse wheel scaling support
+Material compatibility
+Morph compatibility
+Risk level
+
+
+Required:
+
+- Premium3D shape must be physically volumetric;
+- not just a flat billboard;
+- must have real side faces and depth;
+- must support optical material controls.
+
+Acceptance:
+
+- approved list of Premium3D shape tasks exists.
+
+---
+
+# PHASE 6 — Menu Binding Architecture Plan
+
+Goal:
+Plan how menu controls connect to runtime safely.
+
+Required architecture:
+
+
+Menu slider/toggle
+ -> KaelisMenuActionRouter
+ -> KaelisMenuCommandBridge
+ -> KaelisCrystalSettings / command / module API
+ -> crystal runtime module / material / shader property
+
+
+Tasks:
+
+- identify existing safe APIs;
+- identify missing APIs;
+- propose minimal new APIs;
+- avoid random direct object poking;
+- define data model for optics settings.
+
+Potential classes:
+
+
+KaelisCrystalOpticsSettings
+KaelisCrystalShapeSettings
+KaelisCrystalMaterialSettings
+KaelisPremiumCrystalController
+KaelisMenuCrystalBindingBridge
+
+
+Acceptance:
+
+- every real menu control has a planned binding target;
+- no dead sliders remain.
+
+---
+
+# PHASE 7 — Implementation Stage A: Binding Truth
+
+Goal:
+Make menu controls truthful before deep visual changes.
+
+Tasks:
+
+- mark dead controls as RESERVED or bind them;
+- ensure tooltips show real binding status;
+- ensure sliders update actual settings object;
+- add diagnostics showing value changes;
+- do not yet rewrite mesh system.
+
+Acceptance:
+
+- menu values are no longer fake;
+- diagnostics show control -> setting flow.
+
+---
+
+# PHASE 8 — Implementation Stage B: Mouse Wheel Scaling
+
+Goal:
+All Premium3D crystal shapes support mouse-wheel scaling.
+
+Requirements:
+
+
+Range: 20% – 300%
+Default: 100%
+Works for every Premium3D shape
+No pulsing/breathing
+No background counter-scaling
+No shape-specific failure
+
+
+Tasks:
+
+- find current scale control path;
+- centralize Premium3D crystal scale;
+- bind mouse wheel and Settings control if applicable;
+- update diagnostics.
+
+Acceptance:
+
+- all Premium3D shapes scale consistently.
+
+---
+
+# PHASE 9 — Implementation Stage C: Transparency / Mirror / Refraction
+
+Goal:
+Fix the core optical behavior.
+
+Tasks:
+
+- reduce unwanted direct transparency;
+- make Direct Transparency control real;
+- make Absolute Mirror mode real;
+- strengthen reflection/background facet sampling;
+- strengthen facet-normal-based refraction;
+- strengthen prism dispersion;
+- add safe clamps;
+- update presets.
+
+Acceptance:
+
+- crystal no longer feels like soap bubble;
+- high refraction visibly distorts background;
+- absolute mirror clearly reflects environment;
+- prism split is visible.
+
+---
+
+# PHASE 10 — Implementation Stage D: Premium3D Shape Transfer
+
+Goal:
+Create 3D volumetric versions of Classic2D crystal forms.
+
+Tasks:
+
+- implement selected shape factory methods;
+- preserve Classic2D silhouettes;
+- add real volume/depth;
+- support material/optics controls;
+- support mouse-wheel scaling;
+- support shape switching/morph if feasible.
+
+Acceptance:
+
+- Premium3D offers recognizable counterparts to Classic2D shapes;
+- Classic2D remains unchanged.
+
+---
+
+# PHASE 11 — Presets Integration
+
+Goal:
+Connect presets to real crystal/menu parameters.
+
+Tasks:
+
+- define factory presets;
+- set shape/material/optics values;
+- clamp ranges;
+- apply through command bridge;
+- mark user presets RESERVED if persistence not ready.
+
+Factory presets:
+
+
 Diamond Palace
 Blue Ice
 Golden Prism
 Ruby Night
 Emerald Depth
 Opal Dream
-Dark Luxury
 Cosmic Glass
-```
+Dark Luxury
+Absolute Mirror
 
-Binding rule:
-
-- do not implement persistence unless safe preset system exists;
-- placeholders acceptable.
 
 Acceptance:
 
-- Presets button opens panel;
-- cards/list look premium;
-- no fake persistence claim.
+- applying a preset visibly changes Premium3D output.
 
 ---
 
-# PHASE 8 — Settings Panel
+# PHASE 12 — Validation / Regression Pass
 
-Goal: create system settings shell.
+Goal:
+Prove the work did not break core modes.
 
-Groups:
+Checklist:
 
-```text
-DISPLAY
-- Resolution
-- Fullscreen
-- VSync
-- Target FPS
 
-AUDIO
-- Master Volume
-- Menu Volume
-- Demo Volume placeholder
+Classic2D unchanged
+Premium3D shows volumetric crystal
+All Premium3D shapes scale 20–300%
+Direct transparency controlled
+Absolute mirror works
+Refraction strong at high values
+Dispersion visible at high values
+Menu controls real or RESERVED
+No dead sliders
+No pulsing/breathing regression
+No duplicate physical/RT output regression
+Compile passes
+Smoke tests pass
 
-CONTROLS
-- Mouse Wheel Crystal Scale
-- Hotkeys
-- UI Scale
-
-SYSTEM
-- Show FPS
-- Show Diagnostics
-- Reset Settings
-```
-
-Binding rule:
-
-- safe settings may be bound;
-- otherwise placeholders.
 
 Acceptance:
 
-- Settings panel exists;
-- categories are clear;
-- no visual optics mixed into Settings.
+- user can test and confirm visual improvement.
 
 ---
 
-# PHASE 9 — Exit Confirmation
+# Current Active Task For Codex
 
-Goal: prevent accidental exit.
+After replacing AGENTS.md and ROADMAP.md, run:
 
-Behavior:
 
-- Exit button opens confirmation panel;
-- panel says “Exit KAELIS?”;
-- buttons:
-  - Cancel;
-  - Exit Application.
-- Cancel closes panel;
-- Exit Application quits in build and logs in editor.
+PLAN ONLY:
+Perform a full audit and planning pass for KAELIS crystal/menu parameter bindings.
+Do not implement yet.
+Answer exactly which menu controls lead to which runtime parameters, which are dead, which are reserved, whether ranges are strong enough, whether Premium3D transparency/mirror/refraction/scaling work, and how Classic2D shapes should be transferred to volumetric Premium3D forms.
 
-Acceptance:
-
-- no instant quit from first click;
-- confirmation looks premium.
 
 ---
 
-# PHASE 10 — Demo Mode Reserved
+# Final Principle
 
-Goal: keep Demo Mode untouched until dedicated task.
+Do not add more fake controls.
 
-Allowed:
-
-- toggle state visual;
-- status text update;
-- placeholder log.
-
-Forbidden for now:
-
-- audio playback wiring;
-- image cycling;
-- preset demo choreography;
-- demo timeline;
-- demo content automation.
-
-Acceptance:
-
-- Demo Mode not accidentally implemented halfway.
-
----
-
-# PHASE 11 — Smoke Tests
-
-Goal: protect menu action system.
-
-Update/create:
-
-```text
-KaelisMenuActionSmokeTest
-```
-
-Test:
-
-- Enter Experience callback exists;
-- Modes opens Modes panel;
-- Optics opens Optics panel;
-- Presets opens Presets panel;
-- Settings opens Settings panel;
-- Exit opens confirmation;
-- Cancel closes Exit panel;
-- only one section visible at a time;
-- Demo Mode remains state-only;
-- menu hierarchy builds.
-
-Acceptance:
-
-- smoke test passes.
-
----
-
-# PHASE 12 — Visual Interaction Polish
-
-Goal: make action panels feel part of KAELIS.
-
-Tasks:
-
-- panel fade/slide transitions;
-- hover states;
-- selected section indicator;
-- glass overlay styling;
-- clear section titles;
-- back/close affordance if needed.
-
-Acceptance:
-
-- section panels look premium;
-- no debug UI;
-- no ugly default Unity controls.
-
----
-
-# PHASE 13 — Report And Commit
-
-Goal: finish safely.
-
-Required final report:
-
-```text
-Files changed
-Section architecture
-Button actions
-Real bindings vs placeholders
-Protected systems untouched
-Compile result
-Smoke test result
-git diff --name-only
-```
-
-Commit message suggestion:
-
-```text
-Add KAELIS startup menu action sections
-```
-
----
-
-## Current Active Task
-
-Next Codex task:
-
-```text
-Plan and implement menu action routing and section panels for Modes, Optics, Presets, Settings, and Exit. Keep Demo Mode reserved. Make Enter Experience call the same action as middle mouse click.
-```
-
----
-
-## Forbidden Throughout
-
-Do not touch:
-
-```text
-Classic2D
-Premium3D rendering
-DiamondFocus
-crystal shaders
-Mirror/**
-Source/**
-RuntimeMenuController internals
-OutputPreview internals
-cameras
-render pipelines
-```
-
----
-
-## Allowed Throughout
-
-Inside Menu/**, Codex may:
-
-```text
-create action router
-create section controller
-create section panels
-create command bridge
-create menu smoke tests
-adjust menu layout for panels
-add menu-only transitions
-add placeholder controls
-```
-
----
-
-## Final Principle
-
-First make the menu safe and functional.
-
-Then bind the real engine controls one by one in separate tasks.
+Make the crystal respond.
+Make Premium3D physically expressive.
+Use Classic2D as shape inspiration, not as something to break.
