@@ -34,7 +34,7 @@ namespace Kaleidoscope2.Core
         [SerializeField, Range(0f, 1f)] private float depthAbsorption = 0.42f;
         [SerializeField, Range(0f, 1f)] private float gemClarity = 0.9f;
         [SerializeField, Range(1f, 2.9f)] private float refractiveIndex = 2.417f;
-        [SerializeField, Range(0f, 0.12f)] private float physicalDispersion = 0.044f;
+        [SerializeField, Range(0f, 0.18f)] private float physicalDispersion = 0.044f;
         [SerializeField, Range(0f, 3f)] private float absorptionStrength = 0.38f;
         [SerializeField, Range(0f, 3f)] private float fresnelStrength = 1.35f;
         [SerializeField, Range(0f, 3f)] private float backgroundDistortionStrength = 1.15f;
@@ -64,8 +64,8 @@ namespace Kaleidoscope2.Core
         [SerializeField] private bool premiumDebugOpticalDiagnosticsEnabled;
         [SerializeField, Range(0f, 1f)] private float realMeshAlpha = 0.58f;
         [SerializeField, Range(0f, 1f)] private float transparency;
-        [SerializeField, Range(0f, 0.18f)] private float refractionStrength = 0.04f;
-        [SerializeField, Range(0f, 0.16f)] private float screenRefractionStrength = 0.025f;
+        [SerializeField, Range(0f, 0.28f)] private float refractionStrength = 0.04f;
+        [SerializeField, Range(0f, 0.24f)] private float screenRefractionStrength = 0.025f;
         [SerializeField, Range(0.5f, 8f)] private float fresnelPower = 3.2f;
         [SerializeField, Range(0f, 1.5f)] private float reflectionStrength = 0.6f;
         [SerializeField, Range(0f, 3f)] private float internalBrightness = 1f;
@@ -77,6 +77,7 @@ namespace Kaleidoscope2.Core
         [SerializeField, Range(0f, 3f)] private float chromaticAberrationScale = 1f;
         [SerializeField, Range(0f, 4f)] private float spectralSplitScale = 1f;
         [SerializeField, Range(0.45f, 2.2f)] private float crystalDepthScale = 1f;
+        [SerializeField, Range(0f, 1f)] private float absoluteMirrorStrength;
         [SerializeField] private string sourceTextureStatus = "Unbound";
         [NonSerialized] private bool realMeshScaleMigrationPending;
         [NonSerialized] private float realMeshScaleMigrationSource;
@@ -104,7 +105,7 @@ namespace Kaleidoscope2.Core
         public float DepthAbsorption { get { return Mathf.Clamp01(depthAbsorption); } }
         public float GemClarity { get { return Mathf.Clamp01(gemClarity); } }
         public float RefractiveIndex { get { return Mathf.Clamp(refractiveIndex, 1f, 2.9f); } }
-        public float PhysicalDispersion { get { return Mathf.Clamp(physicalDispersion, 0f, 0.12f); } }
+        public float PhysicalDispersion { get { return Mathf.Clamp(physicalDispersion, 0f, 0.18f); } }
         public float AbsorptionStrength { get { return Mathf.Clamp(absorptionStrength, 0f, 3f); } }
         public float FresnelStrength { get { return Mathf.Clamp(fresnelStrength, 0f, 3f); } }
         public float BackgroundDistortionStrength { get { return Mathf.Clamp(backgroundDistortionStrength, 0f, 3f); } }
@@ -151,8 +152,8 @@ namespace Kaleidoscope2.Core
         }
         public float RealMeshAlpha { get { return Mathf.Clamp01(realMeshAlpha); } }
         public float Transparency { get { return Mathf.Clamp01(transparency); } }
-        public float RefractionStrength { get { return Mathf.Clamp(refractionStrength, 0f, 0.18f); } }
-        public float ScreenRefractionStrength { get { return Mathf.Clamp(screenRefractionStrength, 0f, 0.16f); } }
+        public float RefractionStrength { get { return Mathf.Clamp(refractionStrength, 0f, 0.28f); } }
+        public float ScreenRefractionStrength { get { return Mathf.Clamp(screenRefractionStrength, 0f, 0.24f); } }
         public float FresnelPower { get { return Mathf.Clamp(fresnelPower, 0.5f, 8f); } }
         public float ReflectionStrength { get { return Mathf.Clamp(reflectionStrength, 0f, 1.5f); } }
         public float InternalBrightness { get { return Mathf.Clamp(internalBrightness, 0f, 3f); } }
@@ -164,6 +165,7 @@ namespace Kaleidoscope2.Core
         public float ChromaticAberrationScale { get { return Mathf.Clamp(chromaticAberrationScale, 0f, 3f); } }
         public float SpectralSplitScale { get { return Mathf.Clamp(spectralSplitScale, 0f, 4f); } }
         public float CrystalDepthScale { get { return Mathf.Clamp(crystalDepthScale, 0.45f, 2.2f); } }
+        public float AbsoluteMirrorStrength { get { return Mathf.Clamp01(absoluteMirrorStrength); } }
         public string SourceTextureStatus { get { return sourceTextureStatus; } }
         public string OpticalMaterialStatus
         {
@@ -195,6 +197,7 @@ namespace Kaleidoscope2.Core
                     + ", chromatic scale " + ChromaticAberrationScale.ToString("0.00")
                     + ", spectral split " + SpectralSplitScale.ToString("0.00")
                     + ", depth scale " + CrystalDepthScale.ToString("0.00")
+                    + ", absolute mirror strength " + AbsoluteMirrorStrength.ToString("0.00")
                     + ", hidden reflection " + FormatEnabled(PremiumHiddenReflectionBackgroundEnabled)
                     + ", mirror facets " + FormatEnabled(PremiumMirrorFacetsEnabled)
                     + ", internal reflections " + FormatEnabled(PremiumInternalReflectionsEnabled)
@@ -288,21 +291,21 @@ namespace Kaleidoscope2.Core
 
             transparency = direct01;
             refractionStrength = Mathf.Clamp(
-                (0.004f + Mathf.Pow(refraction01, 0.72f) * 0.176f) * Mathf.Lerp(0.75f, 1.18f, coefficient01),
+                (0.004f + Mathf.Pow(refraction01, 0.66f) * 0.268f) * Mathf.Lerp(0.75f, 1.22f, coefficient01),
                 0f,
-                0.18f);
-            screenRefractionStrength = Mathf.Clamp(0.004f + refraction01 * 0.105f + background01 * 0.045f, 0f, 0.16f);
+                0.28f);
+            screenRefractionStrength = Mathf.Clamp(0.004f + refraction01 * 0.17f + background01 * 0.072f, 0f, 0.24f);
             fresnelPower = diamondSettings.FresnelPower;
 
             opticalDensity = Mathf.Clamp(opticalDensity * Mathf.Lerp(0.55f, 1.7f, depth01), 0f, 3f);
-            facetRefraction = Mathf.Clamp(facetRefraction * Mathf.Lerp(0.25f, 2.6f, refraction01) * Mathf.Lerp(0.7f, 1.5f, background01), 0f, 3f);
-            thicknessRefraction = Mathf.Clamp(thicknessRefraction * Mathf.Lerp(0.35f, 2.4f, refraction01) * Mathf.Lerp(0.7f, 1.7f, depth01), 0f, 3f);
+            facetRefraction = Mathf.Clamp(facetRefraction * Mathf.Lerp(0.18f, 3.4f, refraction01) * Mathf.Lerp(0.65f, 1.85f, background01), 0f, 3f);
+            thicknessRefraction = Mathf.Clamp(thicknessRefraction * Mathf.Lerp(0.28f, 3.1f, refraction01) * Mathf.Lerp(0.65f, 1.95f, depth01), 0f, 3f);
             reflectionStrength = Mathf.Clamp(reflectionStrength * Mathf.Lerp(0.05f, 1.45f, reflection01), 0f, 1.5f);
             internalReflection = Mathf.Clamp(internalReflection * Mathf.Lerp(0f, 2.5f, internal01) + caustics01 * 0.25f, 0f, 3f);
             internalBrightness = Mathf.Clamp(diamondSettings.InternalBrightness * Mathf.Lerp(0.55f, 1.8f, internal01) + bloom01 * 1.4f + caustics01 * 0.4f, 0f, 3f);
             backgroundDistortionStrength = Mathf.Clamp(backgroundDistortionStrength * Mathf.Lerp(0f, 2.6f, background01), 0f, 3f);
-            spectralDispersion = Mathf.Clamp(spectralDispersion * Mathf.Lerp(0f, 2.7f, dispersion01) * Mathf.Lerp(0.75f, 1.55f, spectral01), 0f, 3f);
-            physicalDispersion = Mathf.Clamp(physicalDispersion + dispersion01 * 0.07f + chroma01 * 0.03f, 0f, 0.12f);
+            spectralDispersion = Mathf.Clamp(spectralDispersion * Mathf.Lerp(0f, 3.2f, dispersion01) * Mathf.Lerp(0.7f, 1.85f, spectral01), 0f, 3f);
+            physicalDispersion = Mathf.Clamp(physicalDispersion + dispersion01 * 0.11f + chroma01 * 0.045f, 0f, 0.18f);
             facetFire = Mathf.Clamp(facetFire * Mathf.Lerp(0.15f, 2.5f, highlight01) + rainbow01 + caustics01 * 0.5f, 0f, 3f);
             depthAbsorption = Mathf.Clamp01(depthAbsorption * Mathf.Lerp(0.4f, 1.55f, depth01));
             absorptionStrength = Mathf.Clamp(absorptionStrength * Mathf.Lerp(0.7f, 1.45f, depth01), 0f, 3f);
@@ -311,14 +314,17 @@ namespace Kaleidoscope2.Core
             contrastBoost = Mathf.Clamp(contrastBoost * contrast, 0.05f, 3f);
             opalIridescence = diamondSettings.PremiumOpalIridescenceEnabled ? opalIridescence : 0f;
 
-            directTransmission = Mathf.Lerp(0.01f, 0.35f, direct01);
-            minimumTransmission = Mathf.Lerp(0.025f, 0.32f, direct01);
-            maxCoreTransmission = Mathf.Lerp(0.015f, 0.28f, direct01);
-            centerTransmissionBlock = Mathf.Lerp(1.35f, 0.25f, direct01);
+            float directCurve = Mathf.Pow(Mathf.Clamp01(direct01), 1.45f);
+            float coreCurve = Mathf.Pow(Mathf.Clamp01(direct01), 1.9f);
+            directTransmission = Mathf.Lerp(0f, 0.35f, directCurve);
+            minimumTransmission = Mathf.Lerp(0f, 0.3f, directCurve);
+            maxCoreTransmission = Mathf.Lerp(0f, 0.24f, coreCurve);
+            centerTransmissionBlock = Mathf.Lerp(1.5f, 0.2f, direct01);
             chromaticAberrationScale = Mathf.Lerp(0f, 3f, chroma01);
             spectralSplitScale = Mathf.Lerp(0.2f, 4f, spectral01);
             crystalDepthScale = Mathf.Lerp(0.45f, 2.2f, depth01);
             specularStrength = Mathf.Clamp01(0.25f + reflection01 * 0.55f + highlight01 * 0.3f);
+            absoluteMirrorStrength = diamondSettings.MaterialMode == DiamondCrystalMaterialMode.AbsoluteMirror ? 1f : 0f;
 
             if (!premiumRefractionDistortionEnabled)
             {
@@ -351,17 +357,19 @@ namespace Kaleidoscope2.Core
 
             if (diamondSettings.MaterialMode == DiamondCrystalMaterialMode.AbsoluteMirror)
             {
-                directTransmission = Mathf.Min(directTransmission, 0.035f);
-                minimumTransmission = Mathf.Min(minimumTransmission, 0.055f);
-                maxCoreTransmission = Mathf.Min(maxCoreTransmission, 0.035f);
-                centerTransmissionBlock = Mathf.Max(centerTransmissionBlock, 1.15f);
-                transparency = Mathf.Min(transparency, 0.12f);
-                reflectionStrength = Mathf.Max(reflectionStrength, 1.15f);
-                fresnelStrength = Mathf.Max(fresnelStrength, 1.55f);
-                internalReflection = Mathf.Max(internalReflection, 1.25f);
-                spectralDispersion = Mathf.Max(spectralDispersion, 1.35f);
-                physicalDispersion = Mathf.Max(physicalDispersion, 0.06f);
-                specularStrength = Mathf.Max(specularStrength, 0.9f);
+                directTransmission = 0f;
+                minimumTransmission = 0f;
+                maxCoreTransmission = 0f;
+                centerTransmissionBlock = 1.5f;
+                transparency = 0f;
+                reflectionStrength = 1.5f;
+                fresnelStrength = Mathf.Max(fresnelStrength, 1.85f);
+                internalReflection = Mathf.Max(internalReflection, 1.7f);
+                internalBrightness = Mathf.Max(internalBrightness, 1.45f);
+                spectralDispersion = Mathf.Max(spectralDispersion, 1.85f);
+                physicalDispersion = Mathf.Max(physicalDispersion, 0.09f);
+                specularStrength = 1f;
+                facetFire = Mathf.Max(facetFire, 1.8f);
             }
         }
 
@@ -446,7 +454,7 @@ namespace Kaleidoscope2.Core
             depthAbsorption = Mathf.Clamp01(depthAbsorptionValue);
             gemClarity = Mathf.Clamp01(clarity);
             refractiveIndex = Mathf.Clamp(refractiveIndexValue, 1f, 2.9f);
-            physicalDispersion = Mathf.Clamp(physicalDispersionValue, 0f, 0.12f);
+            physicalDispersion = Mathf.Clamp(physicalDispersionValue, 0f, 0.18f);
             absorptionStrength = Mathf.Clamp(absorptionStrengthValue, 0f, 3f);
             fresnelStrength = Mathf.Clamp(fresnelStrengthValue, 0f, 3f);
             backgroundDistortionStrength = Mathf.Clamp(backgroundDistortionValue, 0f, 3f);
@@ -556,6 +564,14 @@ namespace Kaleidoscope2.Core
                     return CrystalShape.RhombicCrystal;
                 case DiamondFocusShape.OvalRingGem:
                     return CrystalShape.OvalRingGem;
+                case DiamondFocusShape.RadialShardCrystal:
+                    return CrystalShape.RadialShardCut;
+                case DiamondFocusShape.MandalaCrystal:
+                    return CrystalShape.MandalaCut;
+                case DiamondFocusShape.StarDiamond:
+                    return CrystalShape.StarCut;
+                case DiamondFocusShape.PolygonCrystal:
+                    return CrystalShape.PolygonCut;
                 default:
                     return CrystalShape.ClassicDiamond;
             }

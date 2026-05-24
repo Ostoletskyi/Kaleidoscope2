@@ -82,6 +82,7 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
         private static readonly int CrystalCenterTransmissionBlockId = Shader.PropertyToID("_CenterTransmissionBlock");
         private static readonly int CrystalChromaticAberrationScaleId = Shader.PropertyToID("_ChromaticAberrationScale");
         private static readonly int CrystalSpectralSplitScaleId = Shader.PropertyToID("_SpectralSplitScale");
+        private static readonly int CrystalAbsoluteMirrorStrengthId = Shader.PropertyToID("_AbsoluteMirrorStrength");
 
         private Transform owner;
         private GameObject root;
@@ -847,7 +848,9 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
             SetVisible(true);
             ConfigureTransforms(sourceTexture, settings, rotation, debugMode);
             ConfigureLights(settings, intensity);
-            hiddenReflectionBackgroundEnabled = settings == null || settings.PremiumHiddenReflectionBackgroundEnabled;
+            hiddenReflectionBackgroundEnabled = settings == null
+                || settings.PremiumHiddenReflectionBackgroundEnabled
+                || settings.AbsoluteMirrorStrength > 0.001f;
             if (hiddenReflectionBackgroundEnabled)
             {
                 ConfigureHiddenReflectionBackground(sourceTexture);
@@ -1658,6 +1661,7 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
                     + ", chromatic scale " + settings.ChromaticAberrationScale.ToString("0.00")
                     + ", spectral split " + settings.SpectralSplitScale.ToString("0.00")
                     + ", crystal depth scale " + settings.CrystalDepthScale.ToString("0.00")
+                    + ", absolute mirror strength " + settings.AbsoluteMirrorStrength.ToString("0.00")
                     + ", saturation boost " + settings.SaturationBoost.ToString("0.00")
                     + ", contrast boost " + settings.ContrastBoost.ToString("0.00")
                     + ", opal iridescence " + settings.OpalIridescence.ToString("0.00")
@@ -1723,6 +1727,7 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
             float opalIridescence = settings != null ? settings.OpalIridescence : 0f;
             float chromaticAberrationScale = settings != null ? settings.ChromaticAberrationScale : 1f;
             float spectralSplitScale = settings != null ? settings.SpectralSplitScale : 1f;
+            float absoluteMirrorStrength = settings != null ? settings.AbsoluteMirrorStrength : 0f;
             float metallic;
             float smoothness;
             ResolveCrystalSurface(materialMode, out metallic, out smoothness);
@@ -1776,10 +1781,28 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
                 specularStrength *= 0.32f;
             }
 
+            if (absoluteMirrorStrength > 0.001f)
+            {
+                directTransmission = 0f;
+                minimumTransmission = 0f;
+                maxCoreTransmission = 0f;
+                centerTransmissionBlock = 1.5f;
+                transparency = 0f;
+                reflectionStrength = Mathf.Max(reflectionStrength, 1.5f);
+                fresnelStrength = Mathf.Max(fresnelStrength, 1.85f);
+                internalReflection = Mathf.Max(internalReflection, 1.7f);
+                spectralDispersion = Mathf.Max(spectralDispersion, 1.85f);
+                physicalDispersion = Mathf.Max(physicalDispersion, 0.09f);
+                metallic = Mathf.Max(metallic, 0.95f);
+                smoothness = 1f;
+                specularStrength = 1f;
+                activeHiddenReflectionTexture = hiddenReflectionTexture;
+            }
+
             SetMaterialTextureIfPresent(material, CrystalKaleidoscopeTexId, sourceTexture);
             SetMaterialTextureIfPresent(material, CrystalHiddenReflectionTexId, activeHiddenReflectionTexture);
             SetMaterialFloatIfPresent(material, CrystalHiddenReflectionTexValidId, activeHiddenReflectionTexture != null ? 1f : 0f);
-            SetMaterialFloatIfPresent(material, CrystalHiddenReflectionStrengthId, hiddenReflectionEnabled ? Mathf.Clamp(HiddenReflectionStrength + reflectionStrength * 0.32f, 0f, 1.25f) : 0f);
+            SetMaterialFloatIfPresent(material, CrystalHiddenReflectionStrengthId, absoluteMirrorStrength > 0.001f ? 1.5f : hiddenReflectionEnabled ? Mathf.Clamp(HiddenReflectionStrength + reflectionStrength * 0.32f, 0f, 1.25f) : 0f);
             SetMaterialFloatIfPresent(material, CrystalDirectTransmissionId, directTransmission);
             SetMaterialFloatIfPresent(material, CrystalMaxCoreTransmissionId, maxCoreTransmission);
             SetMaterialFloatIfPresent(material, CrystalCenterTransmissionBlockId, centerTransmissionBlock);
@@ -1787,13 +1810,13 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
             SetMaterialColorIfPresent(material, CrystalGemCoreColorId, settings != null ? settings.GemCoreColor : color);
             SetMaterialColorIfPresent(material, CrystalGemFireColorId, settings != null ? settings.GemFireColor : new Color(1f, 0.86f, 0.34f, 1f));
             SetMaterialFloatIfPresent(material, CrystalIntensityId, Mathf.Clamp(intensity, 0f, 20f));
-            SetMaterialFloatIfPresent(material, CrystalAlphaId, Mathf.Clamp(color.a, 0.42f, 0.94f));
+            SetMaterialFloatIfPresent(material, CrystalAlphaId, absoluteMirrorStrength > 0.001f ? 0.98f : Mathf.Clamp(color.a, 0.42f, 0.94f));
             SetMaterialFloatIfPresent(material, CrystalMetallicId, metallic);
             float minimumSmoothness = mirrorFacetsEnabled ? 0.985f : 0.52f;
             SetMaterialFloatIfPresent(material, CrystalSmoothnessId, Mathf.Clamp01(Mathf.Max(smoothness, minimumSmoothness) + intensity01 * 0.02f));
             SetMaterialFloatIfPresent(material, CrystalTransparencyId, Mathf.Clamp01(transparency));
-            SetMaterialFloatIfPresent(material, CrystalRefractionStrengthId, Mathf.Clamp(refractionStrength + (refractionDistortionEnabled ? intensity01 * 0.006f : 0f), 0f, 0.18f));
-            SetMaterialFloatIfPresent(material, CrystalScreenRefractionStrengthId, Mathf.Clamp(screenRefractionStrength * Mathf.Lerp(0.82f, 1.24f, Mathf.Clamp01(backgroundDistortionStrength / 3f)), 0f, 0.16f));
+            SetMaterialFloatIfPresent(material, CrystalRefractionStrengthId, Mathf.Clamp(refractionStrength + (refractionDistortionEnabled ? intensity01 * 0.008f : 0f), 0f, 0.28f));
+            SetMaterialFloatIfPresent(material, CrystalScreenRefractionStrengthId, Mathf.Clamp(screenRefractionStrength * Mathf.Lerp(0.82f, 1.36f, Mathf.Clamp01(backgroundDistortionStrength / 3f)), 0f, 0.24f));
             SetMaterialFloatIfPresent(material, CrystalFresnelPowerId, Mathf.Clamp(fresnelPower * 0.76f, 1.0f, 4.2f));
             SetMaterialFloatIfPresent(material, CrystalReflectionStrengthId, Mathf.Clamp(reflectionStrength + internalReflection * 0.18f + fresnelStrength * 0.08f, 0f, 1.5f));
             SetMaterialFloatIfPresent(material, CrystalInternalBrightnessId, Mathf.Clamp(internalBrightness + intensity01 * 0.25f, 0f, 3f));
@@ -1821,6 +1844,7 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
             SetMaterialFloatIfPresent(material, CrystalOpalIridescenceId, opalIridescence);
             SetMaterialFloatIfPresent(material, CrystalChromaticAberrationScaleId, chromaticAberrationScale);
             SetMaterialFloatIfPresent(material, CrystalSpectralSplitScaleId, spectralSplitScale);
+            SetMaterialFloatIfPresent(material, CrystalAbsoluteMirrorStrengthId, absoluteMirrorStrength);
             material.renderQueue = (int)RenderQueue.Transparent;
         }
 

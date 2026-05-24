@@ -1,4 +1,5 @@
 using System.Collections;
+using Kaleidoscope2.Menu.FX;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.EventSystems;
@@ -20,6 +21,7 @@ namespace Kaleidoscope2.Menu
 
         private KaelisMenuAssets assets;
         private KaelisStartupMenuView view;
+        private MenuAtmosphereFXController atmosphereFX;
         private KaelisMenuCommandBridge commandBridge;
         private KaelisMenuActionRouter actionRouter;
         private Coroutine visibilityRoutine;
@@ -37,7 +39,8 @@ namespace Kaleidoscope2.Menu
             assets = KaelisMenuAssets.Load(backgroundTexture, previewTexture, fallbackConceptTexture);
             EnsureEventSystem();
 
-            view = new KaelisStartupMenuView(assets);
+            atmosphereFX = MenuAtmosphereFXController.Ensure(gameObject);
+            view = new KaelisStartupMenuView(assets, atmosphereFX);
             view.Build(transform);
 
             commandBridge = new KaelisMenuCommandBridge();
@@ -48,6 +51,7 @@ namespace Kaleidoscope2.Menu
                 view.SectionController.SetPremiumCrystalHandlers(
                     actionRouter.HandlePremiumCrystalOptic,
                     actionRouter.HandlePremiumCrystalEffect,
+                    actionRouter.HandlePremiumCrystalShape,
                     actionRouter.HandlePremiumWheelScaleEnabled,
                     actionRouter.HandlePremiumWheelScaleStep);
             }

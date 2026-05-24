@@ -330,6 +330,19 @@ namespace Kaleidoscope2.DiamondFocus.RealMesh
                         float rosette = 0.84f + 0.22f * Mathf.Pow(Mathf.Abs(Mathf.Cos(angle * 8f)), 0.45f);
                         return new Vector2(rosette, rosette);
                     }
+                case CrystalSilhouette.Star:
+                    {
+                        float star = 0.74f + 0.36f * Mathf.Pow(Mathf.Abs(Mathf.Cos(angle * 5f)), 0.52f);
+                        float crossSpark = 1f + 0.08f * Mathf.Cos(angle * 10f + Mathf.PI * 0.2f);
+                        return new Vector2(star * crossSpark, star);
+                    }
+                case CrystalSilhouette.Polygon:
+                    {
+                        float flat = 1f / Mathf.Max(0.74f, Mathf.Max(absCos, absSin));
+                        float bevel = 0.92f + 0.12f * Mathf.Pow(Mathf.Abs(Mathf.Cos(angle * 6f)), 0.38f);
+                        float scale = Mathf.Lerp(1f, Mathf.Min(flat, 1.24f), 0.72f) * bevel;
+                        return new Vector2(scale, scale);
+                    }
                 default:
                     return Vector2.one;
             }
@@ -447,6 +460,12 @@ namespace Kaleidoscope2.DiamondFocus.RealMesh
                     break;
                 case CrystalShape.MandalaCut:
                     profile = CrystalProfile.Mandala;
+                    break;
+                case CrystalShape.StarCut:
+                    profile = CrystalProfile.Star;
+                    break;
+                case CrystalShape.PolygonCut:
+                    profile = CrystalProfile.Polygon;
                     break;
                 case CrystalShape.FacetedCube:
                     profile = CrystalProfile.Octagon;
@@ -886,6 +905,52 @@ namespace Kaleidoscope2.DiamondFocus.RealMesh
                     return profile;
                 }
             }
+
+            public static CrystalProfile Star
+            {
+                get
+                {
+                    CrystalProfile profile = Brilliant;
+                    profile.Silhouette = CrystalSilhouette.Star;
+                    profile.SideCount = 20;
+                    profile.TopY = 1.06f;
+                    profile.BottomY = -1.26f;
+                    profile.TableRadiusX = 0.2f;
+                    profile.TableRadiusZ = 0.2f;
+                    profile.CrownRadiusX = 0.72f;
+                    profile.CrownRadiusZ = 0.72f;
+                    profile.GirdleRadiusX = 1.2f;
+                    profile.GirdleRadiusZ = 1.2f;
+                    profile.PavilionRadiusX = 0.52f;
+                    profile.PavilionRadiusZ = 0.52f;
+                    profile.GirdleHalfThickness = 0.085f;
+                    profile.FacetAlternation = 0.78f;
+                    return profile;
+                }
+            }
+
+            public static CrystalProfile Polygon
+            {
+                get
+                {
+                    CrystalProfile profile = Brilliant;
+                    profile.Silhouette = CrystalSilhouette.Polygon;
+                    profile.SideCount = 12;
+                    profile.TopY = 1.04f;
+                    profile.BottomY = -1.24f;
+                    profile.TableRadiusX = 0.36f;
+                    profile.TableRadiusZ = 0.36f;
+                    profile.CrownRadiusX = 0.86f;
+                    profile.CrownRadiusZ = 0.86f;
+                    profile.GirdleRadiusX = 1.22f;
+                    profile.GirdleRadiusZ = 1.22f;
+                    profile.PavilionRadiusX = 0.62f;
+                    profile.PavilionRadiusZ = 0.62f;
+                    profile.GirdleHalfThickness = 0.11f;
+                    profile.FacetAlternation = 0.92f;
+                    return profile;
+                }
+            }
         }
 
         private enum CrystalSilhouette
@@ -903,7 +968,9 @@ namespace Kaleidoscope2.DiamondFocus.RealMesh
             Round,
             Oval,
             RadialShard,
-            Mandala
+            Mandala,
+            Star,
+            Polygon
         }
 
         private enum RingKind

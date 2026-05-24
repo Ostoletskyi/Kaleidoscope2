@@ -15,8 +15,8 @@ Shader "Kaleidoscope2/RealCrystalOptics"
         _Metallic ("Metallic", Range(0,1)) = 0.02
         _Smoothness ("Smoothness", Range(0,1)) = 0.96
         _Transparency ("Transparency", Range(0,1)) = 0
-        _RefractionStrength ("Refraction Strength", Range(0,0.18)) = 0.085
-        _ScreenRefractionStrength ("Screen Refraction Strength", Range(0,0.16)) = 0.028
+        _RefractionStrength ("Refraction Strength", Range(0,0.28)) = 0.085
+        _ScreenRefractionStrength ("Screen Refraction Strength", Range(0,0.24)) = 0.028
         _FresnelPower ("Fresnel Power", Range(0.5,8)) = 3.2
         _ReflectionStrength ("Reflection Strength", Range(0,1.5)) = 0.6
         _InternalBrightness ("Internal Brightness", Range(0,3)) = 0.68
@@ -35,7 +35,7 @@ Shader "Kaleidoscope2/RealCrystalOptics"
         _Clarity ("Clarity", Range(0,1)) = 0.9
         _FacetContrast ("Facet Contrast", Range(0,2.2)) = 1.5
         _RefractiveIndex ("Refractive Index", Range(1,2.9)) = 2.417
-        _PhysicalDispersion ("Physical Dispersion", Range(0,0.12)) = 0.044
+        _PhysicalDispersion ("Physical Dispersion", Range(0,0.18)) = 0.044
         _AbsorptionStrength ("Absorption Strength", Range(0,3)) = 0.38
         _FresnelStrength ("Fresnel Strength", Range(0,3)) = 1.05
         _BackgroundDistortionStrength ("Background Distortion", Range(0,3)) = 1.15
@@ -48,6 +48,7 @@ Shader "Kaleidoscope2/RealCrystalOptics"
         _ChromaticAberrationScale ("Chromatic Aberration Scale", Range(0,3)) = 1
         _SpectralSplitScale ("Spectral Split Scale", Range(0,4)) = 1
         _CoreDarkening ("Core Darkening", Range(0,1)) = 0.18
+        _AbsoluteMirrorStrength ("Absolute Mirror Strength", Range(0,1)) = 0
     }
     SubShader
     {
@@ -107,6 +108,7 @@ Shader "Kaleidoscope2/RealCrystalOptics"
         half _ChromaticAberrationScale;
         half _SpectralSplitScale;
         half _CoreDarkening;
+        half _AbsoluteMirrorStrength;
 
         struct Input
         {
@@ -121,6 +123,12 @@ Shader "Kaleidoscope2/RealCrystalOptics"
         {
             float peak = max(c.r, max(c.g, c.b));
             return c / (1.0 + peak * max(0.0, strength));
+        }
+
+        float2 MirrorWrapUv(float2 uv)
+        {
+            float2 wrapped = frac(uv * 0.5);
+            return 1.0 - abs(wrapped * 2.0 - 1.0);
         }
 
         void surf(Input IN, inout SurfaceOutputStandardSpecular o)
@@ -149,6 +157,7 @@ Shader "Kaleidoscope2/RealCrystalOptics"
             float3 refractedVector = refract(-viewDir, normal, 1.0 / safeIor);
             float3 reflectedVector = reflect(-viewDir, normal);
             float totalInternalFeel = saturate(schlick * 1.72 + facetBreak * 0.18 + thickness * 0.2 + deepCore * 0.32);
+            float mirrorMode = saturate(_AbsoluteMirrorStrength);
             float2 facetAxis = normalize(normal.xy + float2(normal.z, -normal.x) * 0.42 + refractedVector.xy * 0.36 + float2(0.001, -0.001));
             float distortionScale = _BackgroundDistortionStrength * (0.78 + (safeIor - 1.0) * 0.42);
             float2 facetOffset = (normal.xy * 1.04 - viewDir.xy * 0.24 + facetAxis * (0.22 + facetBreak * 0.16))
@@ -171,36 +180,36 @@ Shader "Kaleidoscope2/RealCrystalOptics"
                 * (0.14 + fresnel * 0.58 + facetBreak * 0.34 + deepCore * 0.16)
                 * dispersionScale;
 
-            float2 refractedUv = saturate(screenUv + facetOffset + depthOffset);
-            float2 frontLayerUv = saturate(screenUv + facetOffset * (0.42 + deepCore * 0.18) - depthOffset * 0.24 + facetAxis * deepCore * 0.018);
-            float2 backLayerUv = saturate(screenUv - facetOffset * (0.72 + deepCore * 0.34) + depthOffset * (1.52 + deepCore * 0.42));
+            float2 refractedUv = MirrorWrapUv(screenUv + facetOffset + depthOffset);
+            float2 frontLayerUv = MirrorWrapUv(screenUv + facetOffset * (0.42 + deepCore * 0.18) - depthOffset * 0.24 + facetAxis * deepCore * 0.018);
+            float2 backLayerUv = MirrorWrapUv(screenUv - facetOffset * (0.72 + deepCore * 0.34) + depthOffset * (1.52 + deepCore * 0.42));
             float echoScale = 0.65 + splitScale * 0.35;
-            float2 echoLayerUv = saturate(screenUv - facetOffset * (1.32 + deepCore * 0.48) - depthOffset * (0.52 + deepCore * 0.22) + facetAxis * (fresnel * 0.035 + totalInternalFeel * 0.02 + deepCore * 0.04) * echoScale);
-            float2 reflectionUv = saturate(screenUv - facetOffset * (0.92 + deepCore * 0.32) - depthOffset * (0.4 + deepCore * 0.24) + facetAxis * (fresnel * 0.03 + deepCore * 0.05) * echoScale);
+            float2 echoLayerUv = MirrorWrapUv(screenUv - facetOffset * (1.32 + deepCore * 0.48) - depthOffset * (0.52 + deepCore * 0.22) + facetAxis * (fresnel * 0.035 + totalInternalFeel * 0.02 + deepCore * 0.04) * echoScale);
+            float2 reflectionUv = MirrorWrapUv(screenUv - facetOffset * (0.92 + deepCore * 0.32) - depthOffset * (0.4 + deepCore * 0.24) + facetAxis * (fresnel * 0.03 + deepCore * 0.05) * echoScale);
 
             fixed3 sourceColor = tex2D(_KaleidoscopeTex, baseUv).rgb;
             fixed3 frontLayerColor = tex2D(_KaleidoscopeTex, frontLayerUv).rgb;
             fixed3 refractedColor;
-            refractedColor.r = tex2D(_KaleidoscopeTex, saturate(refractedUv + dispersionOffset)).r;
+            refractedColor.r = tex2D(_KaleidoscopeTex, MirrorWrapUv(refractedUv + dispersionOffset)).r;
             refractedColor.g = tex2D(_KaleidoscopeTex, refractedUv).g;
-            refractedColor.b = tex2D(_KaleidoscopeTex, saturate(refractedUv - dispersionOffset)).b;
+            refractedColor.b = tex2D(_KaleidoscopeTex, MirrorWrapUv(refractedUv - dispersionOffset)).b;
             fixed3 backLayerColor = tex2D(_KaleidoscopeTex, backLayerUv).rgb;
             fixed3 echoLayerColor;
-            echoLayerColor.r = tex2D(_KaleidoscopeTex, saturate(echoLayerUv + dispersionOffset * (1.1 + splitScale * 0.45))).r;
-            echoLayerColor.g = tex2D(_KaleidoscopeTex, saturate(echoLayerUv - dispersionOffset * 0.22)).g;
-            echoLayerColor.b = tex2D(_KaleidoscopeTex, saturate(echoLayerUv - dispersionOffset * (1.0 + splitScale * 0.45))).b;
+            echoLayerColor.r = tex2D(_KaleidoscopeTex, MirrorWrapUv(echoLayerUv + dispersionOffset * (1.1 + splitScale * 0.45))).r;
+            echoLayerColor.g = tex2D(_KaleidoscopeTex, MirrorWrapUv(echoLayerUv - dispersionOffset * 0.22)).g;
+            echoLayerColor.b = tex2D(_KaleidoscopeTex, MirrorWrapUv(echoLayerUv - dispersionOffset * (1.0 + splitScale * 0.45))).b;
             fixed3 internalReflectionColor = tex2D(_KaleidoscopeTex, reflectionUv).rgb;
             fixed3 centerEchoColor;
-            centerEchoColor.r = tex2D(_KaleidoscopeTex, saturate(backLayerUv + dispersionOffset * (1.5 + splitScale * 0.6) - facetAxis * 0.035)).r;
-            centerEchoColor.g = tex2D(_KaleidoscopeTex, saturate(echoLayerUv + facetAxis * 0.028)).g;
-            centerEchoColor.b = tex2D(_KaleidoscopeTex, saturate(reflectionUv - dispersionOffset * (1.4 + splitScale * 0.6) + facetAxis * 0.02)).b;
+            centerEchoColor.r = tex2D(_KaleidoscopeTex, MirrorWrapUv(backLayerUv + dispersionOffset * (1.5 + splitScale * 0.6) - facetAxis * 0.035)).r;
+            centerEchoColor.g = tex2D(_KaleidoscopeTex, MirrorWrapUv(echoLayerUv + facetAxis * 0.028)).g;
+            centerEchoColor.b = tex2D(_KaleidoscopeTex, MirrorWrapUv(reflectionUv - dispersionOffset * (1.4 + splitScale * 0.6) + facetAxis * 0.02)).b;
             float hiddenReflectionValid = saturate(_HiddenReflectionTexValid);
-            float hiddenReflectionAmount = hiddenReflectionValid * saturate(_HiddenReflectionStrength);
-            float2 hiddenReflectionUv = saturate(0.5 + reflectedVector.xy * (0.34 + fresnel * 0.14 + deepCore * 0.12) + facetAxis * (facetBreak * 0.055 + fresnel * 0.045 + deepCore * 0.05) - facetOffset * 0.46 - depthOffset * (0.22 + deepCore * 0.18));
+            float hiddenReflectionAmount = hiddenReflectionValid * saturate(max(_HiddenReflectionStrength, mirrorMode));
+            float2 hiddenReflectionUv = MirrorWrapUv(0.5 + reflectedVector.xy * (0.34 + fresnel * 0.14 + deepCore * 0.12) + facetAxis * (facetBreak * 0.055 + fresnel * 0.045 + deepCore * 0.05) - facetOffset * 0.46 - depthOffset * (0.22 + deepCore * 0.18));
             fixed3 hiddenReflectionColor;
-            hiddenReflectionColor.r = tex2D(_HiddenReflectionTex, saturate(hiddenReflectionUv + dispersionOffset * 0.74)).r;
+            hiddenReflectionColor.r = tex2D(_HiddenReflectionTex, MirrorWrapUv(hiddenReflectionUv + dispersionOffset * 0.74)).r;
             hiddenReflectionColor.g = tex2D(_HiddenReflectionTex, hiddenReflectionUv).g;
-            hiddenReflectionColor.b = tex2D(_HiddenReflectionTex, saturate(hiddenReflectionUv - dispersionOffset * 0.86)).b;
+            hiddenReflectionColor.b = tex2D(_HiddenReflectionTex, MirrorWrapUv(hiddenReflectionUv - dispersionOffset * 0.86)).b;
             hiddenReflectionColor = lerp(internalReflectionColor, hiddenReflectionColor, hiddenReflectionAmount);
             fixed3 mixedReflectionColor = lerp(internalReflectionColor, saturate(hiddenReflectionColor * (1.12 + facetBreak * 0.28)), hiddenReflectionAmount);
 
@@ -235,15 +244,17 @@ Shader "Kaleidoscope2/RealCrystalOptics"
             float centerBlock = saturate(deepCore * _CenterTransmissionBlock);
 
             // Keep direct transmission at the edges, but prevent the deep center from acting like a clean window.
-            float rawTransmission = max(_MinimumTransmission * 0.35, directTransmission)
+            float rawTransmission = max(_MinimumTransmission * 0.08, directTransmission)
                 * lerp(0.50, 0.78, _Clarity)
                 * (0.42 + ndv * 0.20 + thickness * 0.10)
-                * (1.0 - volumeBlock * 0.62);
+                * (1.0 - volumeBlock * 0.62)
+                * (1.0 - mirrorMode);
 
             float transmission = saturate(min(
                 rawTransmission * (1.0 - centerBlock * 0.88),
                 lerp(rawTransmission, _MaxCoreTransmission, centerBlock)
             ));
+            transmission = lerp(transmission, 0.0, mirrorMode);
             float internalGain = saturate(_InternalBrightness * (0.24 + thickness * 0.2 + fresnel * 0.18 + totalInternalFeel * 0.1));
             float reflection = clamp(_ReflectionStrength, 0.0, 1.5);
             fixed3 tintedInternal = lerp(internalColor, internalColor * _Tint.rgb, saturate(_GemTintStrength + thickness * 0.18));
@@ -251,6 +262,8 @@ Shader "Kaleidoscope2/RealCrystalOptics"
             fixed3 glassBase = lerp(coreBody, tintedInternal, transmission);
             fixed3 fresnelReflection = lerp(_Tint.rgb, _GemFireColor.rgb, saturate(facetBreak * 0.35 + _DispersionStrength * 0.2)) * fresnel * (0.22 + reflection * 0.58);
             fresnelReflection += mixedReflectionColor * hiddenReflectionAmount * fresnel * (0.18 + reflection * 0.38 + facetBreak * 0.2);
+            fixed3 mirrorBody = saturate(mixedReflectionColor * (0.72 + reflection * 0.28) + fresnelReflection * 0.9 + _Tint.rgb * (0.06 + facetBreak * 0.04));
+            glassBase = lerp(glassBase, mirrorBody, mirrorMode);
             fixed3 specularColor = lerp(fixed3(0.04, 0.045, 0.05), _Tint.rgb * (0.35 + reflection * 0.45), saturate(_SpecularStrength));
             float edgeRim = pow(saturate(fresnel), 2.05) * _RimStrength;
             float3 keyDir = normalize(float3(0.38, 0.76, -0.52));
@@ -264,15 +277,16 @@ Shader "Kaleidoscope2/RealCrystalOptics"
             spectralEdge += _GemFireColor.rgb * pow(saturate(fresnel + facetBreak * 0.18), 2.6) * _DispersionStrength * (0.1 + _PhysicalDispersion * 2.2);
 
             o.Albedo = max(glassBase * (0.64 + intensity01 * 0.36), _Tint.rgb * _BrightnessFloor);
-            o.Specular = saturate(specularColor + fresnel * reflection * 0.3 + facetFire * 0.24 + spectralEdge * 0.12 + _Metallic * 0.08);
-            o.Smoothness = saturate(_Smoothness);
+            fixed3 specularOut = saturate(specularColor + fresnel * reflection * 0.3 + facetFire * 0.24 + spectralEdge * 0.12 + _Metallic * 0.08);
+            o.Specular = lerp(specularOut, saturate(mixedReflectionColor * 0.55 + _Tint.rgb * 0.34 + facetFire * 0.24 + spectralEdge * 0.16), mirrorMode);
+            o.Smoothness = saturate(lerp(_Smoothness, 1.0, mirrorMode));
             fixed3 emissionRaw = internalColor * (0.025 + internalGain * 0.14) * (0.62 + intensity01 * 0.32)
                 + fresnelReflection * 0.82
                 + facetFire * (0.16 + fresnel * 0.24)
                 + spectralEdge * (0.52 + facetBreak * 0.16)
                 + _Tint.rgb * (_BrightnessFloor * (0.24 + edgeRim * 0.62));
             o.Emission = SoftCompressHighlights(emissionRaw, _HighlightCompression);
-            o.Alpha = saturate(max(_MinimumTransmission * 0.52, _Alpha * (1.0 - _Transparency * 0.62)) + fresnel * (0.2 + reflection * 0.24) + facetBreak * 0.045 + thickness * 0.038);
+            o.Alpha = lerp(saturate(max(_MinimumTransmission * 0.2, _Alpha * (1.0 - _Transparency * 0.72)) + fresnel * (0.2 + reflection * 0.24) + facetBreak * 0.045 + thickness * 0.038), 0.98, mirrorMode);
         }
         ENDCG
     }

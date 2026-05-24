@@ -427,6 +427,10 @@ namespace Kaleidoscope2.Core
                     state.DiamondFocusSettings.SetCrystalSimulationMode((CrystalRenderMode)command.IntValue);
                     return true;
 
+                case KaleidoscopeCommandType.SetDiamondShape:
+                    state.DiamondFocusSettings.BeginShapeTransition((DiamondFocusShape)Mathf.Clamp(command.IntValue, 0, DiamondFocusSettings.ShapeCount - 1));
+                    return true;
+
                 case KaleidoscopeCommandType.AdjustPremiumCrystalScalePercent:
                     state.DiamondFocusSettings.AdjustPremiumCrystalScalePercent(command.FloatValue);
                     return true;
@@ -444,11 +448,11 @@ namespace Kaleidoscope2.Core
                     return true;
 
                 case KaleidoscopeCommandType.SetPremiumCrystalWheelScaleEnabled:
-                    state.DiamondFocusSettings.SetPremiumCrystalWheelScaleEnabled(command.BoolValue);
+                    state.SetMouseWheelVisualScaleEnabled(command.BoolValue);
                     return true;
 
                 case KaleidoscopeCommandType.SetPremiumCrystalWheelScaleStepPercent:
-                    state.DiamondFocusSettings.SetPremiumCrystalWheelScaleStepPercent(command.FloatValue);
+                    state.SetMouseWheelVisualScaleStepPercent(command.FloatValue);
                     return true;
 
                 case KaleidoscopeCommandType.ApplyPremiumCrystalPreset:

@@ -1,3 +1,4 @@
+using Kaleidoscope2.Menu.FX;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -7,12 +8,14 @@ namespace Kaleidoscope2.Menu
     internal sealed class KaelisStartupMenuView
     {
         private readonly KaelisMenuAssets assets;
+        private readonly MenuAtmosphereFXController atmosphereFX;
         private KaelisMenuAnimator animator;
         private CanvasGroup mainMenuCanvasGroup;
 
-        public KaelisStartupMenuView(KaelisMenuAssets assets)
+        public KaelisStartupMenuView(KaelisMenuAssets assets, MenuAtmosphereFXController atmosphereFX)
         {
             this.assets = assets;
+            this.atmosphereFX = atmosphereFX;
         }
 
         public GameObject Root { get; private set; }
@@ -59,6 +62,11 @@ namespace Kaleidoscope2.Menu
             animator = Root.AddComponent<KaelisMenuAnimator>();
 
             BuildBackground(canvasRect);
+            if (atmosphereFX != null)
+            {
+                atmosphereFX.Build(canvasRect, assets.SolidSprite);
+            }
+
             Tooltip = KaelisMenuTooltip.Create(canvasRect, assets);
 
             RectTransform safeFrame = KaelisMenuUiPrimitives.CreateRect("SafeFrame", canvasRect);
@@ -283,6 +291,10 @@ namespace Kaleidoscope2.Menu
             KaelisMenuUiPrimitives.Stretch(previewDepth);
             KaelisMenuUiPrimitives.AddImage(previewDepth, assets.SolidSprite, new Color(0f, 0.018f, 0.030f, 0.10f), false);
             KaelisMenuUiPrimitives.AddAmbientBand(display, "PreviewTopCyanBloom", new Vector2(0f, 0.70f), new Vector2(1f, 1f), new Color(0.15f, 0.80f, 1f, 0.08f), assets.SolidSprite);
+            if (atmosphereFX != null)
+            {
+                atmosphereFX.BindCrystalShimmerTarget(display);
+            }
 
             KaelisMenuUiPrimitives.AddInsetFrame(display, new Color(0.22f, 0.92f, 1f, 0.34f), 0f, 1.15f, assets.SolidSprite);
             KaelisMenuUiPrimitives.AddCornerCuts(display, new Color(1f, 0.78f, 0.42f, 0.34f), 38f, 1.35f, assets.SolidSprite);

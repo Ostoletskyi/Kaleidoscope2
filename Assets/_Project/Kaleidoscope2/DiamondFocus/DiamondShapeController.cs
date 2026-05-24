@@ -285,6 +285,14 @@ namespace Kaleidoscope2.DiamondFocus
                     return 0.7f + 0.34f * Mathf.Pow(Mathf.Abs(Mathf.Cos(angle * 2f)), 0.48f);
                 case DiamondFocusShape.OvalRingGem:
                     return 0.82f + 0.26f * Mathf.Pow(Mathf.Abs(Mathf.Cos(angle)), 0.72f);
+                case DiamondFocusShape.RadialShardCrystal:
+                    return 0.58f + 0.72f * Mathf.Pow(Mathf.Max(0f, Mathf.Cos(angle)), 1.25f) + 0.18f * Mathf.Pow(Mathf.Max(0f, -Mathf.Cos(angle)), 0.55f);
+                case DiamondFocusShape.MandalaCrystal:
+                    return 0.82f + 0.2f * Mathf.Pow(Mathf.Abs(Mathf.Cos(angle * 8f)), 0.44f);
+                case DiamondFocusShape.StarDiamond:
+                    return 0.72f + 0.36f * Mathf.Pow(Mathf.Abs(Mathf.Cos(angle * 5f)), 0.55f);
+                case DiamondFocusShape.PolygonCrystal:
+                    return 0.8f + 0.22f * Mathf.Pow(Mathf.Abs(Mathf.Cos(angle * 6f)), 0.36f);
                 default:
                     return 0.86f + 0.14f * Mathf.Pow(Mathf.Abs(Mathf.Cos(angle * 4f)), 0.58f);
             }
@@ -339,6 +347,42 @@ namespace Kaleidoscope2.DiamondFocus
                         new RingProfile(-0.08f, 0.66f, 0.02f, Mathf.PI / 24f),
                         new RingProfile(-0.22f, 0.46f, 0.02f, 0f),
                         new RingProfile(-0.34f, 0.18f, 0.02f, Mathf.PI / 24f));
+
+                case DiamondFocusShape.RadialShardCrystal:
+                    return GetProfile(index,
+                        new RingProfile(0.62f, 0.12f, 0f, 0f),
+                        new RingProfile(0.38f, 0.42f, 0.02f, Mathf.PI / 10f),
+                        new RingProfile(0.08f, 0.74f, 0.03f, 0f),
+                        new RingProfile(-0.08f, 0.7f, 0.03f, Mathf.PI / 10f),
+                        new RingProfile(-0.36f, 0.38f, 0.02f, 0f),
+                        new RingProfile(-0.66f, 0.1f, 0f, Mathf.PI / 10f));
+
+                case DiamondFocusShape.MandalaCrystal:
+                    return GetProfile(index,
+                        new RingProfile(0.5f, 0.24f, 0f, 0f),
+                        new RingProfile(0.32f, 0.56f, 0.02f, Mathf.PI / 32f),
+                        new RingProfile(0.08f, 0.72f, 0.03f, 0f),
+                        new RingProfile(-0.08f, 0.72f, 0.03f, Mathf.PI / 32f),
+                        new RingProfile(-0.34f, 0.52f, 0.02f, 0f),
+                        new RingProfile(-0.58f, 0.18f, 0f, Mathf.PI / 32f));
+
+                case DiamondFocusShape.StarDiamond:
+                    return GetProfile(index,
+                        new RingProfile(0.56f, 0.18f, 0f, 0f),
+                        new RingProfile(0.38f, 0.5f, 0.04f, Mathf.PI / 10f),
+                        new RingProfile(0.1f, 0.72f, 0.02f, 0f),
+                        new RingProfile(-0.08f, 0.72f, 0.02f, Mathf.PI / 10f),
+                        new RingProfile(-0.38f, 0.38f, 0.04f, 0f),
+                        new RingProfile(-0.66f, 0.06f, 0f, Mathf.PI / 10f));
+
+                case DiamondFocusShape.PolygonCrystal:
+                    return GetProfile(index,
+                        new RingProfile(0.5f, 0.32f, 0.82f, 0f),
+                        new RingProfile(0.32f, 0.6f, 0.74f, Mathf.PI / 12f),
+                        new RingProfile(0.06f, 0.78f, 0.64f, 0f),
+                        new RingProfile(-0.08f, 0.78f, 0.64f, Mathf.PI / 12f),
+                        new RingProfile(-0.36f, 0.54f, 0.74f, 0f),
+                        new RingProfile(-0.58f, 0.22f, 0.82f, Mathf.PI / 12f));
 
                 default:
                     return GetProfile(index,

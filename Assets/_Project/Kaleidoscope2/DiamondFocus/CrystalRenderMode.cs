@@ -27,7 +27,9 @@ namespace Kaleidoscope2.Core
         RoundCut = 16,
         OvalCut = 17,
         RadialShardCut = 18,
-        MandalaCut = 19
+        MandalaCut = 19,
+        StarCut = 20,
+        PolygonCut = 21
     }
 
     public enum CrystalMaterialMode

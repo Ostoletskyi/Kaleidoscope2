@@ -128,6 +128,9 @@ namespace Kaleidoscope2.InputSystem
         private bool premiumCrystalFunctionKeysActive;
         private bool premiumCrystalFunctionKeyConsumed;
         private float premiumCrystalScalePercent = DiamondFocusSettings.PremiumCrystalScalePercentDefault;
+        private bool classicVisualWheelConsumed;
+        private float classicVisualScalePercent = 100f;
+        private string mouseWheelVisualScaleTarget = "none";
 
         [Header("4D Hose Profile (Russian layout г/н and щ/з)")]
         [SerializeField] private float hoseProfileUnitsStepPerSecond = 1000f;
@@ -336,6 +339,8 @@ namespace Kaleidoscope2.InputSystem
             }
             else
             {
+                DispatchClassicVisualWheelScale(visualMode, mirror);
+                zoom = mirror.Zoom;
                 premiumCrystalVisibleForWheel = false;
                 premiumCrystalMouseWheelConsumed = false;
             }
@@ -674,7 +679,9 @@ namespace Kaleidoscope2.InputSystem
                 premiumCrystalFunctionKeyConsumed = false;
             }
 
-            return CreateStatus("Zoom " + mirror.Zoom.ToString("0.00") + ", Rotation " + mirror.RotationSpeed.ToString("0") + ", 3D bend " + bend.ToString("0.00") + ", 4D hose " + hoseBend.ToString("0.00") + ", G " + opening.ToString("0") + ", Shch " + curvature.ToString("0") + ", 4D CA " + (chromaticAberration ? "on" : "off") + ", 5D flight " + flightSpeed.ToString("0") + ", mode flight " + modeFlightSpeed.ToString("0") + ", 2D inertia " + (classicInertia ? "on" : "off") + ", 7D " + sevenDStrategy + ", Display 2 " + secondDisplay + ", Premium3D crystal visible " + (premiumCrystalVisibleForWheel ? "true" : "false") + ", mouse wheel consumed " + (premiumCrystalMouseWheelConsumed ? "true" : "false") + ", function keys active " + (premiumCrystalFunctionKeysActive ? "true" : "false") + ", function key consumed " + (premiumCrystalFunctionKeyConsumed ? "true" : "false") + ", current crystal scale percent " + premiumCrystalScalePercent.ToString("0") + ".");
+            classicVisualScalePercent = mirror.Zoom * 100f;
+            string sharedWheelStatus = director.State.MouseWheelVisualScaleStatus;
+            return CreateStatus("Zoom " + mirror.Zoom.ToString("0.00") + ", Rotation " + mirror.RotationSpeed.ToString("0") + ", 3D bend " + bend.ToString("0.00") + ", 4D hose " + hoseBend.ToString("0.00") + ", G " + opening.ToString("0") + ", Shch " + curvature.ToString("0") + ", 4D CA " + (chromaticAberration ? "on" : "off") + ", 5D flight " + flightSpeed.ToString("0") + ", mode flight " + modeFlightSpeed.ToString("0") + ", 2D inertia " + (classicInertia ? "on" : "off") + ", 7D " + sevenDStrategy + ", Display 2 " + secondDisplay + ", Premium3D crystal visible " + (premiumCrystalVisibleForWheel ? "true" : "false") + ", wheel target " + mouseWheelVisualScaleTarget + ", Premium3D mouse wheel consumed " + (premiumCrystalMouseWheelConsumed ? "true" : "false") + ", Classic2D mouse wheel consumed " + (classicVisualWheelConsumed ? "true" : "false") + ", function keys active " + (premiumCrystalFunctionKeysActive ? "true" : "false") + ", function key consumed " + (premiumCrystalFunctionKeyConsumed ? "true" : "false") + ", current crystal scale percent " + premiumCrystalScalePercent.ToString("0") + ", Classic2D visual scale percent " + classicVisualScalePercent.ToString("0") + ", " + sharedWheelStatus + ".");
         }
 
         private void CycleVisualMode()
@@ -886,11 +893,17 @@ namespace Kaleidoscope2.InputSystem
         private void DispatchPremiumCrystalWheelScale(DiamondFocusSettings settings)
         {
             premiumCrystalMouseWheelConsumed = false;
+            classicVisualWheelConsumed = false;
+            mouseWheelVisualScaleTarget = "Premium3D";
             premiumCrystalVisibleForWheel = IsPremiumCrystalWheelActive(settings);
             premiumCrystalScalePercent = settings != null
                 ? settings.PremiumCrystalScalePercent
                 : DiamondFocusSettings.PremiumCrystalScalePercentDefault;
-            if (settings == null || !settings.PremiumCrystalWheelScaleEnabled)
+            KaleidoscopeState state = director != null ? director.State : null;
+            bool wheelEnabled = state != null
+                ? state.MouseWheelVisualScaleEnabled
+                : settings != null && settings.PremiumCrystalWheelScaleEnabled;
+            if (settings == null || !wheelEnabled)
             {
                 return;
             }
@@ -901,9 +914,11 @@ namespace Kaleidoscope2.InputSystem
                 return;
             }
 
-            float stepPercent = settings != null
-                ? settings.PremiumCrystalWheelScaleStepPercent
-                : premiumCrystalScaleWheelStepPercent;
+            float stepPercent = state != null
+                ? state.MouseWheelVisualScaleStepPercent
+                : settings != null
+                    ? settings.PremiumCrystalWheelScaleStepPercent
+                    : premiumCrystalScaleWheelStepPercent;
             float scaleDelta = wheelDelta * Mathf.Max(0f, stepPercent);
             if (Mathf.Abs(scaleDelta) <= 0.0001f)
             {
@@ -917,6 +932,40 @@ namespace Kaleidoscope2.InputSystem
             {
                 premiumCrystalScalePercent = updatedSettings.PremiumCrystalScalePercent;
             }
+        }
+
+        private void DispatchClassicVisualWheelScale(KaleidoscopeVisualMode visualMode, MirrorSettings mirror)
+        {
+            classicVisualWheelConsumed = false;
+            mouseWheelVisualScaleTarget = visualMode == KaleidoscopeVisualMode.Classic ? "Classic2D" : "none";
+            if (director == null || director.State == null || mirror == null || visualMode != KaleidoscopeVisualMode.Classic)
+            {
+                classicVisualScalePercent = mirror != null ? mirror.Zoom * 100f : 100f;
+                return;
+            }
+
+            classicVisualScalePercent = mirror.Zoom * 100f;
+            if (!director.State.MouseWheelVisualScaleEnabled)
+            {
+                return;
+            }
+
+            float wheelDelta = UnityEngine.Input.mouseScrollDelta.y;
+            if (Mathf.Abs(wheelDelta) <= 0.0001f)
+            {
+                return;
+            }
+
+            float zoomDelta = wheelDelta * director.State.MouseWheelVisualScaleStepPercent * 0.01f;
+            float nextZoom = Mathf.Clamp(mirror.Zoom + zoomDelta, 0.2f, 3f);
+            if (Mathf.Approximately(nextZoom, mirror.Zoom))
+            {
+                return;
+            }
+
+            director.Dispatch(KaleidoscopeCommand.SetMirrorZoom(nextZoom));
+            classicVisualScalePercent = nextZoom * 100f;
+            classicVisualWheelConsumed = true;
         }
 
         private void DispatchPremiumCrystalFunctionKeyToggles(DiamondFocusSettings settings)

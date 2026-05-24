@@ -10,7 +10,11 @@ namespace Kaleidoscope2.Core
         DiscoBall = 2,
         TetrahedralCrystal = 3,
         RhombicCrystal = 4,
-        OvalRingGem = 5
+        OvalRingGem = 5,
+        RadialShardCrystal = 6,
+        MandalaCrystal = 7,
+        StarDiamond = 8,
+        PolygonCrystal = 9
     }
 
     public enum DiamondCrystalMaterialMode
@@ -103,7 +107,7 @@ namespace Kaleidoscope2.Core
     [Serializable]
     public sealed class DiamondFocusSettings
     {
-        public const int ShapeCount = 6;
+        public const int ShapeCount = 10;
         public const int GeneratedMaterialKindCount = 4;
         public const float RefractionIndexMin = 0f;
         public const float RefractionIndexMax = 10f;
@@ -123,7 +127,7 @@ namespace Kaleidoscope2.Core
         public const float PremiumOpticsReflectionStrengthDefault = 1.1f;
         public const float PremiumOpticsInternalReflectionsDefault = 1.25f;
         public const float PremiumOpticsBackgroundDistortionDefault = 0.9f;
-        public const float PremiumOpticsDirectTransparencyDefault = 0.25f;
+        public const float PremiumOpticsDirectTransparencyDefault = 0.08f;
         public const float PremiumOpticsPrismDispersionDefault = 1f;
         public const float PremiumOpticsChromaticAberrationDefault = 0.45f;
         public const float PremiumOpticsRainbowEdgeDefault = 0.85f;
@@ -379,6 +383,9 @@ namespace Kaleidoscope2.Core
             get
             {
                 return "crystal visible " + (enabled && IsPremiumCrystalSimulation ? "true" : "false")
+                    + ", active shape " + ShapeLabel
+                    + ", active material " + MaterialModeLabel
+                    + ", shape transition " + (ShapeTransitionActive ? "active " + ShapeTransitionSmoothProgress.ToString("0.00") : "inactive")
                     + ", current crystal scale percent " + PremiumCrystalScalePercent.ToString("0")
                     + ", wheel scale " + (PremiumCrystalWheelScaleEnabled ? "enabled" : "disabled")
                     + ", wheel step " + PremiumCrystalWheelScaleStepPercent.ToString("0") + "%"
@@ -843,58 +850,67 @@ namespace Kaleidoscope2.Core
             SetCrystalSimulationMode(CrystalRenderMode.RealMesh3D);
             CrystalLightRigSettings.SetRigEnabled(true);
             ResetPremiumCrystalOpticalControls();
+            SetPremiumCrystalScalePercent(PremiumCrystalScalePercentDefault);
 
             switch (preset)
             {
                 case PremiumCrystalFactoryPreset.BlueIce:
-                    SetShape(DiamondFocusShape.ClassicDiamond);
+                    BeginShapeTransition(DiamondFocusShape.PolygonCrystal);
                     SetMaterialMode(DiamondCrystalMaterialMode.Sapphire);
-                    ApplyPremiumCrystalOptics(1.28f, 1.35f, 1.45f, 2.2f, 2.0f, 1.75f, 1.55f, 1.25f, 0.16f, 1.85f, 0.8f, 1.15f, 1.1f, 1.25f, 0.35f);
+                    SetPremiumCrystalScalePercent(118f);
+                    ApplyPremiumCrystalOptics(1.28f, 1.35f, 1.45f, 2.5f, 2.35f, 1.95f, 1.75f, 1.55f, 0.08f, 2.2f, 0.95f, 1.45f, 1.35f, 1.35f, 0.35f);
                     break;
 
                 case PremiumCrystalFactoryPreset.GoldenPrism:
-                    SetShape(DiamondFocusShape.RhombicCrystal);
+                    BeginShapeTransition(DiamondFocusShape.RadialShardCrystal);
                     SetMaterialMode(DiamondCrystalMaterialMode.Topaz);
-                    ApplyPremiumCrystalOptics(1.38f, 1.28f, 2.25f, 3.2f, 2.7f, 1.85f, 2.25f, 1.9f, 0.18f, 3.35f, 1.2f, 3.0f, 2.7f, 1.45f, 0.65f);
+                    SetPremiumCrystalScalePercent(126f);
+                    ApplyPremiumCrystalOptics(1.38f, 1.28f, 2.25f, 3.6f, 3.55f, 2.15f, 2.6f, 2.85f, 0.06f, 4.25f, 1.6f, 3.65f, 3.35f, 1.7f, 0.65f);
                     break;
 
                 case PremiumCrystalFactoryPreset.RubyNight:
-                    SetShape(DiamondFocusShape.RhombicCrystal);
+                    BeginShapeTransition(DiamondFocusShape.RhombicCrystal);
                     SetMaterialMode(DiamondCrystalMaterialMode.Ruby);
+                    SetPremiumCrystalScalePercent(115f);
                     ApplyPremiumCrystalOptics(0.82f, 1.85f, 1.35f, 2.65f, 1.65f, 2.75f, 2.7f, 1.4f, 0.08f, 1.55f, 0.55f, 1.2f, 1.0f, 1.8f, 0.35f);
                     break;
 
                 case PremiumCrystalFactoryPreset.EmeraldDepth:
-                    SetShape(DiamondFocusShape.OvalRingGem);
+                    BeginShapeTransition(DiamondFocusShape.OvalRingGem);
                     SetMaterialMode(DiamondCrystalMaterialMode.Emerald);
+                    SetPremiumCrystalScalePercent(124f);
                     ApplyPremiumCrystalOptics(1.08f, 1.55f, 1.5f, 2.05f, 2.25f, 2.15f, 4.2f, 2.1f, 0.12f, 1.75f, 0.8f, 1.1f, 1.7f, 2.65f, 0.45f);
                     break;
 
                 case PremiumCrystalFactoryPreset.OpalDream:
-                    SetShape(DiamondFocusShape.OvalRingGem);
+                    BeginShapeTransition(DiamondFocusShape.MandalaCrystal);
                     SetMaterialMode(DiamondCrystalMaterialMode.FuturisticPlastic);
                     premiumOpalIridescenceEnabled = true;
-                    ApplyPremiumCrystalOptics(1.18f, 0.95f, 2.8f, 2.4f, 1.55f, 1.45f, 2.3f, 1.65f, 0.24f, 3.6f, 1.65f, 3.8f, 3.25f, 1.55f, 0.55f);
+                    SetPremiumCrystalScalePercent(132f);
+                    ApplyPremiumCrystalOptics(1.18f, 0.95f, 2.8f, 2.7f, 1.85f, 1.75f, 2.65f, 1.95f, 0.12f, 4.1f, 1.85f, 4.2f, 3.55f, 1.65f, 0.55f);
                     break;
 
                 case PremiumCrystalFactoryPreset.CosmicGlass:
-                    SetShape(DiamondFocusShape.DiscoBall);
+                    BeginShapeTransition(DiamondFocusShape.MandalaCrystal);
                     SetMaterialMode(DiamondCrystalMaterialMode.Amethyst);
-                    ApplyPremiumCrystalOptics(1.42f, 1.2f, 3.2f, 3.4f, 2.55f, 2.1f, 3.3f, 2.85f, 0.18f, 4.2f, 1.8f, 4.4f, 3.55f, 1.85f, 0.8f);
+                    SetPremiumCrystalScalePercent(145f);
+                    ApplyPremiumCrystalOptics(1.42f, 1.2f, 3.2f, 3.8f, 3.25f, 2.45f, 3.75f, 3.35f, 0.08f, 4.7f, 2.2f, 4.65f, 3.85f, 2.05f, 0.8f);
                     break;
 
                 case PremiumCrystalFactoryPreset.DarkLuxury:
-                    SetShape(DiamondFocusShape.ClassicDiamond);
+                    BeginShapeTransition(DiamondFocusShape.StarDiamond);
                     SetMaterialMode(DiamondCrystalMaterialMode.Garnet);
+                    SetPremiumCrystalScalePercent(112f);
                     ApplyPremiumCrystalOptics(0.7f, 2.15f, 1.15f, 2.45f, 1.25f, 3.45f, 2.5f, 1.2f, 0.05f, 1.2f, 0.45f, 0.8f, 0.8f, 1.75f, 0.25f);
                     premiumHiddenReflectionBackgroundEnabled = true;
                     premiumMirrorFacetsEnabled = true;
                     break;
 
                 case PremiumCrystalFactoryPreset.AbsoluteMirror:
-                    SetShape(DiamondFocusShape.ClassicDiamond);
+                    BeginShapeTransition(DiamondFocusShape.PolygonCrystal);
                     SetMaterialMode(DiamondCrystalMaterialMode.AbsoluteMirror);
-                    ApplyPremiumCrystalOptics(1.12f, 1.75f, 1.85f, 3.75f, 0.85f, 5f, 2.9f, 1.4f, 0.02f, 2.4f, 0.9f, 1.8f, 1.65f, 1.55f, 0.35f);
+                    SetPremiumCrystalScalePercent(120f);
+                    ApplyPremiumCrystalOptics(1.12f, 1.9f, 1.85f, 4.3f, 0.95f, 5f, 3.2f, 1.75f, 0.0f, 2.8f, 1.1f, 2.1f, 1.95f, 1.7f, 0.35f);
                     premiumHiddenReflectionBackgroundEnabled = true;
                     premiumMirrorFacetsEnabled = true;
                     premiumRefractionDistortionEnabled = true;
@@ -902,9 +918,10 @@ namespace Kaleidoscope2.Core
                     break;
 
                 default:
-                    SetShape(DiamondFocusShape.ClassicDiamond);
+                    BeginShapeTransition(DiamondFocusShape.StarDiamond);
                     SetMaterialMode(DiamondCrystalMaterialMode.Diamond);
-                    ApplyPremiumCrystalOptics(1.45f, 1.38f, 2.1f, 3.1f, 2.35f, 2.4f, 2.65f, 1.75f, 0.14f, 2.75f, 1.0f, 2.4f, 2.0f, 1.65f, 0.55f);
+                    SetPremiumCrystalScalePercent(118f);
+                    ApplyPremiumCrystalOptics(1.45f, 1.38f, 2.1f, 3.45f, 2.85f, 2.65f, 2.95f, 2.15f, 0.06f, 3.25f, 1.25f, 2.85f, 2.45f, 1.85f, 0.55f);
                     break;
             }
 
@@ -1094,6 +1111,14 @@ namespace Kaleidoscope2.Core
                     return "Rhombic Crystal";
                 case DiamondFocusShape.OvalRingGem:
                     return "Oval Ring Gem";
+                case DiamondFocusShape.RadialShardCrystal:
+                    return "Radial Shard Crystal";
+                case DiamondFocusShape.MandalaCrystal:
+                    return "Mandala Crystal";
+                case DiamondFocusShape.StarDiamond:
+                    return "Star Diamond";
+                case DiamondFocusShape.PolygonCrystal:
+                    return "Polygon Crystal";
                 default:
                     return "Classic Diamond";
             }

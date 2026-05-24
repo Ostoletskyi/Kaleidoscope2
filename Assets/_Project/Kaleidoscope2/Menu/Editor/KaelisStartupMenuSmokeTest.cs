@@ -3,6 +3,7 @@ using System.Reflection;
 using Kaleidoscope2.Core;
 using Kaleidoscope2.DiamondFocus.RealMesh;
 using Kaleidoscope2.Menu;
+using Kaleidoscope2.Menu.FX;
 using TMPro;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -39,6 +40,10 @@ namespace Kaleidoscope2.Menu.Editor
             Require(canvasTransform != null, "MainMenuCanvas must be created on Awake.");
             Require(canvasTransform.GetComponent<Canvas>() != null, "MainMenuCanvas must have a Canvas.");
             Require(canvasTransform.GetComponent<GraphicRaycaster>() != null, "MainMenuCanvas must receive UI raycasts.");
+            Require(FindChild<Transform>(canvasTransform, "MenuAtmosphereFX") != null, "Menu atmosphere FX root missing.");
+            Require(FindChild<Image>(canvasTransform, "LightBandCausticOverlay") != null, "Menu atmosphere light band overlay missing.");
+            Require(FindChild<MenuDispersionDustController>(canvasTransform, "DispersionDust") != null, "Menu dispersion dust controller missing.");
+            Require(FindChild<MenuCrystalShimmerController>(canvasTransform, "CrystalShimmerHighlights") != null, "Menu crystal shimmer controller missing.");
 
             Require(FindChild<Button>(canvasTransform, "EnterExperienceButton") != null, "Enter Experience button missing.");
             Require(FindChild<Toggle>(canvasTransform, "DemoModeToggle") != null, "Demo Mode toggle missing.");
@@ -131,6 +136,18 @@ namespace Kaleidoscope2.Menu.Editor
             premiumModeCommand.onClick.Invoke();
             Require(director.State.DiamondFocusSettings.Enabled, "Premium 3D command must enable DiamondFocus.");
             Require(director.State.DiamondFocusSettings.CrystalSimulationMode == CrystalRenderMode.RealMesh3D, "Premium 3D command must switch to RealMesh3D.");
+            Button radialShardCommand = FindChild<Button>(modesPanel, "RadialShardCommand");
+            Button mandalaCommand = FindChild<Button>(modesPanel, "MandalaCrystalCommand");
+            Button starDiamondCommand = FindChild<Button>(modesPanel, "StarDiamondCommand");
+            Button polygonCommand = FindChild<Button>(modesPanel, "PolygonCrystalCommand");
+            Require(radialShardCommand != null, "Modes panel must expose a Premium3D Radial Shard form control.");
+            Require(mandalaCommand != null, "Modes panel must expose a Premium3D Mandala Crystal form control.");
+            Require(starDiamondCommand != null, "Modes panel must expose a Premium3D Star Diamond form control.");
+            Require(polygonCommand != null, "Modes panel must expose a Premium3D Polygon Crystal form control.");
+            dispatchedType = KaleidoscopeCommandType.None;
+            starDiamondCommand.onClick.Invoke();
+            Require(dispatchedType == KaleidoscopeCommandType.SetDiamondShape, "Premium3D form control must dispatch SetDiamondShape.");
+            Require(director.State.DiamondFocusSettings.Shape == DiamondFocusShape.StarDiamond, "Premium3D Star Diamond form control must update the runtime diamond shape.");
 
             FindChild<Button>(canvasTransform, "OpticsButton").onClick.Invoke();
             Require(!modesPanel.gameObject.activeSelf && opticsPanel.gameObject.activeSelf, "Optics button must switch to Optics section only.");
@@ -171,6 +188,7 @@ namespace Kaleidoscope2.Menu.Editor
             dispatchedType = KaleidoscopeCommandType.None;
             wheelScaleToggle.Button.onClick.Invoke();
             Require(dispatchedType == KaleidoscopeCommandType.SetPremiumCrystalWheelScaleEnabled, "Mouse Wheel Crystal Scale toggle must dispatch the runtime wheel setting.");
+            Require(!director.State.MouseWheelVisualScaleEnabled, "Mouse Wheel Crystal Scale toggle must update the shared Classic2D/Premium3D wheel scale setting.");
             KaelisMenuSliderControl scaleStepSlider = FindChild<KaelisMenuSliderControl>(settingsPanel, "CrystalScaleStepSlider");
             Require(scaleStepSlider != null, "Settings panel must expose Crystal Scale Step slider.");
             Slider scaleStepUnitySlider = scaleStepSlider.GetComponentInChildren<Slider>(true);
@@ -178,6 +196,7 @@ namespace Kaleidoscope2.Menu.Editor
             dispatchedType = KaleidoscopeCommandType.None;
             scaleStepUnitySlider.value = 15f;
             Require(dispatchedType == KaleidoscopeCommandType.SetPremiumCrystalWheelScaleStepPercent, "Crystal Scale Step must dispatch the runtime wheel step setting.");
+            Require(Mathf.Approximately(director.State.MouseWheelVisualScaleStepPercent, 15f), "Crystal Scale Step must update the shared Classic2D/Premium3D wheel scale step.");
             Button languageCommand = FindChild<Button>(settingsPanel, "LanguageCommand");
             Require(languageCommand != null, "Settings panel must expose real Language selector.");
             Require(languageCommand.GetComponent<KaelisMenuInteractiveRow>().TooltipKeys.Contains("change language"), "Language selector must have truthful language-change hotkey hint.");

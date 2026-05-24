@@ -165,10 +165,18 @@ namespace Kaleidoscope2.Menu
                 : "EFFECT COMMAND UNAVAILABLE");
         }
 
+        public void HandlePremiumCrystalShape(DiamondFocusShape shape)
+        {
+            bool dispatched = commandBridge != null && commandBridge.SetPremiumCrystalShape(shape);
+            SetStatus(dispatched
+                ? "PREMIUM3D FORM " + DiamondFocusSettings.GetShapeLabel(shape).ToUpperInvariant()
+                : "PREMIUM3D FORM COMMAND UNAVAILABLE");
+        }
+
         public void HandlePremiumWheelScaleEnabled(bool enabled)
         {
             bool dispatched = commandBridge != null && commandBridge.SetPremiumCrystalWheelScaleEnabled(enabled);
-            SetStatus(dispatched ? "WHEEL CRYSTAL SCALE " + (enabled ? "ON" : "OFF") : "WHEEL COMMAND UNAVAILABLE");
+            SetStatus(dispatched ? "WHEEL VISUAL SCALE " + (enabled ? "ON" : "OFF") : "WHEEL COMMAND UNAVAILABLE");
         }
 
         public void HandlePremiumWheelScaleStep(float stepPercent)

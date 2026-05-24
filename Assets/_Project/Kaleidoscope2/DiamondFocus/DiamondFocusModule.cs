@@ -129,7 +129,6 @@ namespace Kaleidoscope2.DiamondFocus
                 || command.Type == KaleidoscopeCommandType.DecreaseDiamondRotationSpeed
                 || command.Type == KaleidoscopeCommandType.NextDiamondShape
                 || command.Type == KaleidoscopeCommandType.PreviousDiamondShape
-                || command.Type == KaleidoscopeCommandType.SetDiamondShape
                 || command.Type == KaleidoscopeCommandType.CycleDiamondMaterialMode
                 || command.Type == KaleidoscopeCommandType.SetDiamondMaterialMode
                 || command.Type == KaleidoscopeCommandType.AdjustDiamondRefractionIndex
@@ -184,10 +183,6 @@ namespace Kaleidoscope2.DiamondFocus
 
                 case KaleidoscopeCommandType.PreviousDiamondShape:
                     shapeController.PreviousShape(settings);
-                    break;
-
-                case KaleidoscopeCommandType.SetDiamondShape:
-                    shapeController.SetShape(settings, (DiamondFocusShape)Mathf.Clamp(command.IntValue, 0, DiamondFocusSettings.ShapeCount - 1));
                     break;
 
                 case KaleidoscopeCommandType.CycleDiamondMaterialMode:

@@ -54,6 +54,10 @@ namespace Kaleidoscope2.Core
     [Serializable]
     public sealed class KaleidoscopeState
     {
+        public const float MouseWheelVisualScaleStepPercentMin = 1f;
+        public const float MouseWheelVisualScaleStepPercentMax = 50f;
+        public const float MouseWheelVisualScaleStepPercentDefault = 10f;
+
         [SerializeField] private KaleidoscopeSourceMode activeSourceMode = KaleidoscopeSourceMode.ProceduralTexture;
         [SerializeField] private KaleidoscopeVisualMode activeVisualMode = KaleidoscopeVisualMode.Classic;
         [SerializeField] private MirrorSettings mirrorSettings = new MirrorSettings();
@@ -77,6 +81,8 @@ namespace Kaleidoscope2.Core
         [SerializeField] private bool controlMenuVisible;
         [SerializeField] private bool hotkeysHelpVisible;
         [SerializeField] private bool secondDisplayOutputEnabled;
+        [SerializeField] private bool mouseWheelVisualScaleEnabled = true;
+        [SerializeField, Range(MouseWheelVisualScaleStepPercentMin, MouseWheelVisualScaleStepPercentMax)] private float mouseWheelVisualScaleStepPercent = MouseWheelVisualScaleStepPercentDefault;
         [SerializeField] private string activePreset = "None";
         [SerializeField] private bool tunnelEnabled;
         [SerializeField] private KaleidoscopeRecordingStatus recordingStatus = KaleidoscopeRecordingStatus.Idle;
@@ -197,6 +203,29 @@ namespace Kaleidoscope2.Core
         public bool SecondDisplayOutputEnabled
         {
             get { return secondDisplayOutputEnabled; }
+        }
+
+        public bool MouseWheelVisualScaleEnabled
+        {
+            get { return mouseWheelVisualScaleEnabled; }
+        }
+
+        public float MouseWheelVisualScaleStepPercent
+        {
+            get { return Mathf.Clamp(mouseWheelVisualScaleStepPercent, MouseWheelVisualScaleStepPercentMin, MouseWheelVisualScaleStepPercentMax); }
+        }
+
+        public string MouseWheelVisualScaleStatus
+        {
+            get
+            {
+                float classicScalePercent = mirrorSettings != null ? mirrorSettings.Zoom * 100f : 100f;
+                float premiumScalePercent = diamondFocusSettings != null ? diamondFocusSettings.PremiumCrystalScalePercent : DiamondFocusSettings.PremiumCrystalScalePercentDefault;
+                return "wheel visual scale " + (MouseWheelVisualScaleEnabled ? "enabled" : "disabled")
+                    + ", step " + MouseWheelVisualScaleStepPercent.ToString("0") + "%"
+                    + ", Classic2D scale " + classicScalePercent.ToString("0") + "%"
+                    + ", Premium3D scale " + premiumScalePercent.ToString("0") + "%";
+            }
         }
 
         public string ActivePreset
@@ -364,6 +393,24 @@ namespace Kaleidoscope2.Core
         public void SetActivePreset(string presetName)
         {
             activePreset = string.IsNullOrWhiteSpace(presetName) ? "None" : presetName;
+        }
+
+        public void SetMouseWheelVisualScaleEnabled(bool enabled)
+        {
+            mouseWheelVisualScaleEnabled = enabled;
+            if (diamondFocusSettings != null)
+            {
+                diamondFocusSettings.SetPremiumCrystalWheelScaleEnabled(enabled);
+            }
+        }
+
+        public void SetMouseWheelVisualScaleStepPercent(float percent)
+        {
+            mouseWheelVisualScaleStepPercent = Mathf.Clamp(percent, MouseWheelVisualScaleStepPercentMin, MouseWheelVisualScaleStepPercentMax);
+            if (diamondFocusSettings != null)
+            {
+                diamondFocusSettings.SetPremiumCrystalWheelScaleStepPercent(mouseWheelVisualScaleStepPercent);
+            }
         }
 
         public void SetQualityLevel(KaleidoscopeQualityLevel level)
