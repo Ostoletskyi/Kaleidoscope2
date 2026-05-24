@@ -1801,6 +1801,16 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
                 activeHiddenReflectionTexture = hiddenReflectionTexture;
             }
 
+            if (absoluteMirrorStrength > 0.001f)
+            {
+                ConfigureStandardOpaque(material);
+                material.renderQueue = (int)RenderQueue.Geometry;
+            }
+            else
+            {
+                ConfigureStandardTransparent(material);
+            }
+
             SetMaterialTextureIfPresent(material, CrystalKaleidoscopeTexId, sourceTexture);
             SetMaterialTextureIfPresent(material, CrystalHiddenReflectionTexId, activeHiddenReflectionTexture);
             SetMaterialFloatIfPresent(material, CrystalHiddenReflectionTexValidId, activeHiddenReflectionTexture != null ? 1f : 0f);
@@ -1812,7 +1822,7 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
             SetMaterialColorIfPresent(material, CrystalGemCoreColorId, settings != null ? settings.GemCoreColor : color);
             SetMaterialColorIfPresent(material, CrystalGemFireColorId, settings != null ? settings.GemFireColor : new Color(1f, 0.86f, 0.34f, 1f));
             SetMaterialFloatIfPresent(material, CrystalIntensityId, Mathf.Clamp(intensity, 0f, 20f));
-            SetMaterialFloatIfPresent(material, CrystalAlphaId, absoluteMirrorStrength > 0.001f ? 0.98f : Mathf.Clamp(color.a, 0.42f, 0.94f));
+            SetMaterialFloatIfPresent(material, CrystalAlphaId, absoluteMirrorStrength > 0.001f ? 1f : Mathf.Clamp(color.a, 0.42f, 0.94f));
             SetMaterialFloatIfPresent(material, CrystalMetallicId, metallic);
             float minimumSmoothness = mirrorFacetsEnabled ? 0.985f : 0.52f;
             SetMaterialFloatIfPresent(material, CrystalSmoothnessId, Mathf.Clamp01(Mathf.Max(smoothness, minimumSmoothness) + intensity01 * 0.02f));
@@ -1822,7 +1832,7 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
             SetMaterialFloatIfPresent(material, CrystalFresnelPowerId, Mathf.Clamp(fresnelPower * 0.76f, 1.0f, 4.2f));
             SetMaterialFloatIfPresent(material, CrystalReflectionStrengthId, Mathf.Clamp(reflectionStrength + internalReflection * 0.18f + fresnelStrength * 0.08f, 0f, 1.5f));
             SetMaterialFloatIfPresent(material, CrystalInternalBrightnessId, Mathf.Clamp(internalBrightness + intensity01 * 0.25f, 0f, 3f));
-            SetMaterialFloatIfPresent(material, CrystalMinimumTransmissionId, Mathf.Clamp01(minimumTransmission + gemClarity * 0.03f));
+            SetMaterialFloatIfPresent(material, CrystalMinimumTransmissionId, absoluteMirrorStrength > 0.001f ? 0f : Mathf.Clamp01(minimumTransmission + gemClarity * 0.03f));
             SetMaterialFloatIfPresent(material, CrystalSpecularStrengthId, Mathf.Clamp01(specularStrength + 0.28f));
             SetMaterialFloatIfPresent(material, CrystalRimStrengthId, 1.05f + facetFire * 0.24f + intensity01 * 0.22f);
             SetMaterialFloatIfPresent(material, CrystalBrightnessFloorId, 0.14f + gemClarity * 0.05f + intensity01 * 0.04f);
@@ -1848,7 +1858,6 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
             SetMaterialFloatIfPresent(material, CrystalSpectralSplitScaleId, spectralSplitScale);
             SetMaterialFloatIfPresent(material, CrystalAbsoluteMirrorStrengthId, absoluteMirrorStrength);
             SetMaterialFloatIfPresent(material, CrystalDebugModeId, debugMode);
-            material.renderQueue = (int)RenderQueue.Transparent;
         }
 
         private static void ResolveCrystalSurface(CrystalMaterialMode materialMode, out float metallic, out float smoothness)

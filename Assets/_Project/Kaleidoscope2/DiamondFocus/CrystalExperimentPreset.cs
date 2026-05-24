@@ -432,6 +432,12 @@ namespace Kaleidoscope2.Core
         public DiamondFocusShape ShapeTransitionToShape;
         public bool ShapeTransitionActive;
         public float ShapeTransitionElapsed;
+        public PremiumCrystalShapeType PremiumShape;
+        public PremiumCrystalShapeType PremiumShapeTransitionFromShape;
+        public PremiumCrystalShapeType PremiumShapeTransitionToShape;
+        public bool PremiumShapeTransitionActive;
+        public float PremiumShapeTransitionElapsed;
+        public PremiumCrystalOpticalMode PremiumOpticalMode;
         public DiamondCrystalMaterialMode MaterialMode;
         public DiamondGeneratedMaterialKind GeneratedMaterialKind;
         public Color GeneratedMaterialColor;

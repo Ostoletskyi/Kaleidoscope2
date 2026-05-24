@@ -239,13 +239,26 @@ namespace Kaleidoscope2.Core
 
             renderMode = diamondSettings.CrystalSimulationMode;
             visible = diamondSettings.Enabled;
-            shape = FromDiamondShape(diamondSettings.Shape);
-            shapeTransitionFromShape = FromDiamondShape(diamondSettings.ShapeTransitionFromShape);
-            shapeTransitionToShape = FromDiamondShape(diamondSettings.ShapeTransitionToShape);
-            shapeTransitionActive = diamondSettings.ShapeTransitionActive;
-            shapeTransitionProgress = diamondSettings.ShapeTransitionActive
-                ? diamondSettings.ShapeTransitionSmoothProgress
-                : 1f;
+            if (diamondSettings.IsPremiumCrystalSimulation)
+            {
+                shape = PremiumCrystalShapeLibrary.ToCrystalShape(diamondSettings.PremiumCrystalShape);
+                shapeTransitionFromShape = PremiumCrystalShapeLibrary.ToCrystalShape(diamondSettings.PremiumShapeTransitionFromShape);
+                shapeTransitionToShape = PremiumCrystalShapeLibrary.ToCrystalShape(diamondSettings.PremiumShapeTransitionToShape);
+                shapeTransitionActive = diamondSettings.PremiumShapeTransitionActive;
+                shapeTransitionProgress = diamondSettings.PremiumShapeTransitionActive
+                    ? diamondSettings.PremiumShapeTransitionSmoothProgress
+                    : 1f;
+            }
+            else
+            {
+                shape = FromDiamondShape(diamondSettings.Shape);
+                shapeTransitionFromShape = FromDiamondShape(diamondSettings.ShapeTransitionFromShape);
+                shapeTransitionToShape = FromDiamondShape(diamondSettings.ShapeTransitionToShape);
+                shapeTransitionActive = diamondSettings.ShapeTransitionActive;
+                shapeTransitionProgress = diamondSettings.ShapeTransitionActive
+                    ? diamondSettings.ShapeTransitionSmoothProgress
+                    : 1f;
+            }
             materialMode = FromDiamondMaterialMode(diamondSettings.MaterialMode);
             premiumMaterialMode = diamondSettings.MaterialMode;
             ApplyPremiumMaterialProfile(premiumMaterialMode);

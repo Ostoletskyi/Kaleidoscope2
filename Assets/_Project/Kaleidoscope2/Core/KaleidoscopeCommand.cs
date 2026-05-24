@@ -92,7 +92,11 @@ namespace Kaleidoscope2.Core
         CycleCrystalDebugMode = 84,
         SetCrystalDebugMode = 85,
         ApplyExperimentalCrystalPreset = 86,
-        RestorePreviousCrystalPreset = 87
+        RestorePreviousCrystalPreset = 87,
+        SetPremiumCrystalShape = 88,
+        CyclePremiumCrystalShape = 89,
+        SetPremiumCrystalOpticalMode = 90,
+        CyclePremiumCrystalOpticalMode = 91
     }
 
     [Serializable]
@@ -563,6 +567,22 @@ namespace Kaleidoscope2.Core
             };
         }
 
+        public static KaleidoscopeCommand SetPremiumCrystalShape(PremiumCrystalShapeType shape)
+        {
+            return new KaleidoscopeCommand(KaleidoscopeCommandType.SetPremiumCrystalShape)
+            {
+                intValue = (int)shape
+            };
+        }
+
+        public static KaleidoscopeCommand CyclePremiumCrystalShape(int direction)
+        {
+            return new KaleidoscopeCommand(KaleidoscopeCommandType.CyclePremiumCrystalShape)
+            {
+                intValue = direction == 0 ? 1 : direction
+            };
+        }
+
         public static KaleidoscopeCommand CycleDiamondMaterialMode(int direction)
         {
             return new KaleidoscopeCommand(KaleidoscopeCommandType.CycleDiamondMaterialMode)
@@ -746,6 +766,23 @@ namespace Kaleidoscope2.Core
             {
                 intValue = (int)CrystalExperimentPresetType.Normal,
                 stringValue = CrystalExperimentPreset.GetLabel(CrystalExperimentPresetType.Normal)
+            };
+        }
+
+        public static KaleidoscopeCommand SetPremiumCrystalOpticalMode(PremiumCrystalOpticalMode mode)
+        {
+            return new KaleidoscopeCommand(KaleidoscopeCommandType.SetPremiumCrystalOpticalMode)
+            {
+                intValue = (int)mode,
+                stringValue = PremiumCrystalOpticalModeLibrary.GetLabel(mode)
+            };
+        }
+
+        public static KaleidoscopeCommand CyclePremiumCrystalOpticalMode(int direction)
+        {
+            return new KaleidoscopeCommand(KaleidoscopeCommandType.CyclePremiumCrystalOpticalMode)
+            {
+                intValue = direction == 0 ? 1 : direction
             };
         }
 

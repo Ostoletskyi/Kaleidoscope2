@@ -31,7 +31,8 @@ namespace Kaleidoscope2.Menu
         private KaelisMenuInteractiveRow selectedPremiumShapeRow;
         private Action<PremiumCrystalOpticsParameter, float> premiumOpticsHandler;
         private Action<PremiumCrystalEffectToggle, bool> premiumEffectHandler;
-        private Action<DiamondFocusShape> premiumShapeHandler;
+        private Action<PremiumCrystalShapeType> premiumShapeHandler;
+        private Action<PremiumCrystalOpticalMode> premiumOpticalModeHandler;
         private Action<bool> premiumWheelScaleEnabledHandler;
         private Action<float> premiumWheelScaleStepHandler;
         private Action<int> crystalDebugModeHandler;
@@ -70,7 +71,8 @@ namespace Kaleidoscope2.Menu
         public void SetPremiumCrystalHandlers(
             Action<PremiumCrystalOpticsParameter, float> opticsHandler,
             Action<PremiumCrystalEffectToggle, bool> effectHandler,
-            Action<DiamondFocusShape> shapeHandler,
+            Action<PremiumCrystalShapeType> shapeHandler,
+            Action<PremiumCrystalOpticalMode> opticalModeHandler,
             Action<bool> wheelScaleEnabledHandler,
             Action<float> wheelScaleStepHandler,
             Action<int> debugModeHandler,
@@ -79,6 +81,7 @@ namespace Kaleidoscope2.Menu
             premiumOpticsHandler = opticsHandler;
             premiumEffectHandler = effectHandler;
             premiumShapeHandler = shapeHandler;
+            premiumOpticalModeHandler = opticalModeHandler;
             premiumWheelScaleEnabledHandler = wheelScaleEnabledHandler;
             premiumWheelScaleStepHandler = wheelScaleStepHandler;
             crystalDebugModeHandler = debugModeHandler;
@@ -114,16 +117,25 @@ namespace Kaleidoscope2.Menu
             AddModeRow(panel.Content, "4D Tunnel / Funnel", "Depth/funnel mode with curved visual space.", "SAFE COMMAND", "SetVisualMode(Tunnel)", KaelisMenuPanelCommand.ApplyTunnelMode, KaelisMenuStyle.Cyan, true);
             AddModeRow(panel.Content, "5D Endless Flight", "Continuous movement toward the kaleidoscope center.", "SAFE COMMAND", "SetVisualMode(FiveD)", KaelisMenuPanelCommand.ApplyFiveDMode, KaelisMenuStyle.Cyan, true);
             AddGroupLabel(panel.Content, "PREMIUM3D FORMS");
-            AddPremiumShapeRow(panel.Content, DiamondFocusShape.ClassicDiamond, "Classic Diamond", "Brilliant volumetric diamond with dense crown and pavilion facets.", KaelisMenuStyle.Cyan);
-            AddPremiumShapeRow(panel.Content, DiamondFocusShape.RadialShardCrystal, "Radial Shard", "Classic2D wedge energy transferred into an asymmetric shard gem.", KaelisMenuStyle.GoldSoft);
-            AddPremiumShapeRow(panel.Content, DiamondFocusShape.MandalaCrystal, "Mandala Crystal", "High-count rosette symmetry as a deep faceted volumetric mandala.", KaelisMenuStyle.Cyan);
-            AddPremiumShapeRow(panel.Content, DiamondFocusShape.StarDiamond, "Star Diamond", "Star-cut diamond silhouette with sharp alternating facets.", KaelisMenuStyle.GoldSoft);
-            AddPremiumShapeRow(panel.Content, DiamondFocusShape.PolygonCrystal, "Polygon Crystal", "Deep polygon prism with flat mirror-friendly faces.", KaelisMenuStyle.Cyan);
-            AddPremiumShapeRow(panel.Content, DiamondFocusShape.RhombicCrystal, "Rhombic Crystal", "Elongated marquise/rhombic form for strong directional bending.", KaelisMenuStyle.Cyan);
-            AddPremiumShapeRow(panel.Content, DiamondFocusShape.DiscoBall, "Disco Ball", "Round multifacet crystal inspired by high-count Classic2D symmetry.", KaelisMenuStyle.GoldSoft);
-            AddPremiumShapeRow(panel.Content, DiamondFocusShape.TetrahedralCrystal, "Triangular Crystal", "Trilliant-style triangular volume for hard angular refraction.", KaelisMenuStyle.Cyan);
-            AddPremiumShapeRow(panel.Content, DiamondFocusShape.OvalRingGem, "Oval Ring Gem", "Oval deep-cut crystal carrying the Classic2D ring-like form language.", KaelisMenuStyle.Cyan);
-            AddPremiumShapeRow(panel.Content, DiamondFocusShape.FacetedCube, "Faceted Cube", "Square/princess-cut volumetric crystal with broad polished planes.", KaelisMenuStyle.GoldSoft);
+            AddPremiumShapeRow(panel.Content, PremiumCrystalShapeType.Sphere, "Sphere", "Centered multifacet sphere with a balanced optical core.", KaelisMenuStyle.Cyan);
+            AddPremiumShapeRow(panel.Content, PremiumCrystalShapeType.Cube, "Cube", "Symmetric faceted cube with broad polished planes.", KaelisMenuStyle.GoldSoft);
+            AddPremiumShapeRow(panel.Content, PremiumCrystalShapeType.Octahedron, "Octahedron", "Clean double-sided point crystal with four-way symmetry.", KaelisMenuStyle.Cyan);
+            AddPremiumShapeRow(panel.Content, PremiumCrystalShapeType.Hexahedron, "Hexahedron", "Six-sided prism-like crystal with balanced front and back faces.", KaelisMenuStyle.GoldSoft);
+            AddPremiumShapeRow(panel.Content, PremiumCrystalShapeType.VolumetricRhombus, "Volumetric Rhombus", "Symmetric diamond body with deep mirrored facets.", KaelisMenuStyle.Cyan);
+            AddPremiumShapeRow(panel.Content, PremiumCrystalShapeType.Cone, "Cone", "Centered rotational crystal cone with a closed base.", KaelisMenuStyle.Cyan);
+            AddPremiumShapeRow(panel.Content, PremiumCrystalShapeType.PlateDisc, "Plate / Disc Crystal", "Broad symmetrical disc with readable edge thickness.", KaelisMenuStyle.GoldSoft);
+            AddPremiumShapeRow(panel.Content, PremiumCrystalShapeType.Icosahedron, "Icosahedron", "Dense balanced polyhedral gem with sharp facet changes.", KaelisMenuStyle.Cyan);
+            AddPremiumShapeRow(panel.Content, PremiumCrystalShapeType.Dodecahedron, "Dodecahedron", "Twelve-sided premium polygon crystal with full depth.", KaelisMenuStyle.GoldSoft);
+            AddPremiumShapeRow(panel.Content, PremiumCrystalShapeType.DoublePyramid, "Double Pyramid", "Symmetric bipyramid with a visible central girdle.", KaelisMenuStyle.Cyan);
+            AddPremiumShapeRow(panel.Content, PremiumCrystalShapeType.CrystalLens, "Crystal Lens", "Convex lens crystal with a solid rounded volume.", KaelisMenuStyle.Cyan);
+            AddPremiumShapeRow(panel.Content, PremiumCrystalShapeType.StarPrism, "Star Prism", "Symmetric radial star crystal with closed prism volume.", KaelisMenuStyle.GoldSoft);
+            AddGroupLabel(panel.Content, "PREMIUM OPTICAL MODE");
+            AddPremiumOpticalModeRow(panel.Content, PremiumCrystalOpticalMode.HighPurityDiamond, "High-Purity Diamond", "Clear gemstone optics with controlled transmission.", KaelisMenuStyle.Cyan);
+            AddPremiumOpticalModeRow(panel.Content, PremiumCrystalOpticalMode.PrismDispersion, "Prism Dispersion", "High spectral splitting with visible facet refraction.", KaelisMenuStyle.GoldSoft);
+            AddPremiumOpticalModeRow(panel.Content, PremiumCrystalOpticalMode.MirrorFacets, "Mirror Facets", "Polished reflective facets with restrained transparency.", KaelisMenuStyle.Cyan);
+            AddPremiumOpticalModeRow(panel.Content, PremiumCrystalOpticalMode.InternalReflection, "Internal Reflection", "Layered inner echoes and deeper optical mass.", KaelisMenuStyle.Cyan);
+            AddPremiumOpticalModeRow(panel.Content, PremiumCrystalOpticalMode.AbsoluteMirror, "Absolute Mirror", "Solid reflective crystal. Transparency is disabled.", KaelisMenuStyle.GoldSoft);
+            AddPremiumOpticalModeRow(panel.Content, PremiumCrystalOpticalMode.AlienArtifactExperimental, "Alien Artifact / Experimental", "Enters the preserved Alien Artifact Core experiment profile.", KaelisMenuStyle.Cyan);
             BuildShowcaseRecordingBlock(panel.Content);
         }
 
@@ -215,14 +227,14 @@ namespace Kaleidoscope2.Menu
         {
             KaelisMenuSectionPanel panel = CreatePanel(KaelisMenuSection.Presets, "PresetsSectionPanel", "PRESETS", "Factory looks and user slots");
             AddPresetCard(panel.Content, "Diamond Palace", "Clean diamond material, cold blue light, strong highlights, high clarity. Affects: material, bloom, contrast, reflection, dispersion.", PremiumCrystalFactoryPreset.DiamondPalace, KaelisMenuStyle.Cyan);
-            AddPresetCard(panel.Content, "Blue Ice", "Polygon ice material, blue ambience, crisp contrast, broad polished faces. Affects: shape, material, contrast, refraction.", PremiumCrystalFactoryPreset.BlueIce, KaelisMenuStyle.Cyan);
-            AddPresetCard(panel.Content, "Golden Prism", "Radial shard form, warm gold highlights, rich saturation, strong prism split. Affects: shape, bloom, dispersion, saturation.", PremiumCrystalFactoryPreset.GoldenPrism, KaelisMenuStyle.GoldSoft);
+            AddPresetCard(panel.Content, "Blue Ice", "Hexahedron ice material, blue ambience, crisp contrast, broad polished faces. Affects: shape, material, contrast, refraction.", PremiumCrystalFactoryPreset.BlueIce, KaelisMenuStyle.Cyan);
+            AddPresetCard(panel.Content, "Golden Prism", "Star prism form, warm gold highlights, rich saturation, strong prism split. Affects: shape, bloom, dispersion, saturation.", PremiumCrystalFactoryPreset.GoldenPrism, KaelisMenuStyle.GoldSoft);
             AddPresetCard(panel.Content, "Ruby Night", "Ruby rhombic material, dark luxury background, higher contrast, deep reflection. Affects: shape, material, contrast.", PremiumCrystalFactoryPreset.RubyNight, KaelisMenuStyle.Red);
-            AddPresetCard(panel.Content, "Emerald Depth", "Oval emerald/cyan optics profile, deeper optical mass, internal reflection. Affects: shape, optics, background.", PremiumCrystalFactoryPreset.EmeraldDepth, KaelisMenuStyle.Cyan);
-            AddPresetCard(panel.Content, "Opal Dream", "Mandala crystal with opal spectral split and soft prism fire. Affects: shape, spectral split, contrast.", PremiumCrystalFactoryPreset.OpalDream, KaelisMenuStyle.Cyan);
-            AddPresetCard(panel.Content, "Cosmic Glass", "Mandala prism, high saturation, wide spectral edges, deep background distortion. Affects: shape, background, rainbow edge.", PremiumCrystalFactoryPreset.CosmicGlass, KaelisMenuStyle.GoldSoft);
-            AddPresetCard(panel.Content, "Dark Luxury", "Star/rhombic luxury profile, restrained bloom, deeper contrast, polished material. Affects: shape, contrast, bloom, material.", PremiumCrystalFactoryPreset.DarkLuxury, KaelisMenuStyle.TextMuted);
-            AddPresetCard(panel.Content, "Absolute Mirror", "Mirror-polished facets, low direct transparency, hidden reflection depth, sharp prism fire.", PremiumCrystalFactoryPreset.AbsoluteMirror, KaelisMenuStyle.GoldSoft);
+            AddPresetCard(panel.Content, "Emerald Depth", "Crystal lens emerald/cyan optics profile, deeper optical mass, internal reflection. Affects: shape, optics, background.", PremiumCrystalFactoryPreset.EmeraldDepth, KaelisMenuStyle.Cyan);
+            AddPresetCard(panel.Content, "Opal Dream", "Dodecahedron crystal with opal spectral split and soft prism fire. Affects: shape, spectral split, contrast.", PremiumCrystalFactoryPreset.OpalDream, KaelisMenuStyle.Cyan);
+            AddPresetCard(panel.Content, "Cosmic Glass", "Icosahedron prism, high saturation, wide spectral edges, deep background distortion. Affects: shape, background, rainbow edge.", PremiumCrystalFactoryPreset.CosmicGlass, KaelisMenuStyle.GoldSoft);
+            AddPresetCard(panel.Content, "Dark Luxury", "Star prism luxury profile, restrained bloom, deeper contrast, polished material. Affects: shape, contrast, bloom, material.", PremiumCrystalFactoryPreset.DarkLuxury, KaelisMenuStyle.TextMuted);
+            AddPresetCard(panel.Content, "Absolute Mirror", "Solid mirror-polished facets, zero transparency, hidden reflection depth, sharp highlights.", PremiumCrystalFactoryPreset.AbsoluteMirror, KaelisMenuStyle.GoldSoft);
 
             RectTransform actions = CreateActionRow(panel.Content, "PresetActions");
             presetApplyButton = AddActionChip(actions, "ApplyPresetButton", "APPLY SELECTED", KaelisMenuPanelCommand.ApplySelectedPreset, KaelisMenuStyle.GoldSoft);
@@ -417,9 +429,9 @@ namespace Kaleidoscope2.Menu
             });
         }
 
-        private void AddPremiumShapeRow(RectTransform parent, DiamondFocusShape shape, string title, string description, Color accent)
+        private void AddPremiumShapeRow(RectTransform parent, PremiumCrystalShapeType shape, string title, string description, Color accent)
         {
-            string commandId = "SetDiamondShape(" + shape + ")";
+            string commandId = "SetPremiumCrystalShape(" + shape + ")";
             KaelisMenuInteractiveRow row = AddCommandRow(parent, title, description, "REAL FORM", commandId, KaelisMenuPanelCommand.ReservedAction, accent, 56f);
             Button button = row.GetComponent<Button>();
             button.onClick.RemoveAllListeners();
@@ -428,6 +440,22 @@ namespace Kaleidoscope2.Menu
                 SelectPremiumShapeRow(row);
                 row.Flash();
                 DispatchPremiumShape(shape);
+            });
+        }
+
+        private void AddPremiumOpticalModeRow(RectTransform parent, PremiumCrystalOpticalMode mode, string title, string description, Color accent)
+        {
+            string commandId = "SetPremiumCrystalOpticalMode(" + mode + ")";
+            KaelisMenuInteractiveRow row = AddCommandRow(parent, title, description, "REAL OPTIC", commandId, KaelisMenuPanelCommand.ReservedAction, accent, 56f, PremiumCrystalOpticalModeLibrary.GetTooltip(mode));
+            Button button = row.GetComponent<Button>();
+            button.onClick.RemoveAllListeners();
+            button.onClick.AddListener(() =>
+            {
+                row.Flash();
+                if (premiumOpticalModeHandler != null)
+                {
+                    premiumOpticalModeHandler(mode);
+                }
             });
         }
 
@@ -500,7 +528,7 @@ namespace Kaleidoscope2.Menu
             }
         }
 
-        private void DispatchPremiumShape(DiamondFocusShape shape)
+        private void DispatchPremiumShape(PremiumCrystalShapeType shape)
         {
             if (premiumShapeHandler != null)
             {

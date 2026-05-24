@@ -828,12 +828,16 @@ namespace Kaleidoscope2.InputSystem
 
             if (UnityEngine.Input.GetKeyDown(diamondNextShapeKey))
             {
-                director.Dispatch(KaleidoscopeCommand.NextDiamondShape());
+                director.Dispatch(settings != null && settings.IsPremiumCrystalSimulation
+                    ? KaleidoscopeCommand.CyclePremiumCrystalShape(1)
+                    : KaleidoscopeCommand.NextDiamondShape());
             }
 
             if (UnityEngine.Input.GetKeyDown(diamondPreviousShapeKey))
             {
-                director.Dispatch(KaleidoscopeCommand.PreviousDiamondShape());
+                director.Dispatch(settings != null && settings.IsPremiumCrystalSimulation
+                    ? KaleidoscopeCommand.CyclePremiumCrystalShape(-1)
+                    : KaleidoscopeCommand.PreviousDiamondShape());
             }
 
             bool debugModeKeyPressed = IsDiamondDebugModeKeyPressed();
@@ -1074,7 +1078,8 @@ namespace Kaleidoscope2.InputSystem
 
             if (key == premiumCycleGemPresetKey)
             {
-                director.Dispatch(KaleidoscopeCommand.CycleDiamondMaterialMode(1));
+                // F11 cycles visible Premium optics, including opaque Absolute Mirror. Numpad Del remains debug-mode cycling.
+                director.Dispatch(KaleidoscopeCommand.CyclePremiumCrystalOpticalMode(1));
                 premiumCrystalFunctionKeyConsumed = true;
                 return true;
             }

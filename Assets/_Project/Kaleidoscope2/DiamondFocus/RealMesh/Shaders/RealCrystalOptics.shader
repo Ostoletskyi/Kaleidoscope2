@@ -50,14 +50,18 @@ Shader "Kaleidoscope2/RealCrystalOptics"
         _CoreDarkening ("Core Darkening", Range(0,1)) = 0.18
         _AbsoluteMirrorStrength ("Absolute Mirror Strength", Range(0,1)) = 0
         _CrystalDebugMode ("Crystal Debug Mode", Float) = 0
+        [HideInInspector] _Mode ("Rendering Mode", Float) = 3
+        [HideInInspector] _SrcBlend ("Source Blend", Float) = 5
+        [HideInInspector] _DstBlend ("Destination Blend", Float) = 10
+        [HideInInspector] _ZWrite ("Depth Write", Float) = 0
     }
     SubShader
     {
         Tags { "Queue"="Transparent" "RenderType"="Transparent" }
         LOD 250
         Cull Back
-        ZWrite Off
-        Blend SrcAlpha OneMinusSrcAlpha
+        ZWrite [_ZWrite]
+        Blend [_SrcBlend] [_DstBlend]
 
         CGPROGRAM
         #pragma surface surf StandardSpecular alpha:fade

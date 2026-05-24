@@ -431,6 +431,14 @@ namespace Kaleidoscope2.Core
                     state.DiamondFocusSettings.BeginShapeTransition((DiamondFocusShape)Mathf.Clamp(command.IntValue, 0, DiamondFocusSettings.ShapeCount - 1));
                     return true;
 
+                case KaleidoscopeCommandType.SetPremiumCrystalShape:
+                    state.DiamondFocusSettings.BeginPremiumCrystalShapeTransition((PremiumCrystalShapeType)command.IntValue);
+                    return true;
+
+                case KaleidoscopeCommandType.CyclePremiumCrystalShape:
+                    state.DiamondFocusSettings.CyclePremiumCrystalShape(command.IntValue);
+                    return true;
+
                 case KaleidoscopeCommandType.AdjustPremiumCrystalScalePercent:
                     state.DiamondFocusSettings.AdjustPremiumCrystalScalePercent(command.FloatValue);
                     return true;
@@ -466,6 +474,14 @@ namespace Kaleidoscope2.Core
 
                 case KaleidoscopeCommandType.RestorePreviousCrystalPreset:
                     state.DiamondFocusSettings.RestorePreviousCrystalPreset();
+                    return true;
+
+                case KaleidoscopeCommandType.SetPremiumCrystalOpticalMode:
+                    state.DiamondFocusSettings.SetPremiumCrystalOpticalMode((PremiumCrystalOpticalMode)command.IntValue);
+                    return true;
+
+                case KaleidoscopeCommandType.CyclePremiumCrystalOpticalMode:
+                    state.DiamondFocusSettings.CyclePremiumCrystalOpticalMode(command.IntValue);
                     return true;
 
                 case KaleidoscopeCommandType.ResetPremiumCrystalOpticalControls:

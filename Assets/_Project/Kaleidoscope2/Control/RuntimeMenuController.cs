@@ -58,6 +58,8 @@ namespace Kaleidoscope2.Control
 
         private Text modeValueText;
         private Text crystalSimulationValueText;
+        private Text premiumCrystalShapeValueText;
+        private Text premiumCrystalOpticalModeValueText;
         private Text crystalDebugModeValueText;
         private Text experimentalCrystalPresetValueText;
         private Text imagePathText;
@@ -279,6 +281,18 @@ namespace Kaleidoscope2.Control
                 crystalDebugModeValueText.text = diamond != null ? diamond.DebugModeLabel : "Final Crystal Composite";
             }
 
+            if (premiumCrystalShapeValueText != null)
+            {
+                DiamondFocusSettings diamond = state != null ? state.DiamondFocusSettings : null;
+                premiumCrystalShapeValueText.text = diamond != null ? diamond.PremiumCrystalShapeLabel : "Cube";
+            }
+
+            if (premiumCrystalOpticalModeValueText != null)
+            {
+                DiamondFocusSettings diamond = state != null ? state.DiamondFocusSettings : null;
+                premiumCrystalOpticalModeValueText.text = diamond != null ? diamond.PremiumCrystalOpticalModeLabel : "High-Purity Diamond";
+            }
+
             if (experimentalCrystalPresetValueText != null)
             {
                 DiamondFocusSettings diamond = state != null ? state.DiamondFocusSettings : null;
@@ -456,6 +470,16 @@ namespace Kaleidoscope2.Control
             RectTransform crystalSimulationRow = CreateRow(panel, "Crystal Simulation:", out crystalSimulationValueText);
             CreateButton(crystalSimulationRow, "ToggleCrystalSimulation", "2D / 3D", ButtonColor, ToggleCrystalSimulationMode);
 
+            RectTransform premiumShapeRow = CreateRow(panel, "Premium Crystal Shape:", out premiumCrystalShapeValueText);
+            SetLayoutPreferred(premiumCrystalShapeValueText.gameObject, 250f, 40f);
+            SetLayoutPreferred(CreateButton(premiumShapeRow, "PreviousPremiumCrystalShape", "Previous", MutedButtonColor, () => CyclePremiumCrystalShape(-1)).gameObject, 88f, 40f);
+            SetLayoutPreferred(CreateButton(premiumShapeRow, "NextPremiumCrystalShape", "Next", ButtonColor, () => CyclePremiumCrystalShape(1)).gameObject, 72f, 40f);
+
+            RectTransform premiumOpticalModeRow = CreateRow(panel, "Premium Optical Mode:", out premiumCrystalOpticalModeValueText);
+            SetLayoutPreferred(premiumCrystalOpticalModeValueText.gameObject, 250f, 40f);
+            SetLayoutPreferred(CreateButton(premiumOpticalModeRow, "PreviousPremiumOpticalMode", "Previous", MutedButtonColor, () => CyclePremiumCrystalOpticalMode(-1)).gameObject, 88f, 40f);
+            SetLayoutPreferred(CreateButton(premiumOpticalModeRow, "NextPremiumOpticalMode", "Next", ButtonColor, () => CyclePremiumCrystalOpticalMode(1)).gameObject, 72f, 40f);
+
             RectTransform crystalDebugRow = CreateRow(panel, "Debug Mode:", out crystalDebugModeValueText);
             SetLayoutPreferred(crystalDebugModeValueText.gameObject, 250f, 40f);
             SetLayoutPreferred(CreateButton(crystalDebugRow, "PreviousCrystalDebugMode", "Previous", MutedButtonColor, () => CycleCrystalDebugMode(-1)).gameObject, 88f, 40f);
@@ -527,8 +551,9 @@ namespace Kaleidoscope2.Control
                 "Backspace — включить/выключить центральный 3D-кристалл в любом режиме\n" +
                 "Diamond Focus: Num8/2/4/6 — разгон вращения вверх / вниз / влево / вправо\n" +
                 "Diamond Focus: Num7/9/1/3 — разгон вращения по диагоналям\n" +
-                "Diamond Focus: Num+ / Num- — следующая / предыдущая форма алмаза, плавный переход 2 секунды\n" +
-                "Diamond Focus: NumDel / Num, — режим отладки кристалла\n" +
+                "Diamond Focus: Num+ / Num- — форма алмаза; в Premium симметричные формы, плавный переход 2 секунды\n" +
+                "Diamond Focus: NumDel / Num, — видимый режим отладки (Crystal Off доступен только явно)\n" +
+                "Diamond Focus: F11 — Premium Optical Mode, включая Absolute Mirror (без прозрачности)\n" +
                 "Diamond Focus: Num/ — режим материала кристалла\n" +
                 "Diamond Focus: Home / End — повысить / понизить коэффициент преломления 0..10\n" +
                 "Diamond Focus: PageUp / PageDown — свет на кристалл -10..+10\n" +
@@ -974,6 +999,32 @@ namespace Kaleidoscope2.Control
             }
 
             director.Dispatch(KaleidoscopeCommand.CycleCrystalDebugMode(direction));
+            SyncUiFromState();
+        }
+
+        private void CyclePremiumCrystalShape(int direction)
+        {
+            if (director == null)
+            {
+                return;
+            }
+
+            director.Dispatch(KaleidoscopeCommand.SetDiamondFocusEnabled(true));
+            director.Dispatch(KaleidoscopeCommand.SetCrystalSimulationMode(CrystalRenderMode.RealMesh3D));
+            director.Dispatch(KaleidoscopeCommand.CyclePremiumCrystalShape(direction));
+            SyncUiFromState();
+        }
+
+        private void CyclePremiumCrystalOpticalMode(int direction)
+        {
+            if (director == null)
+            {
+                return;
+            }
+
+            director.Dispatch(KaleidoscopeCommand.SetDiamondFocusEnabled(true));
+            director.Dispatch(KaleidoscopeCommand.SetCrystalSimulationMode(CrystalRenderMode.RealMesh3D));
+            director.Dispatch(KaleidoscopeCommand.CyclePremiumCrystalOpticalMode(direction));
             SyncUiFromState();
         }
 

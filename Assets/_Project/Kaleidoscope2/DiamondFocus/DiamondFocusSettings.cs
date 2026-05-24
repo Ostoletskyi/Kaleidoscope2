@@ -229,6 +229,12 @@ namespace Kaleidoscope2.Core
         [SerializeField, Range(PremiumCrystalScalePercentMin, PremiumCrystalScalePercentMax)] private float premiumCrystalScalePercent = PremiumCrystalScalePercentDefault;
         [SerializeField] private bool premiumCrystalWheelScaleEnabled = true;
         [SerializeField, Range(PremiumCrystalWheelScaleStepPercentMin, PremiumCrystalWheelScaleStepPercentMax)] private float premiumCrystalWheelScaleStepPercent = PremiumCrystalWheelScaleStepPercentDefault;
+        [SerializeField] private PremiumCrystalShapeType premiumCrystalShape = PremiumCrystalShapeType.VolumetricRhombus;
+        [SerializeField] private PremiumCrystalShapeType premiumShapeTransitionFromShape = PremiumCrystalShapeType.VolumetricRhombus;
+        [SerializeField] private PremiumCrystalShapeType premiumShapeTransitionToShape = PremiumCrystalShapeType.VolumetricRhombus;
+        [SerializeField] private bool premiumShapeTransitionActive;
+        [SerializeField] private float premiumShapeTransitionElapsed;
+        [SerializeField] private PremiumCrystalOpticalMode premiumCrystalOpticalMode = PremiumCrystalOpticalMode.HighPurityDiamond;
 
         [Header("Premium3D Menu Optics")]
         [SerializeField, Range(0.10f, 3f)] private float premiumOpticsBrightness = PremiumOpticsBrightnessDefault;
@@ -273,6 +279,7 @@ namespace Kaleidoscope2.Core
         [SerializeField, InspectorName("KaleidoscopeTex Binding Status")] private string kaleidoscopeTexBindingStatus = "Unbound";
 
         [NonSerialized] private CrystalExperimentPresetApplier crystalExperimentPresetApplier;
+        [NonSerialized] private PremiumCrystalModeApplier premiumCrystalModeApplier;
 
         public bool Enabled { get { return enabled; } }
         public DiamondFocusShape Shape { get { return shape; } }
@@ -366,6 +373,30 @@ namespace Kaleidoscope2.Core
         public float PremiumCrystalScaleMultiplier { get { return PremiumCrystalScalePercent / 100f; } }
         public bool PremiumCrystalWheelScaleEnabled { get { return premiumCrystalWheelScaleEnabled; } }
         public float PremiumCrystalWheelScaleStepPercent { get { return Mathf.Clamp(premiumCrystalWheelScaleStepPercent, PremiumCrystalWheelScaleStepPercentMin, PremiumCrystalWheelScaleStepPercentMax); } }
+        public PremiumCrystalShapeType PremiumCrystalShape { get { return PremiumCrystalShapeLibrary.Normalize(premiumCrystalShape); } }
+        public string PremiumCrystalShapeLabel { get { return PremiumCrystalShapeLibrary.GetLabel(PremiumCrystalShape); } }
+        public PremiumCrystalShapeType PremiumShapeTransitionFromShape { get { return PremiumCrystalShapeLibrary.Normalize(premiumShapeTransitionFromShape); } }
+        public PremiumCrystalShapeType PremiumShapeTransitionToShape { get { return PremiumCrystalShapeLibrary.Normalize(premiumShapeTransitionToShape); } }
+        public bool PremiumShapeTransitionActive { get { return premiumShapeTransitionActive; } }
+        public float PremiumShapeTransitionProgress
+        {
+            get
+            {
+                return premiumShapeTransitionActive
+                    ? Mathf.Clamp01(premiumShapeTransitionElapsed / ShapeTransitionDuration)
+                    : 1f;
+            }
+        }
+        public float PremiumShapeTransitionSmoothProgress
+        {
+            get
+            {
+                float value = PremiumShapeTransitionProgress;
+                return value * value * value * (value * (value * 6f - 15f) + 10f);
+            }
+        }
+        public PremiumCrystalOpticalMode ActivePremiumCrystalOpticalMode { get { return PremiumCrystalOpticalModeLibrary.Normalize(premiumCrystalOpticalMode); } }
+        public string PremiumCrystalOpticalModeLabel { get { return PremiumCrystalOpticalModeLibrary.GetLabel(ActivePremiumCrystalOpticalMode); } }
         public float PremiumOpticsBrightness { get { return Mathf.Clamp(premiumOpticsBrightness, 0.10f, 3f); } }
         public float PremiumOpticsContrast { get { return Mathf.Clamp(premiumOpticsContrast, 0.20f, 3f); } }
         public float PremiumOpticsBloomGlow { get { return Mathf.Clamp(premiumOpticsBloomGlow, 0f, 5f); } }
@@ -389,11 +420,14 @@ namespace Kaleidoscope2.Core
             get
             {
                 return "crystal visible " + (enabled && IsPremiumCrystalSimulation ? "true" : "false")
-                    + ", active shape " + ShapeLabel
+                    + ", active shape " + (IsPremiumCrystalSimulation ? PremiumCrystalShapeLabel : ShapeLabel)
+                    + ", optical mode " + PremiumCrystalOpticalModeLabel
                     + ", active material " + MaterialModeLabel
                     + ", debug mode " + DebugModeLabel
                     + ", experiment " + ActiveExperimentalCrystalPresetLabel
-                    + ", shape transition " + (ShapeTransitionActive ? "active " + ShapeTransitionSmoothProgress.ToString("0.00") : "inactive")
+                    + ", shape transition " + (IsPremiumCrystalSimulation
+                        ? PremiumShapeTransitionActive ? "active " + PremiumShapeTransitionSmoothProgress.ToString("0.00") : "inactive"
+                        : ShapeTransitionActive ? "active " + ShapeTransitionSmoothProgress.ToString("0.00") : "inactive")
                     + ", current crystal scale percent " + PremiumCrystalScalePercent.ToString("0")
                     + ", wheel scale " + (PremiumCrystalWheelScaleEnabled ? "enabled" : "disabled")
                     + ", wheel step " + PremiumCrystalWheelScaleStepPercent.ToString("0") + "%"
@@ -508,6 +542,8 @@ namespace Kaleidoscope2.Core
 
         public void TickShapeTransition(float deltaTime)
         {
+            TickPremiumCrystalShapeTransition(deltaTime);
+
             if (!shapeTransitionActive)
             {
                 return;
@@ -541,6 +577,72 @@ namespace Kaleidoscope2.Core
             }
 
             SetShapeIndex(ShapeIndex + (direction > 0 ? 1 : -1));
+        }
+
+        public void SetPremiumCrystalShape(PremiumCrystalShapeType value)
+        {
+            PremiumCrystalShapeType target = PremiumCrystalShapeLibrary.Normalize(value);
+            premiumCrystalShape = target;
+            premiumShapeTransitionFromShape = target;
+            premiumShapeTransitionToShape = target;
+            premiumShapeTransitionActive = false;
+            premiumShapeTransitionElapsed = 0f;
+            RefreshInspectorLabels();
+        }
+
+        public void BeginPremiumCrystalShapeTransition(PremiumCrystalShapeType value)
+        {
+            PremiumCrystalShapeType target = PremiumCrystalShapeLibrary.Normalize(value);
+            if (!premiumShapeMorphingEnabled)
+            {
+                SetPremiumCrystalShape(target);
+                return;
+            }
+
+            if (premiumShapeTransitionActive && target == premiumShapeTransitionFromShape)
+            {
+                PremiumCrystalShapeType previousFrom = premiumShapeTransitionFromShape;
+                premiumShapeTransitionFromShape = premiumShapeTransitionToShape;
+                premiumShapeTransitionToShape = previousFrom;
+                premiumShapeTransitionElapsed = Mathf.Clamp(ShapeTransitionDuration - premiumShapeTransitionElapsed, 0f, ShapeTransitionDuration);
+                premiumCrystalShape = target;
+                RefreshInspectorLabels();
+                return;
+            }
+
+            PremiumCrystalShapeType from = premiumShapeTransitionActive ? premiumShapeTransitionToShape : PremiumCrystalShape;
+            premiumCrystalShape = target;
+            premiumShapeTransitionFromShape = from;
+            premiumShapeTransitionToShape = target;
+            premiumShapeTransitionElapsed = 0f;
+            premiumShapeTransitionActive = from != target;
+            RefreshInspectorLabels();
+        }
+
+        public void CyclePremiumCrystalShape(int direction)
+        {
+            if (direction == 0)
+            {
+                return;
+            }
+
+            BeginPremiumCrystalShapeTransition(PremiumCrystalShapeLibrary.Cycle(PremiumCrystalShape, direction));
+        }
+
+        private void TickPremiumCrystalShapeTransition(float deltaTime)
+        {
+            if (!premiumShapeTransitionActive)
+            {
+                return;
+            }
+
+            premiumShapeTransitionElapsed = Mathf.Min(ShapeTransitionDuration, premiumShapeTransitionElapsed + Mathf.Max(0f, deltaTime));
+            if (premiumShapeTransitionElapsed >= ShapeTransitionDuration)
+            {
+                premiumShapeTransitionActive = false;
+                premiumShapeTransitionFromShape = premiumShapeTransitionToShape;
+                premiumCrystalShape = premiumShapeTransitionToShape;
+            }
         }
 
         public void SetMaterialMode(DiamondCrystalMaterialMode value)
@@ -632,7 +734,32 @@ namespace Kaleidoscope2.Core
             crystalSimulationMode = value == CrystalRenderMode.RealMesh3D
                 ? CrystalRenderMode.RealMesh3D
                 : CrystalRenderMode.Billboard2D;
+            premiumCrystalShape = PremiumCrystalShapeLibrary.Normalize(premiumCrystalShape);
             ClampCrystalLightRigIntensityForCurrentMode();
+        }
+
+        public void SetPremiumCrystalOpticalMode(PremiumCrystalOpticalMode value)
+        {
+            if (premiumCrystalModeApplier == null)
+            {
+                premiumCrystalModeApplier = new PremiumCrystalModeApplier();
+            }
+
+            premiumCrystalModeApplier.Apply(this, value);
+            RefreshInspectorLabels();
+        }
+
+        public void CyclePremiumCrystalOpticalMode(int direction)
+        {
+            if (direction != 0)
+            {
+                SetPremiumCrystalOpticalMode(PremiumCrystalOpticalModeLibrary.Cycle(ActivePremiumCrystalOpticalMode, direction));
+            }
+        }
+
+        internal void SetActivePremiumCrystalOpticalMode(PremiumCrystalOpticalMode value)
+        {
+            premiumCrystalOpticalMode = PremiumCrystalOpticalModeLibrary.Normalize(value);
         }
 
         public void ToggleCrystalSimulationMode()
@@ -691,7 +818,9 @@ namespace Kaleidoscope2.Core
                     premiumOpticsBackgroundDistortion = Mathf.Clamp(value, 0f, 5f);
                     break;
                 case PremiumCrystalOpticsParameter.DirectTransparency:
-                    premiumOpticsDirectTransparency = Mathf.Clamp01(value);
+                    premiumOpticsDirectTransparency = ActivePremiumCrystalOpticalMode == PremiumCrystalOpticalMode.AbsoluteMirror
+                        ? 0f
+                        : Mathf.Clamp01(value);
                     break;
                 case PremiumCrystalOpticsParameter.PrismDispersion:
                     premiumOpticsPrismDispersion = Mathf.Clamp(value, 0f, 5f);
@@ -789,6 +918,10 @@ namespace Kaleidoscope2.Core
                     {
                         SetShape(shapeTransitionToShape);
                     }
+                    if (!value && premiumShapeTransitionActive)
+                    {
+                        SetPremiumCrystalShape(premiumShapeTransitionToShape);
+                    }
                     break;
                 case PremiumCrystalEffectToggle.DebugOpticalDiagnostics:
                     premiumDebugOpticalDiagnosticsEnabled = value;
@@ -866,35 +999,40 @@ namespace Kaleidoscope2.Core
             switch (preset)
             {
                 case PremiumCrystalFactoryPreset.BlueIce:
-                    BeginShapeTransition(DiamondFocusShape.PolygonCrystal);
+                    BeginPremiumCrystalShapeTransition(PremiumCrystalShapeType.Hexahedron);
+                    SetActivePremiumCrystalOpticalMode(PremiumCrystalOpticalMode.HighPurityDiamond);
                     SetMaterialMode(DiamondCrystalMaterialMode.Sapphire);
                     SetPremiumCrystalScalePercent(118f);
                     ApplyPremiumCrystalOptics(1.28f, 1.35f, 1.45f, 2.5f, 2.35f, 1.95f, 1.75f, 1.55f, 0.08f, 2.2f, 0.95f, 1.45f, 1.35f, 1.35f, 0.35f);
                     break;
 
                 case PremiumCrystalFactoryPreset.GoldenPrism:
-                    BeginShapeTransition(DiamondFocusShape.RadialShardCrystal);
+                    BeginPremiumCrystalShapeTransition(PremiumCrystalShapeType.StarPrism);
+                    SetActivePremiumCrystalOpticalMode(PremiumCrystalOpticalMode.PrismDispersion);
                     SetMaterialMode(DiamondCrystalMaterialMode.Topaz);
                     SetPremiumCrystalScalePercent(126f);
                     ApplyPremiumCrystalOptics(1.38f, 1.28f, 2.25f, 3.6f, 3.55f, 2.15f, 2.6f, 2.85f, 0.06f, 4.25f, 1.6f, 3.65f, 3.35f, 1.7f, 0.65f);
                     break;
 
                 case PremiumCrystalFactoryPreset.RubyNight:
-                    BeginShapeTransition(DiamondFocusShape.RhombicCrystal);
+                    BeginPremiumCrystalShapeTransition(PremiumCrystalShapeType.VolumetricRhombus);
+                    SetActivePremiumCrystalOpticalMode(PremiumCrystalOpticalMode.InternalReflection);
                     SetMaterialMode(DiamondCrystalMaterialMode.Ruby);
                     SetPremiumCrystalScalePercent(115f);
                     ApplyPremiumCrystalOptics(0.82f, 1.85f, 1.35f, 2.65f, 1.65f, 2.75f, 2.7f, 1.4f, 0.08f, 1.55f, 0.55f, 1.2f, 1.0f, 1.8f, 0.35f);
                     break;
 
                 case PremiumCrystalFactoryPreset.EmeraldDepth:
-                    BeginShapeTransition(DiamondFocusShape.OvalRingGem);
+                    BeginPremiumCrystalShapeTransition(PremiumCrystalShapeType.CrystalLens);
+                    SetActivePremiumCrystalOpticalMode(PremiumCrystalOpticalMode.InternalReflection);
                     SetMaterialMode(DiamondCrystalMaterialMode.Emerald);
                     SetPremiumCrystalScalePercent(124f);
                     ApplyPremiumCrystalOptics(1.08f, 1.55f, 1.5f, 2.05f, 2.25f, 2.15f, 4.2f, 2.1f, 0.12f, 1.75f, 0.8f, 1.1f, 1.7f, 2.65f, 0.45f);
                     break;
 
                 case PremiumCrystalFactoryPreset.OpalDream:
-                    BeginShapeTransition(DiamondFocusShape.MandalaCrystal);
+                    BeginPremiumCrystalShapeTransition(PremiumCrystalShapeType.Dodecahedron);
+                    SetActivePremiumCrystalOpticalMode(PremiumCrystalOpticalMode.PrismDispersion);
                     SetMaterialMode(DiamondCrystalMaterialMode.FuturisticPlastic);
                     premiumOpalIridescenceEnabled = true;
                     SetPremiumCrystalScalePercent(132f);
@@ -902,14 +1040,16 @@ namespace Kaleidoscope2.Core
                     break;
 
                 case PremiumCrystalFactoryPreset.CosmicGlass:
-                    BeginShapeTransition(DiamondFocusShape.MandalaCrystal);
+                    BeginPremiumCrystalShapeTransition(PremiumCrystalShapeType.Icosahedron);
+                    SetActivePremiumCrystalOpticalMode(PremiumCrystalOpticalMode.PrismDispersion);
                     SetMaterialMode(DiamondCrystalMaterialMode.Amethyst);
                     SetPremiumCrystalScalePercent(145f);
                     ApplyPremiumCrystalOptics(1.42f, 1.2f, 3.2f, 3.8f, 3.25f, 2.45f, 3.75f, 3.35f, 0.08f, 4.7f, 2.2f, 4.65f, 3.85f, 2.05f, 0.8f);
                     break;
 
                 case PremiumCrystalFactoryPreset.DarkLuxury:
-                    BeginShapeTransition(DiamondFocusShape.StarDiamond);
+                    BeginPremiumCrystalShapeTransition(PremiumCrystalShapeType.StarPrism);
+                    SetActivePremiumCrystalOpticalMode(PremiumCrystalOpticalMode.MirrorFacets);
                     SetMaterialMode(DiamondCrystalMaterialMode.Garnet);
                     SetPremiumCrystalScalePercent(112f);
                     ApplyPremiumCrystalOptics(0.7f, 2.15f, 1.15f, 2.45f, 1.25f, 3.45f, 2.5f, 1.2f, 0.05f, 1.2f, 0.45f, 0.8f, 0.8f, 1.75f, 0.25f);
@@ -918,18 +1058,20 @@ namespace Kaleidoscope2.Core
                     break;
 
                 case PremiumCrystalFactoryPreset.AbsoluteMirror:
-                    BeginShapeTransition(DiamondFocusShape.PolygonCrystal);
+                    BeginPremiumCrystalShapeTransition(PremiumCrystalShapeType.Octahedron);
+                    SetActivePremiumCrystalOpticalMode(PremiumCrystalOpticalMode.AbsoluteMirror);
                     SetMaterialMode(DiamondCrystalMaterialMode.AbsoluteMirror);
                     SetPremiumCrystalScalePercent(120f);
                     ApplyPremiumCrystalOptics(1.12f, 1.9f, 1.85f, 4.3f, 0.95f, 5f, 3.2f, 1.75f, 0.0f, 2.8f, 1.1f, 2.1f, 1.95f, 1.7f, 0.35f);
                     premiumHiddenReflectionBackgroundEnabled = true;
                     premiumMirrorFacetsEnabled = true;
-                    premiumRefractionDistortionEnabled = true;
-                    premiumDispersionEnabled = true;
+                    premiumRefractionDistortionEnabled = false;
+                    premiumDispersionEnabled = false;
                     break;
 
                 default:
-                    BeginShapeTransition(DiamondFocusShape.StarDiamond);
+                    BeginPremiumCrystalShapeTransition(PremiumCrystalShapeType.VolumetricRhombus);
+                    SetActivePremiumCrystalOpticalMode(PremiumCrystalOpticalMode.HighPurityDiamond);
                     SetMaterialMode(DiamondCrystalMaterialMode.Diamond);
                     SetPremiumCrystalScalePercent(118f);
                     ApplyPremiumCrystalOptics(1.45f, 1.38f, 2.1f, 3.45f, 2.85f, 2.65f, 2.95f, 2.15f, 0.06f, 3.25f, 1.25f, 2.85f, 2.45f, 1.85f, 0.55f);
@@ -999,6 +1141,12 @@ namespace Kaleidoscope2.Core
             snapshot.ShapeTransitionToShape = shapeTransitionToShape;
             snapshot.ShapeTransitionActive = shapeTransitionActive;
             snapshot.ShapeTransitionElapsed = shapeTransitionElapsed;
+            snapshot.PremiumShape = premiumCrystalShape;
+            snapshot.PremiumShapeTransitionFromShape = premiumShapeTransitionFromShape;
+            snapshot.PremiumShapeTransitionToShape = premiumShapeTransitionToShape;
+            snapshot.PremiumShapeTransitionActive = premiumShapeTransitionActive;
+            snapshot.PremiumShapeTransitionElapsed = premiumShapeTransitionElapsed;
+            snapshot.PremiumOpticalMode = premiumCrystalOpticalMode;
             snapshot.MaterialMode = materialMode;
             snapshot.GeneratedMaterialKind = generatedMaterialKind;
             snapshot.GeneratedMaterialColor = generatedMaterialColor;
@@ -1081,6 +1229,12 @@ namespace Kaleidoscope2.Core
             shapeTransitionToShape = snapshot.ShapeTransitionToShape;
             shapeTransitionActive = snapshot.ShapeTransitionActive;
             shapeTransitionElapsed = snapshot.ShapeTransitionElapsed;
+            premiumCrystalShape = PremiumCrystalShapeLibrary.Normalize(snapshot.PremiumShape);
+            premiumShapeTransitionFromShape = PremiumCrystalShapeLibrary.Normalize(snapshot.PremiumShapeTransitionFromShape);
+            premiumShapeTransitionToShape = PremiumCrystalShapeLibrary.Normalize(snapshot.PremiumShapeTransitionToShape);
+            premiumShapeTransitionActive = snapshot.PremiumShapeTransitionActive;
+            premiumShapeTransitionElapsed = snapshot.PremiumShapeTransitionElapsed;
+            premiumCrystalOpticalMode = PremiumCrystalOpticalModeLibrary.Normalize(snapshot.PremiumOpticalMode);
             materialMode = snapshot.MaterialMode;
             generatedMaterialKind = snapshot.GeneratedMaterialKind;
             generatedMaterialColor = snapshot.GeneratedMaterialColor;
@@ -1160,6 +1314,8 @@ namespace Kaleidoscope2.Core
             SetEnabled(true);
             premiumShapeMorphingEnabled = preset.ShapeMorphing;
             BeginShapeTransition(preset.Shape);
+            BeginPremiumCrystalShapeTransition(PremiumCrystalShapeLibrary.FromLegacyShape(preset.Shape));
+            SetActivePremiumCrystalOpticalMode(PremiumCrystalOpticalMode.AlienArtifactExperimental);
             SetMaterialMode(preset.MaterialMode);
             SetDebugMode(preset.DebugMode);
             SetPremiumCrystalScalePercent(preset.PremiumScalePercent);
@@ -1268,6 +1424,14 @@ namespace Kaleidoscope2.Core
                 next += debugModeCount;
             }
 
+            // CrystalOff remains selectable for diagnostics, but hotkey cycling never makes the visible crystal vanish.
+            if ((DiamondCrystalDebugMode)next == DiamondCrystalDebugMode.CrystalOff)
+            {
+                next = direction < 0
+                    ? (int)DiamondCrystalDebugMode.SurfaceNormalOnly
+                    : (int)DiamondCrystalDebugMode.ArtifactStressTest;
+            }
+
             debugMode = (DiamondCrystalDebugMode)next;
             premiumDebugOpticalDiagnosticsEnabled = false;
         }
@@ -1279,8 +1443,8 @@ namespace Kaleidoscope2.Core
 
         public void RefreshInspectorLabels()
         {
-            currentShapeName = ShapeLabel;
-            currentModeName = MaterialModeLabel;
+            currentShapeName = IsPremiumCrystalSimulation ? PremiumCrystalShapeLabel : ShapeLabel;
+            currentModeName = IsPremiumCrystalSimulation ? PremiumCrystalOpticalModeLabel : MaterialModeLabel;
             activeExperimentalCrystalPresetName = CrystalExperimentPreset.GetLabel(activeExperimentalCrystalPreset);
         }
 

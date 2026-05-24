@@ -52,6 +52,7 @@ namespace Kaleidoscope2.Menu
                     actionRouter.HandlePremiumCrystalOptic,
                     actionRouter.HandlePremiumCrystalEffect,
                     actionRouter.HandlePremiumCrystalShape,
+                    actionRouter.HandlePremiumCrystalOpticalMode,
                     actionRouter.HandlePremiumWheelScaleEnabled,
                     actionRouter.HandlePremiumWheelScaleStep,
                     actionRouter.HandleCrystalDebugMode,

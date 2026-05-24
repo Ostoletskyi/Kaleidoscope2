@@ -46,11 +46,18 @@ namespace Kaleidoscope2.Menu
             return Dispatch(KaleidoscopeCommand.SetPremiumCrystalEffectEnabled(effect, enabled), "Premium3D Effect " + effect);
         }
 
-        public bool SetPremiumCrystalShape(DiamondFocusShape shape)
+        public bool SetPremiumCrystalShape(PremiumCrystalShapeType shape)
         {
             bool modeReady = ApplyPremium3DMode();
-            bool shapeSet = Dispatch(KaleidoscopeCommand.SetDiamondShape(shape), "Premium3D Shape " + shape);
+            bool shapeSet = Dispatch(KaleidoscopeCommand.SetPremiumCrystalShape(shape), "Premium3D Shape " + shape);
             return modeReady && shapeSet;
+        }
+
+        public bool SetPremiumCrystalOpticalMode(PremiumCrystalOpticalMode mode)
+        {
+            bool modeReady = ApplyPremium3DMode();
+            bool modeSet = Dispatch(KaleidoscopeCommand.SetPremiumCrystalOpticalMode(mode), "Premium3D Optical Mode " + mode);
+            return modeReady && modeSet;
         }
 
         public bool SetPremiumCrystalWheelScaleEnabled(bool enabled)

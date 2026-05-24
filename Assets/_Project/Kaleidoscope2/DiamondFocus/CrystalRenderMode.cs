@@ -29,7 +29,19 @@ namespace Kaleidoscope2.Core
         RadialShardCut = 18,
         MandalaCut = 19,
         StarCut = 20,
-        PolygonCut = 21
+        PolygonCut = 21,
+        PremiumSphere = 22,
+        PremiumCube = 23,
+        PremiumOctahedron = 24,
+        PremiumHexahedron = 25,
+        PremiumRhombus = 26,
+        PremiumCone = 27,
+        PremiumPlate = 28,
+        PremiumIcosahedron = 29,
+        PremiumDodecahedron = 30,
+        PremiumBipyramid = 31,
+        PremiumLens = 32,
+        PremiumStarPrism = 33
     }
 
     public enum CrystalMaterialMode

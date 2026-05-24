@@ -165,12 +165,20 @@ namespace Kaleidoscope2.Menu
                 : "EFFECT COMMAND UNAVAILABLE");
         }
 
-        public void HandlePremiumCrystalShape(DiamondFocusShape shape)
+        public void HandlePremiumCrystalShape(PremiumCrystalShapeType shape)
         {
             bool dispatched = commandBridge != null && commandBridge.SetPremiumCrystalShape(shape);
             SetStatus(dispatched
-                ? "PREMIUM3D FORM " + DiamondFocusSettings.GetShapeLabel(shape).ToUpperInvariant()
+                ? "PREMIUM3D FORM " + PremiumCrystalShapeLibrary.GetLabel(shape).ToUpperInvariant()
                 : "PREMIUM3D FORM COMMAND UNAVAILABLE");
+        }
+
+        public void HandlePremiumCrystalOpticalMode(PremiumCrystalOpticalMode mode)
+        {
+            bool dispatched = commandBridge != null && commandBridge.SetPremiumCrystalOpticalMode(mode);
+            SetStatus(dispatched
+                ? "PREMIUM3D OPTICAL MODE " + PremiumCrystalOpticalModeLibrary.GetLabel(mode).ToUpperInvariant()
+                : "PREMIUM3D OPTICAL MODE COMMAND UNAVAILABLE");
         }
 
         public void HandlePremiumWheelScaleEnabled(bool enabled)

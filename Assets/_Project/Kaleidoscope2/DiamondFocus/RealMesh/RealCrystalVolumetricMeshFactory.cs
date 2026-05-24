@@ -7,11 +7,12 @@ namespace Kaleidoscope2.DiamondFocus.RealMesh
     public static class RealCrystalVolumetricMeshFactory
     {
         public const int SegmentCount = 32;
+        private const int MinimumSideCount = 4;
         public const float MinimumValidDepth = 0.5f;
 
         public static Mesh CreateMesh(CrystalShape shape)
         {
-            int sideCount = Mathf.Clamp(ResolveProfile(shape).SideCount, 6, SegmentCount);
+            int sideCount = Mathf.Clamp(ResolveProfile(shape).SideCount, MinimumSideCount, SegmentCount);
             List<Vector3> vertices = new List<Vector3>(sideCount * 30);
             List<Vector2> uvs = new List<Vector2>(sideCount * 30);
             List<int> triangles = new List<int>(sideCount * 30);
@@ -73,7 +74,7 @@ namespace Kaleidoscope2.DiamondFocus.RealMesh
             CrystalProfile toProfile = ResolveProfile(toShape);
             int sideCount = forceMorphTopology
                 ? SegmentCount
-                : Mathf.Clamp(toProfile.SideCount, 6, SegmentCount);
+                : Mathf.Clamp(toProfile.SideCount, MinimumSideCount, SegmentCount);
 
             vertices.Clear();
             uvs.Clear();
@@ -288,6 +289,8 @@ namespace Kaleidoscope2.DiamondFocus.RealMesh
             {
                 case CrystalSilhouette.Princess:
                     return ResolveStepCutScale(absCos, absSin, 0.66f);
+                case CrystalSilhouette.Cube:
+                    return ResolveStepCutScale(absCos, absSin, 1f);
                 case CrystalSilhouette.Emerald:
                     return ResolveStepCutScale(absCos, absSin, 0.42f);
                 case CrystalSilhouette.Marquise:
@@ -466,6 +469,42 @@ namespace Kaleidoscope2.DiamondFocus.RealMesh
                     break;
                 case CrystalShape.PolygonCut:
                     profile = CrystalProfile.Polygon;
+                    break;
+                case CrystalShape.PremiumSphere:
+                    profile = CrystalProfile.PremiumSphere;
+                    break;
+                case CrystalShape.PremiumCube:
+                    profile = CrystalProfile.PremiumCube;
+                    break;
+                case CrystalShape.PremiumOctahedron:
+                    profile = CrystalProfile.PremiumOctahedron;
+                    break;
+                case CrystalShape.PremiumHexahedron:
+                    profile = CrystalProfile.PremiumHexahedron;
+                    break;
+                case CrystalShape.PremiumRhombus:
+                    profile = CrystalProfile.PremiumRhombus;
+                    break;
+                case CrystalShape.PremiumCone:
+                    profile = CrystalProfile.PremiumCone;
+                    break;
+                case CrystalShape.PremiumPlate:
+                    profile = CrystalProfile.PremiumPlate;
+                    break;
+                case CrystalShape.PremiumIcosahedron:
+                    profile = CrystalProfile.PremiumIcosahedron;
+                    break;
+                case CrystalShape.PremiumDodecahedron:
+                    profile = CrystalProfile.PremiumDodecahedron;
+                    break;
+                case CrystalShape.PremiumBipyramid:
+                    profile = CrystalProfile.PremiumBipyramid;
+                    break;
+                case CrystalShape.PremiumLens:
+                    profile = CrystalProfile.PremiumLens;
+                    break;
+                case CrystalShape.PremiumStarPrism:
+                    profile = CrystalProfile.PremiumStarPrism;
                     break;
                 case CrystalShape.FacetedCube:
                     profile = CrystalProfile.Octagon;
@@ -951,6 +990,205 @@ namespace Kaleidoscope2.DiamondFocus.RealMesh
                     return profile;
                 }
             }
+
+            public static CrystalProfile PremiumSphere
+            {
+                get
+                {
+                    CrystalProfile profile = Round;
+                    profile.TopY = 1.08f;
+                    profile.CrownY = 0.66f;
+                    profile.GirdleY = 0f;
+                    profile.PavilionY = -0.66f;
+                    profile.BottomY = -1.08f;
+                    profile.TableRadiusX = profile.TableRadiusZ = 0.08f;
+                    profile.CrownRadiusX = profile.CrownRadiusZ = 0.78f;
+                    profile.GirdleRadiusX = profile.GirdleRadiusZ = 1.08f;
+                    profile.PavilionRadiusX = profile.PavilionRadiusZ = 0.78f;
+                    return profile;
+                }
+            }
+
+            public static CrystalProfile PremiumCube
+            {
+                get
+                {
+                    CrystalProfile profile = Princess;
+                    profile.SideCount = 8;
+                    profile.Silhouette = CrystalSilhouette.Cube;
+                    profile.TopY = 0.98f;
+                    profile.CrownY = 0.84f;
+                    profile.PavilionY = -0.84f;
+                    profile.BottomY = -0.98f;
+                    profile.TableRadiusX = profile.TableRadiusZ = 0.94f;
+                    profile.CrownRadiusX = profile.CrownRadiusZ = 1f;
+                    profile.GirdleRadiusX = profile.GirdleRadiusZ = 1f;
+                    profile.PavilionRadiusX = profile.PavilionRadiusZ = 1f;
+                    profile.GirdleHalfThickness = 0.08f;
+                    return profile;
+                }
+            }
+
+            public static CrystalProfile PremiumOctahedron
+            {
+                get
+                {
+                    CrystalProfile profile = PremiumCube;
+                    profile.TopY = 1.35f;
+                    profile.CrownY = 0.66f;
+                    profile.PavilionY = -0.66f;
+                    profile.BottomY = -1.35f;
+                    profile.TableRadiusX = profile.TableRadiusZ = 0.03f;
+                    profile.CrownRadiusX = profile.CrownRadiusZ = 0.62f;
+                    profile.GirdleRadiusX = profile.GirdleRadiusZ = 1.15f;
+                    profile.PavilionRadiusX = profile.PavilionRadiusZ = 0.62f;
+                    profile.GirdleHalfThickness = 0.015f;
+                    return profile;
+                }
+            }
+
+            public static CrystalProfile PremiumHexahedron
+            {
+                get
+                {
+                    CrystalProfile profile = Hexagon;
+                    profile.TopY = 1.14f;
+                    profile.BottomY = -1.14f;
+                    profile.TableRadiusX = profile.TableRadiusZ = 0.72f;
+                    profile.CrownRadiusX = profile.CrownRadiusZ = 1.02f;
+                    profile.GirdleRadiusX = profile.GirdleRadiusZ = 1.08f;
+                    profile.PavilionRadiusX = profile.PavilionRadiusZ = 1.02f;
+                    return profile;
+                }
+            }
+
+            public static CrystalProfile PremiumRhombus
+            {
+                get
+                {
+                    CrystalProfile profile = PremiumOctahedron;
+                    profile.SideCount = 8;
+                    profile.Silhouette = CrystalSilhouette.Octagon;
+                    profile.TopY = 1.42f;
+                    profile.BottomY = -1.42f;
+                    profile.CrownRadiusX = profile.CrownRadiusZ = 0.72f;
+                    profile.GirdleRadiusX = profile.GirdleRadiusZ = 1.2f;
+                    profile.PavilionRadiusX = profile.PavilionRadiusZ = 0.72f;
+                    return profile;
+                }
+            }
+
+            public static CrystalProfile PremiumCone
+            {
+                get
+                {
+                    CrystalProfile profile = Round;
+                    profile.TopY = 1.45f;
+                    profile.CrownY = 1.18f;
+                    profile.GirdleY = -0.78f;
+                    profile.PavilionY = -0.98f;
+                    profile.BottomY = -1.02f;
+                    profile.TableRadiusX = profile.TableRadiusZ = 0.025f;
+                    profile.CrownRadiusX = profile.CrownRadiusZ = 0.2f;
+                    profile.GirdleRadiusX = profile.GirdleRadiusZ = 1.12f;
+                    profile.PavilionRadiusX = profile.PavilionRadiusZ = 1.08f;
+                    return profile;
+                }
+            }
+
+            public static CrystalProfile PremiumPlate
+            {
+                get
+                {
+                    CrystalProfile profile = Round;
+                    profile.TopY = 0.38f;
+                    profile.CrownY = 0.28f;
+                    profile.GirdleY = 0f;
+                    profile.PavilionY = -0.28f;
+                    profile.BottomY = -0.38f;
+                    profile.TableRadiusX = profile.TableRadiusZ = 0.74f;
+                    profile.CrownRadiusX = profile.CrownRadiusZ = 1.1f;
+                    profile.GirdleRadiusX = profile.GirdleRadiusZ = 1.28f;
+                    profile.PavilionRadiusX = profile.PavilionRadiusZ = 1.1f;
+                    profile.GirdleHalfThickness = 0.06f;
+                    return profile;
+                }
+            }
+
+            public static CrystalProfile PremiumIcosahedron
+            {
+                get
+                {
+                    CrystalProfile profile = PremiumSphere;
+                    profile.SideCount = 10;
+                    profile.Silhouette = CrystalSilhouette.Brilliant;
+                    profile.TableRadiusX = profile.TableRadiusZ = 0.12f;
+                    profile.FacetAlternation = 1f;
+                    return profile;
+                }
+            }
+
+            public static CrystalProfile PremiumDodecahedron
+            {
+                get
+                {
+                    CrystalProfile profile = PremiumSphere;
+                    profile.SideCount = 12;
+                    profile.Silhouette = CrystalSilhouette.Polygon;
+                    profile.TableRadiusX = profile.TableRadiusZ = 0.24f;
+                    profile.CrownRadiusX = profile.CrownRadiusZ = 0.86f;
+                    profile.PavilionRadiusX = profile.PavilionRadiusZ = 0.86f;
+                    profile.FacetAlternation = 0.94f;
+                    return profile;
+                }
+            }
+
+            public static CrystalProfile PremiumBipyramid
+            {
+                get
+                {
+                    CrystalProfile profile = PremiumRhombus;
+                    profile.TopY = 1.5f;
+                    profile.BottomY = -1.5f;
+                    profile.TableRadiusX = profile.TableRadiusZ = 0.02f;
+                    profile.CrownRadiusX = profile.CrownRadiusZ = 0.54f;
+                    profile.GirdleRadiusX = profile.GirdleRadiusZ = 1.16f;
+                    profile.PavilionRadiusX = profile.PavilionRadiusZ = 0.54f;
+                    return profile;
+                }
+            }
+
+            public static CrystalProfile PremiumLens
+            {
+                get
+                {
+                    CrystalProfile profile = Round;
+                    profile.TopY = 0.72f;
+                    profile.CrownY = 0.5f;
+                    profile.PavilionY = -0.5f;
+                    profile.BottomY = -0.72f;
+                    profile.TableRadiusX = profile.TableRadiusZ = 0.32f;
+                    profile.CrownRadiusX = profile.CrownRadiusZ = 0.92f;
+                    profile.GirdleRadiusX = profile.GirdleRadiusZ = 1.2f;
+                    profile.PavilionRadiusX = profile.PavilionRadiusZ = 0.92f;
+                    return profile;
+                }
+            }
+
+            public static CrystalProfile PremiumStarPrism
+            {
+                get
+                {
+                    CrystalProfile profile = Star;
+                    profile.TopY = 0.9f;
+                    profile.CrownY = 0.64f;
+                    profile.PavilionY = -0.64f;
+                    profile.BottomY = -0.9f;
+                    profile.TableRadiusX = profile.TableRadiusZ = 0.56f;
+                    profile.PavilionRadiusX = profile.PavilionRadiusZ = 0.82f;
+                    return profile;
+                }
+            }
         }
 
         private enum CrystalSilhouette
@@ -958,6 +1196,7 @@ namespace Kaleidoscope2.DiamondFocus.RealMesh
             Brilliant,
             Emerald,
             Princess,
+            Cube,
             Marquise,
             Pear,
             Cushion,
