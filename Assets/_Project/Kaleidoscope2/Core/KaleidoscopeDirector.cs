@@ -375,6 +375,11 @@ namespace Kaleidoscope2.Core
                     state.SetControlMenuVisible(!state.ControlMenuVisible);
                     return true;
 
+                case KaleidoscopeCommandType.ReturnToInitialMenu:
+                    state.SetControlMenuVisible(false);
+                    state.SetHotkeysHelpVisible(false);
+                    return true;
+
                 case KaleidoscopeCommandType.ToggleHotkeysHelp:
                     state.ToggleHotkeysHelpVisible();
                     return true;

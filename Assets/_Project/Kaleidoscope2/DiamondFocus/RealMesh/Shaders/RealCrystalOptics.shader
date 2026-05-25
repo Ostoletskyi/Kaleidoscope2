@@ -336,6 +336,7 @@ Shader "Kaleidoscope2/RealCrystalOptics"
                 * (0.42 + ndv * 0.20 + thickness * 0.10)
                 * (1.0 - volumeBlock * 0.62)
                 * (1.0 - mirrorMode);
+            rawTransmission *= lerp(1.0, 0.34, frostAmount);
 
             float transmission = saturate(min(
                 rawTransmission * (1.0 - centerBlock * 0.88),
@@ -433,8 +434,9 @@ Shader "Kaleidoscope2/RealCrystalOptics"
             effectBody = lerp(effectBody, polishedReflection, mirrorBoost);
 
             float abrasion = CrystalDebugNoise(IN.worldPos * 8.4 + normal * 2.7);
-            fixed3 frostedBody = lerp(effectBody * (0.62 + abrasion * 0.24), _CrystalDebugTint.rgb * (0.25 + facetBreak * 0.22), 0.38);
-            frostedBody += _CrystalDebugTint.rgb * edgeRim * 0.2;
+            float frostFacetReadability = saturate(edgeRim * 1.35 + facetBreak * 0.54 + abrasion * 0.14);
+            fixed3 frostedBody = lerp(effectBody * (0.58 + abrasion * 0.24), _CrystalDebugTint.rgb * (0.28 + frostFacetReadability * 0.26), 0.44);
+            frostedBody += _CrystalDebugTint.rgb * frostFacetReadability * 0.32;
             effectBody = lerp(effectBody, frostedBody, frostAmount);
 
             float crackWave = abs(sin(dot(IN.worldPos, float3(13.7, 7.9, 11.2)) * 5.0 + abrasion * 3.4));
@@ -464,6 +466,7 @@ Shader "Kaleidoscope2/RealCrystalOptics"
                 + spectralEdge * (0.52 + facetBreak * 0.16)
                 + _Tint.rgb * (_BrightnessFloor * (0.24 + edgeRim * 0.62));
             emissionRaw += _CrystalDebugTint.rgb * edgeRim * haloAmount * _CrystalDebugEdgeGlow * 0.72;
+            emissionRaw += _CrystalDebugTint.rgb * frostAmount * (edgeRim * 0.34 + facetBreak * 0.075);
             emissionRaw += lerp(fixed3(1.0, 0.94, 0.78), _CrystalDebugTint.rgb, 0.3)
                 * animatedGlimmer * glimmerAmount * (0.46 + _CrystalDebugFlare * 0.42);
             emissionRaw += opalLayer * rainbowAmount * (edgeRim * 0.88 + facetBreak * 0.2);
@@ -472,7 +475,7 @@ Shader "Kaleidoscope2/RealCrystalOptics"
             o.Emission = SoftCompressHighlights(emissionRaw, _HighlightCompression);
             float alphaOut = lerp(saturate(max(_MinimumTransmission * 0.2, _Alpha * (1.0 - _Transparency * 0.72)) + fresnel * (0.2 + reflection * 0.24) + facetBreak * 0.045 + thickness * 0.038), 0.98, mirrorMode);
             alphaOut = lerp(alphaOut, 0.985, mirrorBoost);
-            alphaOut = lerp(alphaOut, max(alphaOut, 0.82), frostAmount);
+            alphaOut = lerp(alphaOut, max(alphaOut, 0.9), frostAmount);
             alphaOut = lerp(alphaOut, 1.0, stoneAmount);
             o.Alpha = max(alphaOut, saturate(_CrystalDebugAbsoluteMirrorGuard) * 0.98);
         }

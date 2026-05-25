@@ -4,6 +4,7 @@ using System.IO;
 using Kaleidoscope2.Core;
 using Kaleidoscope2.FileBrowser;
 using Kaleidoscope2.Menu;
+using Kaleidoscope2.Menu.FX;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -127,6 +128,9 @@ namespace Kaleidoscope2.Control
             EnsureOutputSurface();
             HideLegacyUi();
             BuildMenuUi();
+            MenuAudioFeedbackController.BindSlider(mirrorCountSlider);
+            MenuAudioFeedbackController.BindSlider(zoomSlider);
+            MenuAudioFeedbackController.BindSlider(rotationSpeedSlider);
             SyncUiFromState();
 
             SetMenuVisible(false, updateState: false);
@@ -162,6 +166,7 @@ namespace Kaleidoscope2.Control
 
             return command.Type == KaleidoscopeCommandType.ToggleControlMenu
                 || command.Type == KaleidoscopeCommandType.SetControlMenuVisible
+                || command.Type == KaleidoscopeCommandType.ReturnToInitialMenu
                 || command.Type == KaleidoscopeCommandType.ToggleHotkeysHelp
                 || command.Type == KaleidoscopeCommandType.SetHotkeysHelpVisible;
         }
@@ -181,6 +186,10 @@ namespace Kaleidoscope2.Control
 
                 case KaleidoscopeCommandType.SetControlMenuVisible:
                     SetMenuVisible(director != null ? director.State.ControlMenuVisible : command.BoolValue, updateState: false);
+                    break;
+
+                case KaleidoscopeCommandType.ReturnToInitialMenu:
+                    SetMenuVisible(false, updateState: false);
                     break;
 
                 case KaleidoscopeCommandType.ToggleHotkeysHelp:
@@ -443,6 +452,12 @@ namespace Kaleidoscope2.Control
             scrim.color = ScrimColor;
             scrim.raycastTarget = true;
 
+            PremiumMenuMotionController premiumMotion = PremiumMenuMotionController.Ensure(menuRoot);
+            if (premiumMotion != null)
+            {
+                premiumMotion.Build(rootRect, solidSprite);
+            }
+
             RectTransform panel = CreatePanel(rootRect, "MenuPanel", new Vector2(620f, 880f));
             VerticalLayoutGroup layout = panel.gameObject.AddComponent<VerticalLayoutGroup>();
             layout.padding = new RectOffset(18, 18, 18, 18);
@@ -550,25 +565,26 @@ namespace Kaleidoscope2.Control
             Text body = CreateText(panel, "HelpBody",
                 "Управление:\n" +
                 "Колесо мыши (клик) — открыть/закрыть меню\n" +
-                "` — открыть/закрыть справку по клавишам\n" +
+                "F1 — открыть/закрыть справку по клавишам\n" +
                 "Вывод на второй монитор — переключатель в Settings\n" +
-                "Esc — закрыть меню\n\n" +
+                "Esc — вернуться в начальное меню KAELIS (визуальное состояние сохраняется)\n\n" +
                 "0 / Num0 — мягкие линии стыка зеркал (вкл/выкл)\n" +
                 "Num* — плавная реанимация картинки за 10 секунд к обычному 2D-калейдоскопу\n" +
                 "Num5 (доп. клавиатура) — сброс движения и 4D-профиля\n" +
                 "NumEnter (боковой Enter) — переключение 2D / 3D / 4D / 5D / 6D / 7D\n" +
                 "1..9 — 6/12/24/48/96/192/384/768/1536 зеркал\n" +
+                "Стрелки Up / Down — масштаб зеркала 0.10..8.00; Left / Right — скорость вращения -5000..+5000\n" +
                 "Z/X/C (рус. Я/Ч/С) — предыдущий / стоп-плей / следующий трек\n" +
                 "Q/E (рус. Й/У) — полёт к центру и обратно в 2D/3D/4D/6D/7D\n" +
                 "W/A/S/D (рус. Ц/Ф/Ы/В) — сдвиг изображения в активном режиме; в 3D дополнительно изгиб туннеля\n" +
                 "Backspace — только видимость центрального кристалла\n" +
                 "Diamond Focus: Num8/2/4/6 — разгон вращения вверх / вниз / влево / вправо\n" +
-                "Crystal Geometry: + / - — плавная смена формы только в активном Classic / Premium crystal\n" +
+                "Crystal Geometry: Num + / Num - — плавная смена формы только в активном Classic / Premium crystal\n" +
                 "Crystal Class 1: Num1 — Premium Crystal Shapes\n" +
                 "Crystal Class 2: Num3 — Premium Optical Modes\n" +
                 "Crystal Class 3: Num7 — Crystal Debug Modes\n" +
                 "Crystal Class 4: Num9 — Crystal Debug Effects\n" +
-                "Crystal Classes: NumDel / Num, — цикл только выбранного класса; + / - всегда меняют geometry (Crystal Off только через меню/API)\n" +
+                "Crystal Classes: NumDel / Num. — цикл только выбранного класса; Num + / Num - всегда меняют geometry (Crystal Off только через меню/API)\n" +
                 "Diamond Focus: F2..F10 — локальные Premium-эффекты, F11 — Optical Mode, F12 — сброс оптики\n" +
                 "Diamond Focus: Home / End — повысить / понизить коэффициент преломления 0..10\n" +
                 "Diamond Focus: PageUp / PageDown — свет на кристалл -10..+10\n" +
@@ -580,7 +596,7 @@ namespace Kaleidoscope2.Control
                 "U/Y (рус. Г/Н) — ширина воронки 4D: -500..+500\n" +
                 "O/P (рус. Щ/З) — кривизна стенок 4D: -500..+500\n" +
                 "[ (рус. Х) — chromatic aberration в 4D\n" +
-                "+/- — скорость полёта 5D к центру; в 7D — переключение стратегии\n" +
+                "= / - — скорость полёта 5D к центру; в 7D — переключение стратегии (Num + / Num - зарезервированы для crystal geometry при активном кристалле)\n" +
                 "Space — встряхнуть активный визуальный режим и сменить изображение\n\n" +
                 "Режимы:\n" +
                 "2D — классический калейдоскоп (сегменты от центра).\n" +

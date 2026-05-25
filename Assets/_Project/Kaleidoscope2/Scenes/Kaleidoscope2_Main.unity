@@ -5658,11 +5658,14 @@ MonoBehaviour:
     buttonPressClip: {fileID: 8300000, guid: b86ab87bf1d00174493d938dcfb383d9, type: 3}
     checkboxEnabledClip: {fileID: 8300000, guid: fd454ed82a4718c4d8d9c4671775a143, type: 3}
     checkboxDisabledClip: {fileID: 8300000, guid: b86ab87bf1d00174493d938dcfb383d9, type: 3}
+    buttonForwardClip: {fileID: 8300000, guid: fea62d243a6fddb42ae237fb9f6a637c, type: 3}
+    buttonBackClip: {fileID: 8300000, guid: a4b94548a49e75d40a327de81d28ab2f, type: 3}
     volume: 0.55
     randomizePitch: 1
     minimumPitch: 0.97
     maximumPitch: 1.03
     minimumPlayInterval: 0.035
+    sliderCooldown: 0.1
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

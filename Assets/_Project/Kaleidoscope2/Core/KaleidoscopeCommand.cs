@@ -102,7 +102,8 @@ namespace Kaleidoscope2.Core
         SetCrystalRuntimeControlModule = 94,
         CycleSelectedCrystalRuntimeControl = 95,
         CycleCrystalGeometryForward = 96,
-        CycleCrystalGeometryBackward = 97
+        CycleCrystalGeometryBackward = 97,
+        ReturnToInitialMenu = 98
     }
 
     [Serializable]
@@ -291,6 +292,11 @@ namespace Kaleidoscope2.Core
         public static KaleidoscopeCommand ToggleControlMenu()
         {
             return new KaleidoscopeCommand(KaleidoscopeCommandType.ToggleControlMenu);
+        }
+
+        public static KaleidoscopeCommand ReturnToInitialMenu()
+        {
+            return new KaleidoscopeCommand(KaleidoscopeCommandType.ReturnToInitialMenu);
         }
 
         public static KaleidoscopeCommand SetImageFilePath(string path)

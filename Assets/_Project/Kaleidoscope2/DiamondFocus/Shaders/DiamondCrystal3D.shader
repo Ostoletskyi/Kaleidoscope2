@@ -561,8 +561,9 @@ Shader "Kaleidoscope2/DiamondCrystal3D"
                 effectColor = lerp(effectColor, polishedReflection, mirrorBoost);
 
                 float abrasion = SmoothPattern(i.worldPos + normal * 0.37, 8.4);
-                fixed3 frostColor = lerp(effectColor * (0.66 + abrasion * 0.18), _CrystalDebugTint.rgb * (0.35 + edge * 0.24), 0.36);
-                frostColor += fixed3(0.68, 0.9, 0.88) * edge * 0.16;
+                float frostedFacetEdge = saturate(edge * 1.18 + facetKnife * 0.28 + (1.0 - facetDepth) * 0.22);
+                fixed3 frostColor = lerp(effectColor * (0.62 + abrasion * 0.18), _CrystalDebugTint.rgb * (0.35 + frostedFacetEdge * 0.28), 0.4);
+                frostColor += fixed3(0.68, 0.9, 0.88) * frostedFacetEdge * 0.29;
                 effectColor = lerp(effectColor, frostColor, frostAmount);
 
                 float crackWave = abs(sin(dot(i.worldPos, float3(15.3, 9.7, 12.1)) * 4.1 + abrasion * 3.2));
@@ -587,6 +588,7 @@ Shader "Kaleidoscope2/DiamondCrystal3D"
                 fixed3 gradedEffectColor = saturate((effectColor - 0.5) * (1.0 + _CrystalDebugContrast) + 0.5
                     + _CrystalDebugBrightness);
                 effectColor = lerp(effectColor, gradedEffectColor, debugGradeAmount);
+                solidAlpha = lerp(solidAlpha, max(solidAlpha, 0.9), frostAmount);
                 solidAlpha = lerp(solidAlpha, 1.0, saturate(stoneAmount + mirrorBoost));
                 solidAlpha = max(solidAlpha, saturate(_CrystalDebugAbsoluteMirrorGuard) * 0.98);
                 return fixed4(effectColor, solidAlpha);

@@ -84,9 +84,12 @@ namespace Kaleidoscope2.DiamondFocus
                     return new CrystalDebugEffectProfile
                     {
                         Frost = 1f,
-                        Roughness = 0.88f,
-                        Distortion = 0.42f,
-                        EdgeGlow = 0.2f,
+                        Roughness = 0.96f,
+                        Distortion = 0.64f,
+                        Halo = 0.42f,
+                        Contrast = 0.24f,
+                        Brightness = 0.08f,
+                        EdgeGlow = 1.05f,
                         Tint = new Color(0.46f, 0.86f, 0.77f, 1f)
                     };
                 case CrystalDebugEffectType.Negative:

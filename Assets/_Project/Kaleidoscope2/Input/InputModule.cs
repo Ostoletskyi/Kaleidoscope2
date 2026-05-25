@@ -12,7 +12,6 @@ namespace Kaleidoscope2.InputSystem
     public sealed class InputModule : KaleidoscopeModuleBase
     {
         private const string DiamondFocusModuleId = "DiamondFocus";
-        private const KeyCode ToggleHotkeysHelpKey = KeyCode.BackQuote;
 
         [Header("References")]
         [SerializeField] private KaleidoscopeDirector director;
@@ -20,6 +19,7 @@ namespace Kaleidoscope2.InputSystem
         [Header("Keys")]
         [SerializeField] private KeyCode toggleMenuKey = KeyCode.Mouse2;
         [SerializeField] private KeyCode closeMenuKey = KeyCode.Escape;
+        [SerializeField] private KeyCode toggleHotkeysHelpKey = KeyCode.F1;
         [SerializeField] private KeyCode toggleGuidesKey = KeyCode.Keypad0;
         [SerializeField] private KeyCode toggleGuidesAlternateKey = KeyCode.Alpha0;
         [SerializeField] private KeyCode reanimateImageKey = KeyCode.KeypadMultiply;
@@ -195,7 +195,7 @@ namespace Kaleidoscope2.InputSystem
                 director.Dispatch(KaleidoscopeCommand.ToggleControlMenu());
             }
 
-            if (UnityEngine.Input.GetKeyDown(ToggleHotkeysHelpKey))
+            if (UnityEngine.Input.GetKeyDown(toggleHotkeysHelpKey))
             {
                 director.Dispatch(KaleidoscopeCommand.ToggleHotkeysHelp());
             }
@@ -204,13 +204,9 @@ namespace Kaleidoscope2.InputSystem
             premiumCrystalFunctionKeysActive = IsPremiumCrystalFunctionKeysActive(diamondSettings);
             premiumCrystalFunctionKeyConsumed = false;
 
-            if (director.State.HotkeysHelpVisible && UnityEngine.Input.GetKeyDown(closeMenuKey))
+            if (UnityEngine.Input.GetKeyDown(closeMenuKey))
             {
-                director.Dispatch(KaleidoscopeCommand.SetHotkeysHelpVisible(false));
-            }
-            else if (director.State.ControlMenuVisible && UnityEngine.Input.GetKeyDown(closeMenuKey))
-            {
-                director.Dispatch(KaleidoscopeCommand.SetControlMenuVisible(false));
+                director.Dispatch(KaleidoscopeCommand.ReturnToInitialMenu());
             }
 
             if (UnityEngine.Input.GetKeyDown(diamondToggleKey))
