@@ -2,7 +2,9 @@ using System;
 using System.Reflection;
 using Kaleidoscope2.Core;
 using Kaleidoscope2.DiamondFocus;
+using Kaleidoscope2.DiamondFocus.CrystalStage3D;
 using Kaleidoscope2.DiamondFocus.RealMesh;
+using Kaleidoscope2.DiamondFocus.RealMesh.CrystalStage3D;
 using Kaleidoscope2.Menu;
 using Kaleidoscope2.Menu.FX;
 using TMPro;
@@ -44,7 +46,7 @@ namespace Kaleidoscope2.Menu.Editor
             Require(FindChild<Transform>(canvasTransform, "MenuAtmosphereFX") != null, "Menu atmosphere FX root missing.");
             Require(FindChild<Image>(canvasTransform, "LightBandCausticOverlay") != null, "Menu atmosphere light band overlay missing.");
             Require(FindChild<PremiumMenuMotionController>(canvasTransform, "MainMenuCanvas") != null, "Premium menu motion controller missing.");
-            for (int stripeIndex = 1; stripeIndex <= 5; stripeIndex++)
+            for (int stripeIndex = 1; stripeIndex <= 10; stripeIndex++)
             {
                 Require(FindChild<Image>(canvasTransform, "PremiumLightStripe_" + stripeIndex.ToString()) != null, "Premium menu light stripe " + stripeIndex.ToString() + " missing.");
             }
@@ -114,7 +116,10 @@ namespace Kaleidoscope2.Menu.Editor
             KaleidoscopeCommandType dispatchedType = KaleidoscopeCommandType.None;
             director.CommandDispatched += command => dispatchedType = command.Type;
             ValidatePremiumCrystalMeshes();
+            ValidatePremiumMorphCompletionRetainsTargetMesh();
             ValidateSharedCrystalDebugEffectMaterials();
+            ValidateRuntimeCrystalControlRouting(director);
+            ValidatePremiumFactoryPresetPayloads(director);
 
             FindChild<Button>(canvasTransform, "ModesButton").onClick.Invoke();
             Require(modesPanel.gameObject.activeSelf, "Modes button must open Modes section.");
@@ -378,6 +383,137 @@ namespace Kaleidoscope2.Menu.Editor
                 UnityEngine.Object.DestroyImmediate(classicMaterial);
                 UnityEngine.Object.DestroyImmediate(premiumMaterial);
             }
+        }
+
+        private static void ValidatePremiumMorphCompletionRetainsTargetMesh()
+        {
+            GameObject owner = new GameObject("PremiumMorphCompletionValidationOwner");
+            RenderTexture sourceTexture = new RenderTexture(96, 96, 24, RenderTextureFormat.ARGB32);
+            SpatialCrystalStage3D stage = new SpatialCrystalStage3D();
+            try
+            {
+                sourceTexture.Create();
+                DiamondFocusSettings settings = new DiamondFocusSettings();
+                settings.SetEnabled(true);
+                settings.SetCrystalSimulationMode(CrystalRenderMode.RealMesh3D);
+                settings.SetPremiumCrystalShape(PremiumCrystalShapeType.Hexahedron);
+                settings.BeginPremiumCrystalShapeTransition(PremiumCrystalShapeType.Octahedron);
+
+                CrystalSharedSettings sharedSettings = new CrystalSharedSettings();
+                sharedSettings.SyncFromDiamond(settings);
+                stage.Initialize(owner.transform, 31);
+                Require(stage.Render(
+                    sourceTexture,
+                    sharedSettings,
+                    sharedSettings.Shape,
+                    CrystalMaterialMode.Diamond,
+                    Vector3.zero,
+                    8f,
+                    true,
+                    false,
+                    CrystalStage3DDebugMode.FinalPremiumComposite), "Premium transition validation stage must render its morph frame.");
+                int transitioningVertexCount = stage.MeshVertexCount;
+
+                settings.TickShapeTransition(settings.ShapeTransitionDuration + 0.01f);
+                sharedSettings.SyncFromDiamond(settings);
+                Require(!settings.PremiumShapeTransitionActive, "Premium shape transition must finish for final mesh validation.");
+                Require(settings.PremiumCrystalShape == PremiumCrystalShapeType.Octahedron, "Completed Premium transition must preserve its requested target shape.");
+                Require(stage.Render(
+                    sourceTexture,
+                    sharedSettings,
+                    sharedSettings.Shape,
+                    CrystalMaterialMode.Diamond,
+                    Vector3.zero,
+                    8f,
+                    true,
+                    false,
+                    CrystalStage3DDebugMode.FinalPremiumComposite), "Premium transition validation stage must render its settled frame.");
+                Require(stage.MeshVertexCount == transitioningVertexCount, "Completed Premium transition must retain the final morph topology rather than snap to a reduced primitive mesh.");
+                Require(stage.DiagnosticsLabel.Contains("final mesh source completed Premium morph topology retained"), "Completed Premium transition diagnostics must identify its retained Premium mesh source.");
+                Require(stage.DiagnosticsLabel.Contains("premium shape PremiumOctahedron -> PremiumOctahedron"), "Completed Premium transition must render the requested Premium mesh profile.");
+            }
+            finally
+            {
+                stage.Shutdown();
+                sourceTexture.Release();
+                UnityEngine.Object.DestroyImmediate(sourceTexture);
+                UnityEngine.Object.DestroyImmediate(owner);
+            }
+        }
+
+        private static void ValidateRuntimeCrystalControlRouting(KaleidoscopeDirector director)
+        {
+            DiamondFocusSettings settings = director.State.DiamondFocusSettings;
+            settings.SetPremiumCrystalShape(PremiumCrystalShapeType.Cube);
+            settings.SetPremiumCrystalOpticalMode(PremiumCrystalOpticalMode.InternalReflection);
+            settings.SetDebugMode(DiamondCrystalDebugMode.SurfaceNormalOnly);
+            settings.SetCrystalDebugEffect(CrystalDebugEffectType.None);
+
+            director.Dispatch(KaleidoscopeCommand.SetCrystalRuntimeControlModule(CrystalRuntimeControlModule.PremiumCrystalShape));
+            director.Dispatch(KaleidoscopeCommand.CycleSelectedCrystalRuntimeControl(1));
+            Require(settings.RuntimeControl.SelectedModule == CrystalRuntimeControlModule.PremiumCrystalShape, "Numpad shape module selection must be stored independently.");
+            Require(settings.PremiumCrystalShape == PremiumCrystalShapeType.Octahedron, "Selected Shape control must cycle through safe Premium forms.");
+
+            director.Dispatch(KaleidoscopeCommand.SetCrystalRuntimeControlModule(CrystalRuntimeControlModule.PremiumOpticalMode));
+            director.Dispatch(KaleidoscopeCommand.CycleSelectedCrystalRuntimeControl(1));
+            Require(settings.ActivePremiumCrystalOpticalMode == PremiumCrystalOpticalMode.AbsoluteMirror, "Selected Optical control must cycle into Absolute Mirror.");
+            Require(Mathf.Approximately(settings.PremiumOpticsDirectTransparency, 0f), "Runtime Optical cycling must preserve Absolute Mirror opacity.");
+
+            director.Dispatch(KaleidoscopeCommand.SetCrystalRuntimeControlModule(CrystalRuntimeControlModule.CrystalDebugMode));
+            director.Dispatch(KaleidoscopeCommand.CycleSelectedCrystalRuntimeControl(1));
+            Require(settings.DebugMode == DiamondCrystalDebugMode.ArtifactStressTest, "Selected Debug Mode control must skip Crystal Off during normal cycling.");
+
+            director.Dispatch(KaleidoscopeCommand.SetCrystalRuntimeControlModule(CrystalRuntimeControlModule.CrystalDebugEffect));
+            director.Dispatch(KaleidoscopeCommand.CycleSelectedCrystalRuntimeControl(1));
+            Require(settings.CrystalDebugEffects.SelectedEffect == CrystalDebugEffectType.PerfectMirrorBoost, "Selected Debug Effect control must cycle shared effects.");
+
+            settings.SetRuntimeControlModule(CrystalRuntimeControlModule.CrystalDebugMode);
+            settings.SetDebugMode(DiamondCrystalDebugMode.FinalCrystalComposite);
+        }
+
+        private static void ValidatePremiumFactoryPresetPayloads(KaleidoscopeDirector director)
+        {
+            PremiumCrystalFactoryPreset[] presets =
+            {
+                PremiumCrystalFactoryPreset.DiamondPalace,
+                PremiumCrystalFactoryPreset.BlueIce,
+                PremiumCrystalFactoryPreset.GoldenPrism,
+                PremiumCrystalFactoryPreset.RubyNight,
+                PremiumCrystalFactoryPreset.EmeraldDepth,
+                PremiumCrystalFactoryPreset.OpalDream,
+                PremiumCrystalFactoryPreset.CosmicGlass,
+                PremiumCrystalFactoryPreset.DarkLuxury,
+                PremiumCrystalFactoryPreset.AbsoluteMirror
+            };
+            CrystalDebugEffectType[] effects =
+            {
+                CrystalDebugEffectType.GlimmerLensFlare,
+                CrystalDebugEffectType.SeaFrostedBrokenBottleGlass,
+                CrystalDebugEffectType.RainbowPrismFire,
+                CrystalDebugEffectType.Halo,
+                CrystalDebugEffectType.MirageAtmosphericHeatHaze,
+                CrystalDebugEffectType.RainbowPrismFire,
+                CrystalDebugEffectType.FacetChromaticAberration,
+                CrystalDebugEffectType.PerfectMirrorBoost,
+                CrystalDebugEffectType.PerfectMirrorBoost
+            };
+
+            DiamondFocusSettings settings = director.State.DiamondFocusSettings;
+            for (int index = 0; index < presets.Length; index++)
+            {
+                director.Dispatch(KaleidoscopeCommand.ApplyPremiumCrystalPreset(presets[index]));
+                Require(settings.Enabled && settings.IsPremiumCrystalSimulation, "Factory preset must enable the Premium crystal renderer.");
+                Require(settings.PremiumShapeTransitionActive, "Factory preset must retain smooth Premium shape transitions.");
+                Require(settings.CrystalDebugEffects.SelectedEffect == effects[index], "Factory preset must apply its authored shared debug effect: " + presets[index] + ".");
+                Require(settings.PremiumOpticsReflectionStrength > 0f && settings.PremiumOpticsBloomGlow >= 0f, "Factory preset must apply real optical values: " + presets[index] + ".");
+            }
+
+            CrystalSharedSettings sharedSettings = new CrystalSharedSettings();
+            sharedSettings.SyncFromDiamond(settings);
+            Require(settings.ActivePremiumCrystalOpticalMode == PremiumCrystalOpticalMode.AbsoluteMirror, "Absolute Mirror preset must select Absolute Mirror optical mode.");
+            Require(Mathf.Approximately(settings.PremiumOpticsDirectTransparency, 0f), "Absolute Mirror preset must store zero direct transparency.");
+            Require(Mathf.Approximately(sharedSettings.DirectTransmission, 0f), "Absolute Mirror shared render state must store zero direct transmission.");
+            Require(Mathf.Approximately(sharedSettings.Transparency, 0f), "Absolute Mirror shared render state must remain opaque.");
         }
 
         private static T FindChild<T>(Transform root, string name) where T : Component

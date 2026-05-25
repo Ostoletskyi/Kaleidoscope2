@@ -18,6 +18,7 @@ namespace Kaleidoscope2.Core
         [SerializeField] private CrystalShape shapeTransitionToShape = CrystalShape.ClassicDiamond;
         [SerializeField] private bool shapeTransitionActive;
         [SerializeField, Range(0f, 1f)] private float shapeTransitionProgress = 1f;
+        [SerializeField] private string premiumShapeStateDiagnostics = "Premium shape state unavailable";
         [SerializeField] private CrystalMaterialMode materialMode = CrystalMaterialMode.Diamond;
         [SerializeField] private DiamondCrystalMaterialMode premiumMaterialMode = DiamondCrystalMaterialMode.Diamond;
         [SerializeField] private string premiumMaterialName = "Diamond";
@@ -91,6 +92,7 @@ namespace Kaleidoscope2.Core
         public CrystalShape ShapeTransitionToShape { get { return shapeTransitionToShape; } }
         public bool ShapeTransitionActive { get { return shapeTransitionActive; } }
         public float ShapeTransitionProgress { get { return Mathf.Clamp01(shapeTransitionProgress); } }
+        public string PremiumShapeStateDiagnostics { get { return premiumShapeStateDiagnostics; } }
         public CrystalMaterialMode MaterialMode { get { return materialMode; } }
         public DiamondCrystalMaterialMode PremiumMaterialMode { get { return premiumMaterialMode; } }
         public string PremiumMaterialName { get { return premiumMaterialName; } }
@@ -273,6 +275,7 @@ namespace Kaleidoscope2.Core
                     ? diamondSettings.ShapeTransitionSmoothProgress
                     : 1f;
             }
+            premiumShapeStateDiagnostics = diamondSettings.PremiumShapeStateDiagnostics;
             materialMode = FromDiamondMaterialMode(diamondSettings.MaterialMode);
             premiumMaterialMode = diamondSettings.MaterialMode;
             ApplyPremiumMaterialProfile(premiumMaterialMode);

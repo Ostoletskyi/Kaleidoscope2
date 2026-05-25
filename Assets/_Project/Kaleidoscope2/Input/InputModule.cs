@@ -92,6 +92,10 @@ namespace Kaleidoscope2.InputSystem
         [SerializeField] private KeyCode diamondNextShapeKey = KeyCode.KeypadPlus;
         [SerializeField] private KeyCode diamondPreviousShapeKey = KeyCode.KeypadMinus;
         [SerializeField] private KeyCode diamondDebugModeCycleKey = KeyCode.KeypadPeriod;
+        [SerializeField] private KeyCode selectPremiumShapeModuleKey = KeyCode.Keypad1;
+        [SerializeField] private KeyCode selectPremiumOpticalModeModuleKey = KeyCode.Keypad3;
+        [SerializeField] private KeyCode selectCrystalDebugModeModuleKey = KeyCode.Keypad7;
+        [SerializeField] private KeyCode selectCrystalDebugEffectModuleKey = KeyCode.Keypad9;
         [SerializeField] private KeyCode diamondNextMaterialModeKey = KeyCode.KeypadDivide;
         [SerializeField] private KeyCode diamondNextMaterialModeAlternateKey = KeyCode.KeypadDivide;
         [SerializeField] private KeyCode diamondRefractionIncreaseKey = KeyCode.Home;
@@ -840,10 +844,12 @@ namespace Kaleidoscope2.InputSystem
                     : KaleidoscopeCommand.PreviousDiamondShape());
             }
 
+            DispatchCrystalRuntimeControlSelection();
+
             bool debugModeKeyPressed = IsDiamondDebugModeKeyPressed();
             if (debugModeKeyPressed)
             {
-                director.Dispatch(KaleidoscopeCommand.CycleCrystalDebugMode(1));
+                director.Dispatch(KaleidoscopeCommand.CycleSelectedCrystalRuntimeControl(1));
             }
 
             if (!debugModeKeyPressed && IsDiamondMaterialModeKeyPressed())
@@ -1146,6 +1152,32 @@ namespace Kaleidoscope2.InputSystem
             }
 
             return pressed;
+        }
+
+        private void DispatchCrystalRuntimeControlSelection()
+        {
+            if (UnityEngine.Input.GetKeyDown(selectPremiumShapeModuleKey))
+            {
+                director.Dispatch(KaleidoscopeCommand.SetCrystalRuntimeControlModule(CrystalRuntimeControlModule.PremiumCrystalShape));
+                return;
+            }
+
+            if (UnityEngine.Input.GetKeyDown(selectPremiumOpticalModeModuleKey))
+            {
+                director.Dispatch(KaleidoscopeCommand.SetCrystalRuntimeControlModule(CrystalRuntimeControlModule.PremiumOpticalMode));
+                return;
+            }
+
+            if (UnityEngine.Input.GetKeyDown(selectCrystalDebugModeModuleKey))
+            {
+                director.Dispatch(KaleidoscopeCommand.SetCrystalRuntimeControlModule(CrystalRuntimeControlModule.CrystalDebugMode));
+                return;
+            }
+
+            if (UnityEngine.Input.GetKeyDown(selectCrystalDebugEffectModuleKey))
+            {
+                director.Dispatch(KaleidoscopeCommand.SetCrystalRuntimeControlModule(CrystalRuntimeControlModule.CrystalDebugEffect));
+            }
         }
 
         private bool IsDiamondDebugModeKeyPressed()

@@ -741,8 +741,26 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
             {
                 bool completingTransition = activeShapeTransition && activeTransitionToShape == premiumShape;
                 Bounds transitionFramingBounds = activeLocalShapeFramingBounds;
-                DestroyRuntimeObject(crystalMesh);
-                crystalMesh = RealCrystalShapeLibrary.CreateMesh(premiumShape);
+                string finalMeshSource;
+                if (completingTransition && crystalMesh != null)
+                {
+                    RealCrystalVolumetricMeshFactory.UpdateMorphedMesh(
+                        crystalMesh,
+                        premiumShape,
+                        premiumShape,
+                        1f,
+                        crystalTransitionVertices,
+                        crystalTransitionUvs,
+                        crystalTransitionTriangles);
+                    finalMeshSource = "completed Premium morph topology retained";
+                }
+                else
+                {
+                    DestroyRuntimeObject(crystalMesh);
+                    crystalMesh = RealCrystalShapeLibrary.CreateMesh(premiumShape);
+                    finalMeshSource = "steady Premium shape profile";
+                }
+
                 activeShape = premiumShape;
                 activeShapeTransition = false;
                 activeTransitionFromShape = premiumShape;
@@ -754,7 +772,20 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
                     : RealCrystalVolumetricMeshFactory.ResolveMaximumProfileBounds(premiumShape, premiumShape);
                 activeShapeTransitionDiagnostics = "shape transition active false, smooth premium morph ready true"
                     + ", completed without framing snap " + (completingTransition ? "true" : "false")
+                    + ", final mesh source " + finalMeshSource
                     + ", shape morphing toggle " + (settings == null || settings.PremiumShapeMorphingEnabled ? "on" : "off");
+                if (completingTransition)
+                {
+                    string finalState = settings != null
+                        ? settings.PremiumShapeStateDiagnostics
+                        : "Premium shape state unavailable";
+                    Debug.Log("[SpatialCrystalStage3D] Premium shape transition completed: "
+                        + finalState
+                        + ", Active mesh profile " + activePremiumShapeLabel
+                        + ", Final mesh source " + finalMeshSource + ".",
+                        owner);
+                }
+
                 if (!completingTransition)
                 {
                     ResetFramingLock("crystal mesh changed");

@@ -135,6 +135,8 @@ namespace Kaleidoscope2.DiamondFocus
                 || command.Type == KaleidoscopeCommandType.SetCrystalDebugMode
                 || command.Type == KaleidoscopeCommandType.CycleCrystalDebugEffect
                 || command.Type == KaleidoscopeCommandType.SetCrystalDebugEffect
+                || command.Type == KaleidoscopeCommandType.SetCrystalRuntimeControlModule
+                || command.Type == KaleidoscopeCommandType.CycleSelectedCrystalRuntimeControl
                 || command.Type == KaleidoscopeCommandType.AdjustDiamondRefractionIndex
                 || command.Type == KaleidoscopeCommandType.SetDiamondRefractionIndex
                 || command.Type == KaleidoscopeCommandType.AdjustDiamondDirectedLightIntensity
@@ -210,6 +212,11 @@ namespace Kaleidoscope2.DiamondFocus
                 case KaleidoscopeCommandType.CycleCrystalDebugEffect:
                 case KaleidoscopeCommandType.SetCrystalDebugEffect:
                     ReportCrystalDebugEffect(settings);
+                    break;
+
+                case KaleidoscopeCommandType.SetCrystalRuntimeControlModule:
+                case KaleidoscopeCommandType.CycleSelectedCrystalRuntimeControl:
+                    ReportRuntimeControl(settings);
                     break;
 
                 case KaleidoscopeCommandType.AdjustDiamondRefractionIndex:
@@ -895,6 +902,16 @@ namespace Kaleidoscope2.DiamondFocus
             }
 
             Debug.Log("[DiamondFocusModule] Shared crystal debug effect " + settings.CrystalDebugEffectLabel + ".", this);
+        }
+
+        private void ReportRuntimeControl(DiamondFocusSettings settings)
+        {
+            if (settings == null)
+            {
+                return;
+            }
+
+            Debug.Log("[DiamondFocusModule] Runtime crystal control [" + settings.RuntimeControlLabel + "].", this);
         }
 
         private Texture ResolveKaleidoscopeTexture(Texture sourceTexture, out bool textureValid)

@@ -98,7 +98,9 @@ namespace Kaleidoscope2.Core
         SetPremiumCrystalOpticalMode = 90,
         CyclePremiumCrystalOpticalMode = 91,
         SetCrystalDebugEffect = 92,
-        CycleCrystalDebugEffect = 93
+        CycleCrystalDebugEffect = 93,
+        SetCrystalRuntimeControlModule = 94,
+        CycleSelectedCrystalRuntimeControl = 95
     }
 
     [Serializable]
@@ -629,6 +631,23 @@ namespace Kaleidoscope2.Core
         public static KaleidoscopeCommand CycleCrystalDebugEffect(int direction)
         {
             return new KaleidoscopeCommand(KaleidoscopeCommandType.CycleCrystalDebugEffect)
+            {
+                intValue = direction == 0 ? 1 : direction
+            };
+        }
+
+        public static KaleidoscopeCommand SetCrystalRuntimeControlModule(CrystalRuntimeControlModule module)
+        {
+            return new KaleidoscopeCommand(KaleidoscopeCommandType.SetCrystalRuntimeControlModule)
+            {
+                intValue = (int)module,
+                stringValue = CrystalRuntimeControlLibrary.GetDisplayName(module)
+            };
+        }
+
+        public static KaleidoscopeCommand CycleSelectedCrystalRuntimeControl(int direction)
+        {
+            return new KaleidoscopeCommand(KaleidoscopeCommandType.CycleSelectedCrystalRuntimeControl)
             {
                 intValue = direction == 0 ? 1 : direction
             };

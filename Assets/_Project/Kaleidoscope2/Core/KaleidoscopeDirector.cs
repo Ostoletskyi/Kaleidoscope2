@@ -492,6 +492,14 @@ namespace Kaleidoscope2.Core
                     state.DiamondFocusSettings.CycleCrystalDebugEffect(command.IntValue);
                     return true;
 
+                case KaleidoscopeCommandType.SetCrystalRuntimeControlModule:
+                    state.DiamondFocusSettings.SetRuntimeControlModule((CrystalRuntimeControlModule)command.IntValue);
+                    return true;
+
+                case KaleidoscopeCommandType.CycleSelectedCrystalRuntimeControl:
+                    state.DiamondFocusSettings.CycleSelectedRuntimeControl(command.IntValue);
+                    return true;
+
                 case KaleidoscopeCommandType.ResetPremiumCrystalOpticalControls:
                     state.DiamondFocusSettings.ResetPremiumCrystalOpticalControls();
                     return true;
