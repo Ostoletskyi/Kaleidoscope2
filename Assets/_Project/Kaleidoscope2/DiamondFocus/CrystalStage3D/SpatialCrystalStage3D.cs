@@ -84,6 +84,7 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
         private static readonly int CrystalSpectralSplitScaleId = Shader.PropertyToID("_SpectralSplitScale");
         private static readonly int CrystalAbsoluteMirrorStrengthId = Shader.PropertyToID("_AbsoluteMirrorStrength");
         private static readonly int CrystalDebugModeId = Shader.PropertyToID("_CrystalDebugMode");
+        private readonly CrystalDebugEffectApplier debugEffectApplier = new CrystalDebugEffectApplier();
 
         private Transform owner;
         private GameObject root;
@@ -1673,6 +1674,7 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
                     + ", refraction distortion toggle " + (settings.PremiumRefractionDistortionEnabled ? "on" : "off")
                     + ", opal toggle " + (settings.PremiumOpalIridescenceEnabled ? "on" : "off")
                     + ", facet highlights toggle " + (settings.PremiumFacetHighlightsEnabled ? "on" : "off")
+                    + ", shared debug effect " + settings.CrystalDebugEffects.DisplayName
                 : "premium gem material fallback";
             if (transparentCrystalMaterial.shader != null && transparentCrystalMaterial.shader.name == CrystalOpticsShaderName)
             {
@@ -1689,7 +1691,7 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
             return transparentCrystalMaterial;
         }
 
-        private static void ConfigurePremiumCrystalMaterial(
+        private void ConfigurePremiumCrystalMaterial(
             Material material,
             RenderTexture sourceTexture,
             RenderTexture hiddenReflectionTexture,
@@ -1858,6 +1860,7 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
             SetMaterialFloatIfPresent(material, CrystalSpectralSplitScaleId, spectralSplitScale);
             SetMaterialFloatIfPresent(material, CrystalAbsoluteMirrorStrengthId, absoluteMirrorStrength);
             SetMaterialFloatIfPresent(material, CrystalDebugModeId, debugMode);
+            debugEffectApplier.Apply(material, settings != null ? settings.CrystalDebugEffects : null, absoluteMirrorStrength > 0.001f);
         }
 
         private static void ResolveCrystalSurface(CrystalMaterialMode materialMode, out float metallic, out float smoothness)

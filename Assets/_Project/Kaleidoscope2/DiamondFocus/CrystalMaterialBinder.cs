@@ -16,6 +16,7 @@ namespace Kaleidoscope2.DiamondFocus
         private const float BaselineFacetContrast = 1.45f;
         private const float BaselineInternalGlow = 0.62f;
         private const float BaselineBloomBoost = 0.44f;
+        private readonly CrystalDebugEffectApplier debugEffectApplier = new CrystalDebugEffectApplier();
 
         public CrystalModeProfile LastProfile { get; private set; }
         public float FocusAmount { get; private set; }
@@ -97,6 +98,10 @@ namespace Kaleidoscope2.DiamondFocus
             material.SetFloat(DiamondOpticalShaderIds.SampleMipBias, optics.SampleMipBias);
             material.SetFloat(DiamondOpticalShaderIds.DirectedLightIntensity, settings.DirectedLightIntensity);
             ConfigureCrystalLightRigMaterial(material, settings);
+            debugEffectApplier.Apply(
+                material,
+                settings.CrystalDebugEffects,
+                settings.MaterialMode == DiamondCrystalMaterialMode.AbsoluteMirror);
         }
 
         private static void ConfigureCrystalLightRigMaterial(Material material, DiamondFocusSettings settings)

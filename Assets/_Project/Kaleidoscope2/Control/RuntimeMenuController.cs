@@ -61,6 +61,7 @@ namespace Kaleidoscope2.Control
         private Text premiumCrystalShapeValueText;
         private Text premiumCrystalOpticalModeValueText;
         private Text crystalDebugModeValueText;
+        private Text crystalDebugEffectValueText;
         private Text experimentalCrystalPresetValueText;
         private Text imagePathText;
         private Text audioPathText;
@@ -281,6 +282,12 @@ namespace Kaleidoscope2.Control
                 crystalDebugModeValueText.text = diamond != null ? diamond.DebugModeLabel : "Final Crystal Composite";
             }
 
+            if (crystalDebugEffectValueText != null)
+            {
+                DiamondFocusSettings diamond = state != null ? state.DiamondFocusSettings : null;
+                crystalDebugEffectValueText.text = diamond != null ? diamond.CrystalDebugEffectLabel : "None";
+            }
+
             if (premiumCrystalShapeValueText != null)
             {
                 DiamondFocusSettings diamond = state != null ? state.DiamondFocusSettings : null;
@@ -484,6 +491,11 @@ namespace Kaleidoscope2.Control
             SetLayoutPreferred(crystalDebugModeValueText.gameObject, 250f, 40f);
             SetLayoutPreferred(CreateButton(crystalDebugRow, "PreviousCrystalDebugMode", "Previous", MutedButtonColor, () => CycleCrystalDebugMode(-1)).gameObject, 88f, 40f);
             SetLayoutPreferred(CreateButton(crystalDebugRow, "NextCrystalDebugMode", "Next", ButtonColor, () => CycleCrystalDebugMode(1)).gameObject, 72f, 40f);
+
+            RectTransform crystalDebugEffectRow = CreateRow(panel, "Crystal Debug Effect:", out crystalDebugEffectValueText);
+            SetLayoutPreferred(crystalDebugEffectValueText.gameObject, 250f, 40f);
+            SetLayoutPreferred(CreateButton(crystalDebugEffectRow, "PreviousCrystalDebugEffect", "Previous", MutedButtonColor, () => CycleCrystalDebugEffect(-1)).gameObject, 88f, 40f);
+            SetLayoutPreferred(CreateButton(crystalDebugEffectRow, "NextCrystalDebugEffect", "Next", ButtonColor, () => CycleCrystalDebugEffect(1)).gameObject, 72f, 40f);
 
             RectTransform experimentRow = CreateRow(panel, "Experiment:", out experimentalCrystalPresetValueText);
             SetLayoutPreferred(experimentalCrystalPresetValueText.gameObject, 250f, 40f);
@@ -999,6 +1011,17 @@ namespace Kaleidoscope2.Control
             }
 
             director.Dispatch(KaleidoscopeCommand.CycleCrystalDebugMode(direction));
+            SyncUiFromState();
+        }
+
+        private void CycleCrystalDebugEffect(int direction)
+        {
+            if (director == null || director.State == null || director.State.DiamondFocusSettings == null)
+            {
+                return;
+            }
+
+            director.Dispatch(KaleidoscopeCommand.CycleCrystalDebugEffect(direction));
             SyncUiFromState();
         }
 

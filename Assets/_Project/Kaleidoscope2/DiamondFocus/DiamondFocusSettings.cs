@@ -267,6 +267,9 @@ namespace Kaleidoscope2.Core
         [Header("Debug")]
         [SerializeField, InspectorName("DebugView")] private DiamondCrystalDebugMode debugMode = DiamondCrystalDebugMode.FinalCrystalComposite;
 
+        [Header("Shared Debug / Experimental Effects")]
+        [SerializeField] private CrystalDebugEffectSettings crystalDebugEffectSettings = new CrystalDebugEffectSettings();
+
         [Header("Experimental Crystal Lab")]
         [SerializeField] private CrystalExperimentPresetType activeExperimentalCrystalPreset = CrystalExperimentPresetType.Normal;
         [SerializeField] private string activeExperimentalCrystalPresetName = "Normal";
@@ -424,6 +427,7 @@ namespace Kaleidoscope2.Core
                     + ", optical mode " + PremiumCrystalOpticalModeLabel
                     + ", active material " + MaterialModeLabel
                     + ", debug mode " + DebugModeLabel
+                    + ", shared debug effect " + CrystalDebugEffectLabel
                     + ", experiment " + ActiveExperimentalCrystalPresetLabel
                     + ", shape transition " + (IsPremiumCrystalSimulation
                         ? PremiumShapeTransitionActive ? "active " + PremiumShapeTransitionSmoothProgress.ToString("0.00") : "inactive"
@@ -462,7 +466,8 @@ namespace Kaleidoscope2.Core
                     + ", opal iridescence " + FormatEnabled(premiumOpalIridescenceEnabled)
                     + ", facet highlights " + FormatEnabled(premiumFacetHighlightsEnabled)
                     + ", shape morphing " + FormatEnabled(premiumShapeMorphingEnabled)
-                    + ", optical diagnostics " + FormatEnabled(premiumDebugOpticalDiagnosticsEnabled);
+                    + ", optical diagnostics " + FormatEnabled(premiumDebugOpticalDiagnosticsEnabled)
+                    + ", shared debug effect " + CrystalDebugEffectLabel;
             }
         }
         public float OpticalCaustics { get { return Mathf.Max(0f, opticalCaustics); } }
@@ -475,6 +480,19 @@ namespace Kaleidoscope2.Core
         public DiamondCrystalDebugMode DebugMode { get { return debugMode; } }
         public DiamondCrystalDebugMode DebugView { get { return debugMode; } }
         public string DebugModeLabel { get { return GetDebugModeLabel(debugMode); } }
+        public CrystalDebugEffectSettings CrystalDebugEffects
+        {
+            get
+            {
+                if (crystalDebugEffectSettings == null)
+                {
+                    crystalDebugEffectSettings = new CrystalDebugEffectSettings();
+                }
+
+                return crystalDebugEffectSettings;
+            }
+        }
+        public string CrystalDebugEffectLabel { get { return CrystalDebugEffects.DisplayName; } }
         public CrystalExperimentPresetType ActiveExperimentalCrystalPreset { get { return activeExperimentalCrystalPreset; } }
         public string ActiveExperimentalCrystalPresetLabel { get { return activeExperimentalCrystalPresetName; } }
         public bool EnableRandomVariants { get { return enableRandomVariants; } }
@@ -1434,6 +1452,16 @@ namespace Kaleidoscope2.Core
 
             debugMode = (DiamondCrystalDebugMode)next;
             premiumDebugOpticalDiagnosticsEnabled = false;
+        }
+
+        public void SetCrystalDebugEffect(CrystalDebugEffectType effect)
+        {
+            CrystalDebugEffects.SetEffect(effect);
+        }
+
+        public void CycleCrystalDebugEffect(int direction)
+        {
+            CrystalDebugEffects.CycleEffect(direction);
         }
 
         public void SetKaleidoscopeTexBindingStatus(bool bound)

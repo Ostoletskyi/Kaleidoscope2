@@ -96,7 +96,9 @@ namespace Kaleidoscope2.Core
         SetPremiumCrystalShape = 88,
         CyclePremiumCrystalShape = 89,
         SetPremiumCrystalOpticalMode = 90,
-        CyclePremiumCrystalOpticalMode = 91
+        CyclePremiumCrystalOpticalMode = 91,
+        SetCrystalDebugEffect = 92,
+        CycleCrystalDebugEffect = 93
     }
 
     [Serializable]
@@ -612,6 +614,23 @@ namespace Kaleidoscope2.Core
             return new KaleidoscopeCommand(KaleidoscopeCommandType.SetCrystalDebugMode)
             {
                 intValue = (int)mode
+            };
+        }
+
+        public static KaleidoscopeCommand SetCrystalDebugEffect(CrystalDebugEffectType effect)
+        {
+            return new KaleidoscopeCommand(KaleidoscopeCommandType.SetCrystalDebugEffect)
+            {
+                intValue = (int)effect,
+                stringValue = CrystalDebugEffectLibrary.GetDisplayName(effect)
+            };
+        }
+
+        public static KaleidoscopeCommand CycleCrystalDebugEffect(int direction)
+        {
+            return new KaleidoscopeCommand(KaleidoscopeCommandType.CycleCrystalDebugEffect)
+            {
+                intValue = direction == 0 ? 1 : direction
             };
         }
 

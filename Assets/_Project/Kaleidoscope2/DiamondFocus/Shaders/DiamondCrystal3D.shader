@@ -61,6 +61,29 @@ Shader "Kaleidoscope2/DiamondCrystal3D"
         _DiamondScale ("Diamond Scale", Range(0.1,1)) = 0.38
         _InputTexelSize ("Input Texel Size", Vector) = (0.001, 0.001, 1024, 1024)
         _CrystalDebugMode ("Crystal Debug Mode", Float) = 0
+        _CrystalDebugEffectType ("Crystal Debug Effect Type", Float) = 0
+        _CrystalDebugEffectBlend ("Crystal Debug Effect Blend", Range(0,1)) = 1
+        _CrystalDebugMirrorBoost ("Crystal Debug Mirror Boost", Range(0,1)) = 0
+        _CrystalDebugFrost ("Crystal Debug Frost", Range(0,1)) = 0
+        _CrystalDebugNegative ("Crystal Debug Negative", Range(0,1)) = 0
+        _CrystalDebugHalo ("Crystal Debug Halo", Range(0,2)) = 0
+        _CrystalDebugStone ("Crystal Debug Stone", Range(0,1)) = 0
+        _CrystalDebugChromatic ("Crystal Debug Chromatic", Range(0,2)) = 0
+        _CrystalDebugGlimmer ("Crystal Debug Glimmer", Range(0,2)) = 0
+        _CrystalDebugRainbow ("Crystal Debug Rainbow", Range(0,2)) = 0
+        _CrystalDebugMirage ("Crystal Debug Mirage", Range(0,2)) = 0
+        _CrystalDebugRoughness ("Crystal Debug Roughness", Range(0,1)) = 0
+        _CrystalDebugContrast ("Crystal Debug Contrast", Range(0,1)) = 0
+        _CrystalDebugBrightness ("Crystal Debug Brightness", Range(0,1)) = 0
+        _CrystalDebugCracks ("Crystal Debug Cracks", Range(0,1)) = 0
+        _CrystalDebugVeins ("Crystal Debug Veins", Range(0,1)) = 0
+        _CrystalDebugEdgeGlow ("Crystal Debug Edge Glow", Range(0,2)) = 0
+        _CrystalDebugFlare ("Crystal Debug Flare", Range(0,2)) = 0
+        _CrystalDebugDistortion ("Crystal Debug Distortion", Range(0,2)) = 0
+        _CrystalDebugSpeed ("Crystal Debug Speed", Range(0,2)) = 0
+        _CrystalDebugSpectralSplit ("Crystal Debug Spectral Split", Range(0,2)) = 0
+        _CrystalDebugTint ("Crystal Debug Tint", Color) = (1, 1, 1, 1)
+        _CrystalDebugAbsoluteMirrorGuard ("Crystal Debug Absolute Mirror Guard", Float) = 0
     }
     SubShader
     {
@@ -135,6 +158,29 @@ Shader "Kaleidoscope2/DiamondCrystal3D"
             float _DiamondScale;
             float4 _InputTexelSize;
             float _CrystalDebugMode;
+            float _CrystalDebugEffectType;
+            float _CrystalDebugEffectBlend;
+            float _CrystalDebugMirrorBoost;
+            float _CrystalDebugFrost;
+            float _CrystalDebugNegative;
+            float _CrystalDebugHalo;
+            float _CrystalDebugStone;
+            float _CrystalDebugChromatic;
+            float _CrystalDebugGlimmer;
+            float _CrystalDebugRainbow;
+            float _CrystalDebugMirage;
+            float _CrystalDebugRoughness;
+            float _CrystalDebugContrast;
+            float _CrystalDebugBrightness;
+            float _CrystalDebugCracks;
+            float _CrystalDebugVeins;
+            float _CrystalDebugEdgeGlow;
+            float _CrystalDebugFlare;
+            float _CrystalDebugDistortion;
+            float _CrystalDebugSpeed;
+            float _CrystalDebugSpectralSplit;
+            float4 _CrystalDebugTint;
+            float _CrystalDebugAbsoluteMirrorGuard;
 
             struct appdata
             {
@@ -242,6 +288,16 @@ Shader "Kaleidoscope2/DiamondCrystal3D"
             {
                 float2 screenUv = i.screenPos.xy / max(0.0001, i.screenPos.w);
                 float debugMode = floor(_CrystalDebugMode + 0.5);
+                float effectBlend = saturate(_CrystalDebugEffectBlend);
+                float mirrorBoost = saturate(_CrystalDebugMirrorBoost * effectBlend);
+                float frostAmount = saturate(_CrystalDebugFrost * effectBlend);
+                float negativeAmount = saturate(_CrystalDebugNegative * effectBlend);
+                float haloAmount = saturate(_CrystalDebugHalo * effectBlend);
+                float stoneAmount = saturate(_CrystalDebugStone * effectBlend);
+                float chromaticAmount = max(0.0, _CrystalDebugChromatic * effectBlend);
+                float glimmerAmount = max(0.0, _CrystalDebugGlimmer * effectBlend);
+                float rainbowAmount = max(0.0, _CrystalDebugRainbow * effectBlend);
+                float mirageAmount = max(0.0, _CrystalDebugMirage * effectBlend);
                 if (debugMode > 5.5 && debugMode < 6.5)
                 {
                     return fixed4(0.0, 0.0, 0.0, 0.0);
@@ -315,9 +371,16 @@ Shader "Kaleidoscope2/DiamondCrystal3D"
                 bend += physicalRefract.xy * _RefractionStrength * _PhysicallyBasedRefraction * (0.75 + (ior - 1.0) * 0.65);
                 bend += (i.uv - 0.5) * _RefractionStrength * 0.25;
                 bend += float2(noiseA, noiseB) * _RefractionStrength * _NoiseDistortionStrength * 0.45;
+                float hazeTime = _Time.y * (0.7 + _CrystalDebugSpeed * 1.4);
+                float2 hazeWave = float2(
+                    sin(i.worldPos.y * 16.0 + hazeTime + i.worldPos.x * 5.0),
+                    cos(i.worldPos.x * 13.0 - hazeTime * 1.13 + i.worldPos.z * 4.0));
+                bend += hazeWave * _RefractionStrength * _CrystalDebugDistortion * mirageAmount * 0.42;
+                bend += float2(noiseB, -noiseA) * _RefractionStrength * frostAmount * _CrystalDebugRoughness * 0.32;
                 float maxBend = lerp(0.012, 0.075, saturate(_RefractionStrength / 0.085));
                 bend = ClampOffset(bend, maxBend);
                 float chroma = _ChromaticAberrationAmount * (28.0 + edge * 38.0 + focus * 18.0) * (1.0 + _SpectralDispersion * 0.85) * _DispersionStrength;
+                chroma += (chromaticAmount * (0.01 + edge * 0.025) + rainbowAmount * edge * 0.012) * (1.0 + _CrystalDebugSpectralSplit);
                 chroma = min(chroma, 0.42);
                 fixed3 refracted = SampleRefracted(screenUv, bend, chroma);
                 float2 spectralAxis = ClampOffset(normal.xy * chroma * 0.16 + physicalRefract.xy * chroma * 0.06, 0.035);
@@ -491,7 +554,42 @@ Shader "Kaleidoscope2/DiamondCrystal3D"
                 finalCrystal += fixed3(1.0, 0.98, 0.92) * scratchMask * (0.06 + edge * 0.08);
                 finalCrystal += glintColor * glintEnergy * 0.28;
                 sparkle += glintEnergy * 1.35 + fresnelReflection * 0.42;
-                return fixed4(CrystalContrastGrade(finalCrystal, sparkle, 1.0 - facetDepth), solidAlpha);
+                fixed3 effectColor = CrystalContrastGrade(finalCrystal, sparkle, 1.0 - facetDepth);
+
+                fixed3 polishedReflection = saturate(filteredReflected * (1.16 + edge * 0.18)
+                    + fixed3(1.0, 0.98, 0.94) * (highlightA + highlightB + glintEnergy) * 0.34);
+                effectColor = lerp(effectColor, polishedReflection, mirrorBoost);
+
+                float abrasion = SmoothPattern(i.worldPos + normal * 0.37, 8.4);
+                fixed3 frostColor = lerp(effectColor * (0.66 + abrasion * 0.18), _CrystalDebugTint.rgb * (0.35 + edge * 0.24), 0.36);
+                frostColor += fixed3(0.68, 0.9, 0.88) * edge * 0.16;
+                effectColor = lerp(effectColor, frostColor, frostAmount);
+
+                float crackWave = abs(sin(dot(i.worldPos, float3(15.3, 9.7, 12.1)) * 4.1 + abrasion * 3.2));
+                float crackMask = pow(saturate(1.0 - crackWave * 7.0), 1.4) * _CrystalDebugCracks;
+                float veinMask = pow(saturate(0.55 + 0.45 * sin(dot(i.worldPos, float3(5.1, 8.6, 3.4)) * 3.3 + abrasion * 4.0)), 2.8) * _CrystalDebugVeins;
+                fixed3 stoneColor = _CrystalDebugTint.rgb * (0.46 + abrasion * 0.32);
+                stoneColor = lerp(stoneColor, fixed3(0.67, 0.58, 0.42), veinMask * 0.46);
+                stoneColor *= 1.0 - crackMask * 0.72;
+                stoneColor += fixed3(0.16, 0.12, 0.08) * facetDepth * 0.18;
+                effectColor = lerp(effectColor, stoneColor, stoneAmount);
+
+                fixed3 prismAura = SpectralPalette(spectralPhase + _Time.y * 0.05) * (edge * 0.44 + facetKnife * 0.18);
+                effectColor += prismAura * rainbowAmount * 0.78;
+                effectColor += fixed3(0.38, 0.74, 1.0) * edge * haloAmount * _CrystalDebugEdgeGlow * 0.34;
+                float animatedGlint = pow(saturate(glintGate + edge * 0.24 + sin(_Time.y * 2.2 + spectralPhase * 11.0) * 0.08), 4.2);
+                effectColor += lerp(fixed3(1.0, 0.96, 0.82), _CrystalDebugTint.rgb, 0.34)
+                    * animatedGlint * glimmerAmount * (0.46 + _CrystalDebugFlare * 0.38);
+                effectColor += _CrystalDebugTint.rgb * saturate(hazeWave.x * hazeWave.y + 0.2) * mirageAmount * edge * 0.08;
+
+                effectColor = lerp(effectColor, 1.0 - saturate(effectColor), negativeAmount);
+                float debugGradeAmount = step(0.0001, _CrystalDebugContrast + _CrystalDebugBrightness) * effectBlend;
+                fixed3 gradedEffectColor = saturate((effectColor - 0.5) * (1.0 + _CrystalDebugContrast) + 0.5
+                    + _CrystalDebugBrightness);
+                effectColor = lerp(effectColor, gradedEffectColor, debugGradeAmount);
+                solidAlpha = lerp(solidAlpha, 1.0, saturate(stoneAmount + mirrorBoost));
+                solidAlpha = max(solidAlpha, saturate(_CrystalDebugAbsoluteMirrorGuard) * 0.98);
+                return fixed4(effectColor, solidAlpha);
             }
             ENDCG
         }

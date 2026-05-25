@@ -63,6 +63,7 @@ namespace Kaleidoscope2.Core
         [SerializeField] private bool premiumShapeMorphingEnabled = true;
         [SerializeField] private bool premiumDebugOpticalDiagnosticsEnabled;
         [SerializeField] private DiamondCrystalDebugMode debugMode = DiamondCrystalDebugMode.FinalCrystalComposite;
+        [SerializeField] private CrystalDebugEffectSettings crystalDebugEffectSettings = new CrystalDebugEffectSettings();
         [SerializeField, Range(0f, 1f)] private float realMeshAlpha = 0.58f;
         [SerializeField, Range(0f, 1f)] private float transparency;
         [SerializeField, Range(0f, 0.28f)] private float refractionStrength = 0.04f;
@@ -137,6 +138,18 @@ namespace Kaleidoscope2.Core
         public bool PremiumDebugOpticalDiagnosticsEnabled { get { return premiumDebugOpticalDiagnosticsEnabled; } }
         public DiamondCrystalDebugMode DebugMode { get { return debugMode; } }
         public string DebugModeLabel { get { return DiamondFocusSettings.GetDebugModeLabel(debugMode); } }
+        public CrystalDebugEffectSettings CrystalDebugEffects
+        {
+            get
+            {
+                if (crystalDebugEffectSettings == null)
+                {
+                    crystalDebugEffectSettings = new CrystalDebugEffectSettings();
+                }
+
+                return crystalDebugEffectSettings;
+            }
+        }
         public string RealMeshPlacementStatus
         {
             get
@@ -210,7 +223,8 @@ namespace Kaleidoscope2.Core
                     + ", facet highlights " + FormatEnabled(PremiumFacetHighlightsEnabled)
                     + ", shape morphing " + FormatEnabled(PremiumShapeMorphingEnabled)
                     + ", optical diagnostics " + FormatEnabled(PremiumDebugOpticalDiagnosticsEnabled)
-                    + ", debug mode " + DebugModeLabel;
+                    + ", debug mode " + DebugModeLabel
+                    + ", shared debug effect " + CrystalDebugEffects.DisplayName;
             }
         }
 
@@ -278,6 +292,7 @@ namespace Kaleidoscope2.Core
             premiumShapeMorphingEnabled = diamondSettings.PremiumShapeMorphingEnabled;
             premiumDebugOpticalDiagnosticsEnabled = diamondSettings.PremiumDebugOpticalDiagnosticsEnabled;
             debugMode = diamondSettings.DebugMode;
+            CrystalDebugEffects.CopyFrom(diamondSettings.CrystalDebugEffects);
             ApplyMenuOptics(diamondSettings, lightRigSettings);
             sourceTextureStatus = diamondSettings.KaleidoscopeTexBindingStatus;
         }

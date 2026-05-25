@@ -114,6 +114,7 @@ namespace Kaleidoscope2.Menu.Editor
             KaleidoscopeCommandType dispatchedType = KaleidoscopeCommandType.None;
             director.CommandDispatched += command => dispatchedType = command.Type;
             ValidatePremiumCrystalMeshes();
+            ValidateSharedCrystalDebugEffectMaterials();
 
             FindChild<Button>(canvasTransform, "ModesButton").onClick.Invoke();
             Require(modesPanel.gameObject.activeSelf, "Modes button must open Modes section.");
@@ -236,6 +237,21 @@ namespace Kaleidoscope2.Menu.Editor
             director.Dispatch(KaleidoscopeCommand.SetPremiumCrystalOpticalMode(PremiumCrystalOpticalMode.PrismDispersion));
             Require(director.State.DiamondFocusSettings.DebugMode == DiamondCrystalDebugMode.ReflectionOnly, "Premium optical mode switching must preserve the active debug view.");
             director.State.DiamondFocusSettings.SetDebugMode(DiamondCrystalDebugMode.FinalCrystalComposite);
+            dispatchedType = KaleidoscopeCommandType.None;
+            director.Dispatch(KaleidoscopeCommand.SetCrystalDebugEffect(CrystalDebugEffectType.None));
+            Require(dispatchedType == KaleidoscopeCommandType.SetCrystalDebugEffect, "Crystal debug effects must dispatch through SetCrystalDebugEffect.");
+            for (int effectIndex = 1; effectIndex < CrystalDebugEffectLibrary.Count; effectIndex++)
+            {
+                director.Dispatch(KaleidoscopeCommand.CycleCrystalDebugEffect(1));
+                CrystalDebugEffectType expectedEffect = (CrystalDebugEffectType)effectIndex;
+                Require(director.State.DiamondFocusSettings.CrystalDebugEffects.SelectedEffect == expectedEffect, "Shared crystal debug cycling must expose " + CrystalDebugEffectLibrary.GetDisplayName(expectedEffect) + ".");
+            }
+
+            director.Dispatch(KaleidoscopeCommand.SetCrystalDebugEffect(CrystalDebugEffectType.SeaFrostedBrokenBottleGlass));
+            director.Dispatch(KaleidoscopeCommand.SetPremiumCrystalOpticalMode(PremiumCrystalOpticalMode.AbsoluteMirror));
+            Require(director.State.DiamondFocusSettings.CrystalDebugEffects.SelectedEffect == CrystalDebugEffectType.SeaFrostedBrokenBottleGlass, "Absolute Mirror must preserve the selected shared crystal debug effect.");
+            Require(Mathf.Approximately(director.State.DiamondFocusSettings.PremiumOpticsDirectTransparency, 0f), "Shared effects must not re-enable direct transparency in Absolute Mirror.");
+            director.Dispatch(KaleidoscopeCommand.SetCrystalDebugEffect(CrystalDebugEffectType.None));
             FindChild<Button>(canvasTransform, "SettingsButton").onClick.Invoke();
             Require(!presetsPanel.gameObject.activeSelf && settingsPanel.gameObject.activeSelf, "Settings button must switch to Settings section only.");
             Require(FindChild<KaelisMenuSliderControl>(settingsPanel, "UIScaleSlider") != null, "Settings panel must expose UI Scale slider.");
@@ -326,6 +342,41 @@ namespace Kaleidoscope2.Menu.Editor
                 Require(RealCrystalShapeLibrary.HasSideFaces(mesh), "Premium3D mesh must have side faces for " + shape + ".");
                 Require(RealCrystalShapeLibrary.HasSeparatedFrontBack(mesh), "Premium3D mesh must separate front/back depth for " + shape + ".");
                 UnityEngine.Object.DestroyImmediate(mesh);
+            }
+        }
+
+        private static void ValidateSharedCrystalDebugEffectMaterials()
+        {
+            Shader classicShader = Shader.Find("Kaleidoscope2/DiamondCrystal3D");
+            Shader premiumShader = Shader.Find("Kaleidoscope2/RealCrystalOptics");
+            Require(classicShader != null, "Classic crystal shader must support shared debug effects.");
+            Require(premiumShader != null, "Premium crystal shader must support shared debug effects.");
+
+            Material classicMaterial = new Material(classicShader);
+            Material premiumMaterial = new Material(premiumShader);
+            CrystalDebugEffectSettings effectSettings = new CrystalDebugEffectSettings();
+            CrystalDebugEffectApplier effectApplier = new CrystalDebugEffectApplier();
+            try
+            {
+                Array effects = Enum.GetValues(typeof(CrystalDebugEffectType));
+                for (int index = 0; index < effects.Length; index++)
+                {
+                    CrystalDebugEffectType effect = (CrystalDebugEffectType)effects.GetValue(index);
+                    effectSettings.SetEffect(effect);
+                    effectApplier.Apply(classicMaterial, effectSettings, false);
+                    effectApplier.Apply(premiumMaterial, effectSettings, false);
+                    Require(Mathf.Approximately(classicMaterial.GetFloat("_CrystalDebugEffectType"), (float)effect), "Classic shader must accept " + effectSettings.DisplayName + ".");
+                    Require(Mathf.Approximately(premiumMaterial.GetFloat("_CrystalDebugEffectType"), (float)effect), "Premium shader must accept " + effectSettings.DisplayName + ".");
+                }
+
+                effectSettings.SetEffect(CrystalDebugEffectType.SeaFrostedBrokenBottleGlass);
+                effectApplier.Apply(premiumMaterial, effectSettings, true);
+                Require(Mathf.Approximately(premiumMaterial.GetFloat("_CrystalDebugAbsoluteMirrorGuard"), 1f), "Absolute Mirror must enable the shared-effect opacity guard.");
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(classicMaterial);
+                UnityEngine.Object.DestroyImmediate(premiumMaterial);
             }
         }
 
