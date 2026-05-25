@@ -44,7 +44,7 @@ namespace Kaleidoscope2.DisplayOutput
                 SetOutputVisible(false);
                 if (!missingDisplayWarningReported)
                 {
-                    ReportWarning("Display 2 is not available. Connect a second monitor and press F12 again.");
+                    ReportWarning("Display 2 is not available. Connect a second monitor and enable output again from Settings.");
                     missingDisplayWarningReported = true;
                 }
 

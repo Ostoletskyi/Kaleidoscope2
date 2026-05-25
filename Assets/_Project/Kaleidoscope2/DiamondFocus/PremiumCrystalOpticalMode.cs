@@ -13,6 +13,7 @@ namespace Kaleidoscope2.Core
     public static class PremiumCrystalOpticalModeLibrary
     {
         public const int Count = 6;
+        public const int CycleCount = 5;
 
         public static PremiumCrystalOpticalMode Normalize(PremiumCrystalOpticalMode value)
         {
@@ -23,10 +24,16 @@ namespace Kaleidoscope2.Core
         public static PremiumCrystalOpticalMode Cycle(PremiumCrystalOpticalMode value, int direction)
         {
             int step = direction > 0 ? 1 : direction < 0 ? -1 : 0;
-            int next = ((int)Normalize(value) + step) % Count;
+            int current = (int)Normalize(value);
+            if (current >= CycleCount)
+            {
+                current = direction > 0 ? CycleCount - 1 : 0;
+            }
+
+            int next = (current + step) % CycleCount;
             if (next < 0)
             {
-                next += Count;
+                next += CycleCount;
             }
 
             return (PremiumCrystalOpticalMode)next;
@@ -53,9 +60,15 @@ namespace Kaleidoscope2.Core
 
         public static string GetTooltip(PremiumCrystalOpticalMode value)
         {
-            return Normalize(value) == PremiumCrystalOpticalMode.AbsoluteMirror
-                ? "Solid reflective crystal. Transparency is disabled."
-                : GetLabel(value) + " optical profile.";
+            switch (Normalize(value))
+            {
+                case PremiumCrystalOpticalMode.AbsoluteMirror:
+                    return "Solid reflective crystal. Transparency is disabled.";
+                case PremiumCrystalOpticalMode.AlienArtifactExperimental:
+                    return "Explicitly enters the preserved Alien Artifact Core experiment profile.";
+                default:
+                    return GetLabel(value) + " optical profile.";
+            }
         }
     }
 
@@ -69,12 +82,6 @@ namespace Kaleidoscope2.Core
             }
 
             PremiumCrystalOpticalMode mode = PremiumCrystalOpticalModeLibrary.Normalize(requestedMode);
-            if (mode != PremiumCrystalOpticalMode.AlienArtifactExperimental
-                && settings.ActiveExperimentalCrystalPreset != CrystalExperimentPresetType.Normal)
-            {
-                settings.RestorePreviousCrystalPreset();
-            }
-
             if (mode == PremiumCrystalOpticalMode.AlienArtifactExperimental)
             {
                 settings.ApplyExperimentalCrystalPreset(CrystalExperimentPresetType.AlienArtifactCore);
@@ -85,8 +92,6 @@ namespace Kaleidoscope2.Core
             DiamondCrystalDebugMode preservedDebugMode = settings.DebugMode;
             settings.ResetPremiumCrystalOpticalControls();
             settings.SetDebugMode(preservedDebugMode);
-            settings.SetEnabled(true);
-            settings.SetCrystalSimulationMode(CrystalRenderMode.RealMesh3D);
             settings.SetActivePremiumCrystalOpticalMode(mode);
 
             switch (mode)

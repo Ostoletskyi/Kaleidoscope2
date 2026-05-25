@@ -3,6 +3,7 @@ using Kaleidoscope2.DiamondFocus;
 using Kaleidoscope2.Tunnel;
 using System;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace Kaleidoscope2.InputSystem
 {
@@ -11,6 +12,7 @@ namespace Kaleidoscope2.InputSystem
     public sealed class InputModule : KaleidoscopeModuleBase
     {
         private const string DiamondFocusModuleId = "DiamondFocus";
+        private const KeyCode ToggleHotkeysHelpKey = KeyCode.BackQuote;
 
         [Header("References")]
         [SerializeField] private KaleidoscopeDirector director;
@@ -18,8 +20,6 @@ namespace Kaleidoscope2.InputSystem
         [Header("Keys")]
         [SerializeField] private KeyCode toggleMenuKey = KeyCode.Mouse2;
         [SerializeField] private KeyCode closeMenuKey = KeyCode.Escape;
-        [SerializeField] private KeyCode toggleHotkeysHelpKey = KeyCode.F1;
-        [SerializeField] private KeyCode toggleSecondDisplayOutputKey = KeyCode.F12;
         [SerializeField] private KeyCode toggleGuidesKey = KeyCode.Keypad0;
         [SerializeField] private KeyCode toggleGuidesAlternateKey = KeyCode.Alpha0;
         [SerializeField] private KeyCode reanimateImageKey = KeyCode.KeypadMultiply;
@@ -79,25 +79,19 @@ namespace Kaleidoscope2.InputSystem
         [SerializeField] private KeyCode diamondRotateUpKey = KeyCode.W;
         [SerializeField] private KeyCode diamondRotateDownKey = KeyCode.S;
         [SerializeField] private bool diamondLegacyWasdControlsEnabled;
-        [SerializeField] private KeyCode diamondRotateDownLeftKey = KeyCode.Keypad1;
         [SerializeField] private KeyCode diamondRotateDownKeypadKey = KeyCode.Keypad2;
-        [SerializeField] private KeyCode diamondRotateDownRightKey = KeyCode.Keypad3;
         [SerializeField] private KeyCode diamondRotateLeftKeypadKey = KeyCode.Keypad4;
         [SerializeField] private KeyCode diamondRotateRightKeypadKey = KeyCode.Keypad6;
-        [SerializeField] private KeyCode diamondRotateUpLeftKey = KeyCode.Keypad7;
         [SerializeField] private KeyCode diamondRotateUpKeypadKey = KeyCode.Keypad8;
-        [SerializeField] private KeyCode diamondRotateUpRightKey = KeyCode.Keypad9;
         [SerializeField] private KeyCode diamondSpeedDecreaseKey = KeyCode.Q;
         [SerializeField] private KeyCode diamondSpeedIncreaseKey = KeyCode.E;
-        [SerializeField] private KeyCode diamondNextShapeKey = KeyCode.KeypadPlus;
-        [SerializeField] private KeyCode diamondPreviousShapeKey = KeyCode.KeypadMinus;
         [SerializeField] private KeyCode diamondDebugModeCycleKey = KeyCode.KeypadPeriod;
         [SerializeField] private KeyCode selectPremiumShapeModuleKey = KeyCode.Keypad1;
         [SerializeField] private KeyCode selectPremiumOpticalModeModuleKey = KeyCode.Keypad3;
         [SerializeField] private KeyCode selectCrystalDebugModeModuleKey = KeyCode.Keypad7;
         [SerializeField] private KeyCode selectCrystalDebugEffectModuleKey = KeyCode.Keypad9;
-        [SerializeField] private KeyCode diamondNextMaterialModeKey = KeyCode.KeypadDivide;
-        [SerializeField] private KeyCode diamondNextMaterialModeAlternateKey = KeyCode.KeypadDivide;
+        [SerializeField, FormerlySerializedAs("diamondNextShapeKey")] private KeyCode crystalGeometryForwardKey = KeyCode.KeypadPlus;
+        [SerializeField, FormerlySerializedAs("diamondPreviousShapeKey")] private KeyCode crystalGeometryBackwardKey = KeyCode.KeypadMinus;
         [SerializeField] private KeyCode diamondRefractionIncreaseKey = KeyCode.Home;
         [SerializeField] private KeyCode diamondRefractionDecreaseKey = KeyCode.End;
         [SerializeField] private KeyCode diamondLightIntensityIncreaseKey = KeyCode.PageUp;
@@ -201,7 +195,7 @@ namespace Kaleidoscope2.InputSystem
                 director.Dispatch(KaleidoscopeCommand.ToggleControlMenu());
             }
 
-            if (UnityEngine.Input.GetKeyDown(toggleHotkeysHelpKey))
+            if (UnityEngine.Input.GetKeyDown(ToggleHotkeysHelpKey))
             {
                 director.Dispatch(KaleidoscopeCommand.ToggleHotkeysHelp());
             }
@@ -209,13 +203,6 @@ namespace Kaleidoscope2.InputSystem
             DiamondFocusSettings diamondSettings = director.State.DiamondFocusSettings;
             premiumCrystalFunctionKeysActive = IsPremiumCrystalFunctionKeysActive(diamondSettings);
             premiumCrystalFunctionKeyConsumed = false;
-            if (UnityEngine.Input.GetKeyDown(toggleSecondDisplayOutputKey))
-            {
-                if (!TryDispatchPremiumCrystalFunctionKey(toggleSecondDisplayOutputKey, diamondSettings))
-                {
-                    director.Dispatch(KaleidoscopeCommand.ToggleSecondDisplayOutput());
-                }
-            }
 
             if (director.State.HotkeysHelpVisible && UnityEngine.Input.GetKeyDown(closeMenuKey))
             {
@@ -786,14 +773,14 @@ namespace Kaleidoscope2.InputSystem
             ResolveDiamondOptionalKeys();
 
             Vector2 direction = DiamondInputRouter.NormalizeNumpadRotationInput(
-                UnityEngine.Input.GetKey(diamondRotateDownLeftKey),
+                false,
                 UnityEngine.Input.GetKey(diamondRotateDownKeypadKey),
-                UnityEngine.Input.GetKey(diamondRotateDownRightKey),
+                false,
                 UnityEngine.Input.GetKey(diamondRotateLeftKeypadKey),
                 UnityEngine.Input.GetKey(diamondRotateRightKeypadKey),
-                UnityEngine.Input.GetKey(diamondRotateUpLeftKey),
+                false,
                 UnityEngine.Input.GetKey(diamondRotateUpKeypadKey),
-                UnityEngine.Input.GetKey(diamondRotateUpRightKey));
+                false);
 
             if (diamondLegacyWasdControlsEnabled)
             {
@@ -830,18 +817,14 @@ namespace Kaleidoscope2.InputSystem
 
             DiamondInputRouter.DispatchSpeedDelta(director, speedDelta);
 
-            if (UnityEngine.Input.GetKeyDown(diamondNextShapeKey))
+            if (UnityEngine.Input.GetKeyDown(crystalGeometryForwardKey))
             {
-                director.Dispatch(settings != null && settings.IsPremiumCrystalSimulation
-                    ? KaleidoscopeCommand.CyclePremiumCrystalShape(1)
-                    : KaleidoscopeCommand.NextDiamondShape());
+                director.Dispatch(KaleidoscopeCommand.CycleCrystalGeometryForward());
             }
 
-            if (UnityEngine.Input.GetKeyDown(diamondPreviousShapeKey))
+            if (UnityEngine.Input.GetKeyDown(crystalGeometryBackwardKey))
             {
-                director.Dispatch(settings != null && settings.IsPremiumCrystalSimulation
-                    ? KaleidoscopeCommand.CyclePremiumCrystalShape(-1)
-                    : KaleidoscopeCommand.PreviousDiamondShape());
+                director.Dispatch(KaleidoscopeCommand.CycleCrystalGeometryBackward());
             }
 
             DispatchCrystalRuntimeControlSelection();
@@ -850,11 +833,6 @@ namespace Kaleidoscope2.InputSystem
             if (debugModeKeyPressed)
             {
                 director.Dispatch(KaleidoscopeCommand.CycleSelectedCrystalRuntimeControl(1));
-            }
-
-            if (!debugModeKeyPressed && IsDiamondMaterialModeKeyPressed())
-            {
-                director.Dispatch(KaleidoscopeCommand.CycleDiamondMaterialMode(1));
             }
 
             float refractionDelta = 0f;
@@ -1005,10 +983,7 @@ namespace Kaleidoscope2.InputSystem
             if (TryDispatchPremiumCrystalFunctionKeyDown(premiumShapeMorphingToggleKey, settings)) { return; }
             if (TryDispatchPremiumCrystalFunctionKeyDown(premiumDebugOpticalDiagnosticsToggleKey, settings)) { return; }
             if (TryDispatchPremiumCrystalFunctionKeyDown(premiumCycleGemPresetKey, settings)) { return; }
-            if (premiumResetOpticalControlsKey != toggleSecondDisplayOutputKey)
-            {
-                TryDispatchPremiumCrystalFunctionKeyDown(premiumResetOpticalControlsKey, settings);
-            }
+            TryDispatchPremiumCrystalFunctionKeyDown(premiumResetOpticalControlsKey, settings);
         }
 
         private bool TryDispatchPremiumCrystalFunctionKeyDown(KeyCode key, DiamondFocusSettings settings)
@@ -1139,19 +1114,7 @@ namespace Kaleidoscope2.InputSystem
                 return;
             }
 
-            Debug.Log("[InputModule] KeyCode.KeypadDecimal is not available in this Unity version. Diamond Focus debug mode uses KeypadPeriod.", this);
-        }
-
-        private bool IsDiamondMaterialModeKeyPressed()
-        {
-            bool pressed = diamondNextMaterialModeKey != KeyCode.None
-                && UnityEngine.Input.GetKeyDown(diamondNextMaterialModeKey);
-            if (diamondNextMaterialModeAlternateKey != KeyCode.None && diamondNextMaterialModeAlternateKey != diamondNextMaterialModeKey)
-            {
-                pressed = pressed || UnityEngine.Input.GetKeyDown(diamondNextMaterialModeAlternateKey);
-            }
-
-            return pressed;
+            Debug.Log("[InputModule] KeyCode.KeypadDecimal is not available in this Unity version. Selected crystal class cycles with KeypadPeriod.", this);
         }
 
         private void DispatchCrystalRuntimeControlSelection()

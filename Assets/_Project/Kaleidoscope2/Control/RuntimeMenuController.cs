@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using Kaleidoscope2.Core;
 using Kaleidoscope2.FileBrowser;
+using Kaleidoscope2.Menu;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -549,8 +550,8 @@ namespace Kaleidoscope2.Control
             Text body = CreateText(panel, "HelpBody",
                 "Управление:\n" +
                 "Колесо мыши (клик) — открыть/закрыть меню\n" +
-                "F1 — открыть/закрыть справку по клавишам\n" +
-                "F12 — включить/выключить вывод финального изображения на второй монитор\n" +
+                "` — открыть/закрыть справку по клавишам\n" +
+                "Вывод на второй монитор — переключатель в Settings\n" +
                 "Esc — закрыть меню\n\n" +
                 "0 / Num0 — мягкие линии стыка зеркал (вкл/выкл)\n" +
                 "Num* — плавная реанимация картинки за 10 секунд к обычному 2D-калейдоскопу\n" +
@@ -560,18 +561,20 @@ namespace Kaleidoscope2.Control
                 "Z/X/C (рус. Я/Ч/С) — предыдущий / стоп-плей / следующий трек\n" +
                 "Q/E (рус. Й/У) — полёт к центру и обратно в 2D/3D/4D/6D/7D\n" +
                 "W/A/S/D (рус. Ц/Ф/Ы/В) — сдвиг изображения в активном режиме; в 3D дополнительно изгиб туннеля\n" +
-                "Backspace — включить/выключить центральный 3D-кристалл в любом режиме\n" +
+                "Backspace — только видимость центрального кристалла\n" +
                 "Diamond Focus: Num8/2/4/6 — разгон вращения вверх / вниз / влево / вправо\n" +
-                "Diamond Focus: Num7/9/1/3 — разгон вращения по диагоналям\n" +
-                "Diamond Focus: Num+ / Num- — форма алмаза; в Premium симметричные формы, плавный переход 2 секунды\n" +
-                "Diamond Focus: NumDel / Num, — видимый режим отладки (Crystal Off доступен только явно)\n" +
-                "Diamond Focus: F11 — Premium Optical Mode, включая Absolute Mirror (без прозрачности)\n" +
-                "Diamond Focus: Num/ — режим материала кристалла\n" +
+                "Crystal Geometry: + / - — плавная смена формы только в активном Classic / Premium crystal\n" +
+                "Crystal Class 1: Num1 — Premium Crystal Shapes\n" +
+                "Crystal Class 2: Num3 — Premium Optical Modes\n" +
+                "Crystal Class 3: Num7 — Crystal Debug Modes\n" +
+                "Crystal Class 4: Num9 — Crystal Debug Effects\n" +
+                "Crystal Classes: NumDel / Num, — цикл только выбранного класса; + / - всегда меняют geometry (Crystal Off только через меню/API)\n" +
+                "Diamond Focus: F2..F10 — локальные Premium-эффекты, F11 — Optical Mode, F12 — сброс оптики\n" +
                 "Diamond Focus: Home / End — повысить / понизить коэффициент преломления 0..10\n" +
                 "Diamond Focus: PageUp / PageDown — свет на кристалл -10..+10\n" +
                 "Diamond Focus: M — включить/выключить отдельный световой риг вокруг кристалла\n" +
                 "Diamond Focus: Insert / Delete — интенсивность светового рига 0..20\n" +
-                "Diamond Focus: G (рус. П) — Crystal Simulation 2D Performance / 3D Premium\n" +
+                "Diamond Focus: G (рус. П) — единственная клавиша Crystal Simulation Classic / Premium\n" +
                 "R (рус. К) — инерционный сдвиг 2D: разгон при удержании Ц/Ф/Ы/В и плавная остановка за 5 секунд\n" +
                 "I/K/J/L — изгиб 4D-шланга (на русской раскладке: Ш/Л/О/Д)\n\n" +
                 "U/Y (рус. Г/Н) — ширина воронки 4D: -500..+500\n" +
@@ -804,6 +807,7 @@ namespace Kaleidoscope2.Control
                         fileBrowserController.NavigateTo(capturedDrive.FullPath);
                     }
                 });
+                MenuAudioFeedbackController.BindButton(button);
             }
         }
 
@@ -1032,8 +1036,6 @@ namespace Kaleidoscope2.Control
                 return;
             }
 
-            director.Dispatch(KaleidoscopeCommand.SetDiamondFocusEnabled(true));
-            director.Dispatch(KaleidoscopeCommand.SetCrystalSimulationMode(CrystalRenderMode.RealMesh3D));
             director.Dispatch(KaleidoscopeCommand.CyclePremiumCrystalShape(direction));
             SyncUiFromState();
         }
@@ -1045,8 +1047,6 @@ namespace Kaleidoscope2.Control
                 return;
             }
 
-            director.Dispatch(KaleidoscopeCommand.SetDiamondFocusEnabled(true));
-            director.Dispatch(KaleidoscopeCommand.SetCrystalSimulationMode(CrystalRenderMode.RealMesh3D));
             director.Dispatch(KaleidoscopeCommand.CyclePremiumCrystalOpticalMode(direction));
             SyncUiFromState();
         }
@@ -1502,6 +1502,7 @@ namespace Kaleidoscope2.Control
                 if (onClick != null)
                 {
                     button.onClick.AddListener(() => onClick());
+                    MenuAudioFeedbackController.BindButton(button);
                 }
             }
 
@@ -1663,6 +1664,7 @@ namespace Kaleidoscope2.Control
             if (onClick != null)
             {
                 button.onClick.AddListener(() => onClick());
+                MenuAudioFeedbackController.BindButton(button);
             }
 
             CreateText(rect, "Label", label, 14, FontStyle.Bold, TextColor, TextAnchor.MiddleCenter);

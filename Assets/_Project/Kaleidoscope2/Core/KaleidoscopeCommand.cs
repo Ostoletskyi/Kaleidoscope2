@@ -100,7 +100,9 @@ namespace Kaleidoscope2.Core
         SetCrystalDebugEffect = 92,
         CycleCrystalDebugEffect = 93,
         SetCrystalRuntimeControlModule = 94,
-        CycleSelectedCrystalRuntimeControl = 95
+        CycleSelectedCrystalRuntimeControl = 95,
+        CycleCrystalGeometryForward = 96,
+        CycleCrystalGeometryBackward = 97
     }
 
     [Serializable]
@@ -585,6 +587,16 @@ namespace Kaleidoscope2.Core
             {
                 intValue = direction == 0 ? 1 : direction
             };
+        }
+
+        public static KaleidoscopeCommand CycleCrystalGeometryForward()
+        {
+            return new KaleidoscopeCommand(KaleidoscopeCommandType.CycleCrystalGeometryForward);
+        }
+
+        public static KaleidoscopeCommand CycleCrystalGeometryBackward()
+        {
+            return new KaleidoscopeCommand(KaleidoscopeCommandType.CycleCrystalGeometryBackward);
         }
 
         public static KaleidoscopeCommand CycleDiamondMaterialMode(int direction)

@@ -7,11 +7,16 @@ namespace Kaleidoscope2.Menu.FX
     [DisallowMultipleComponent]
     public sealed class PremiumMenuMotionController : MonoBehaviour
     {
+        private const int PremiumStripeCount = 5;
+        private const float StripeLengthMultiplier = 2.65f;
+        private const int GradientResolution = 64;
+
         [SerializeField] private PremiumMenuStripeSettings[] stripeSettings = PremiumMenuStripeSettings.CreateDefaults();
 
         private RectTransform root;
         private PremiumMenuStripe[] stripes;
-        private Sprite solidSprite;
+        private Sprite[] generatedStripeSprites;
+        private Sprite fallbackSprite;
 
         internal static PremiumMenuMotionController Ensure(GameObject host)
         {
@@ -36,11 +41,8 @@ namespace Kaleidoscope2.Menu.FX
                 return;
             }
 
-            solidSprite = sprite;
-            if (stripeSettings == null || stripeSettings.Length == 0)
-            {
-                stripeSettings = PremiumMenuStripeSettings.CreateDefaults();
-            }
+            fallbackSprite = sprite;
+            EnsurePremiumSettings();
 
             if (root == null)
             {
@@ -68,32 +70,118 @@ namespace Kaleidoscope2.Menu.FX
             }
         }
 
+        private void OnDestroy()
+        {
+            DestroyGeneratedSprites();
+        }
+
+        private void EnsurePremiumSettings()
+        {
+            if (stripeSettings == null || stripeSettings.Length != PremiumStripeCount)
+            {
+                stripeSettings = PremiumMenuStripeSettings.CreateDefaults();
+            }
+        }
+
         private void EnsureStripes()
         {
-            if (root == null || solidSprite == null)
+            if (root == null || fallbackSprite == null)
             {
                 return;
             }
 
-            int count = Mathf.Max(0, stripeSettings.Length);
-            if (stripes == null || stripes.Length != count)
+            EnsurePremiumSettings();
+            if (stripes == null || stripes.Length != PremiumStripeCount)
             {
-                stripes = new PremiumMenuStripe[count];
+                RemoveExistingStripeObjects();
+                DestroyGeneratedSprites();
+                stripes = new PremiumMenuStripe[PremiumStripeCount];
+                generatedStripeSprites = new Sprite[PremiumStripeCount];
             }
 
-            for (int index = 0; index < count; index++)
+            for (int index = 0; index < PremiumStripeCount; index++)
             {
                 if (stripes[index] == null)
                 {
                     RectTransform rect = CreateStripeRect(index, root);
                     Image image = rect.gameObject.AddComponent<Image>();
-                    image.sprite = solidSprite;
+                    generatedStripeSprites[index] = CreateSoftGradientSprite(stripeSettings[index].Softness);
+                    image.sprite = generatedStripeSprites[index] != null ? generatedStripeSprites[index] : fallbackSprite;
+                    image.type = Image.Type.Simple;
                     image.raycastTarget = false;
                     stripes[index] = new PremiumMenuStripe(rect, image);
                 }
 
                 stripes[index].Configure(stripeSettings[index]);
             }
+        }
+
+        private void RemoveExistingStripeObjects()
+        {
+            if (root == null)
+            {
+                return;
+            }
+
+            for (int index = root.childCount - 1; index >= 0; index--)
+            {
+                Transform child = root.GetChild(index);
+                if (child != null && child.name.StartsWith("PremiumLightStripe_", StringComparison.Ordinal))
+                {
+                    DestroyOwnedObject(child.gameObject);
+                }
+            }
+        }
+
+        private void DestroyGeneratedSprites()
+        {
+            if (generatedStripeSprites == null)
+            {
+                return;
+            }
+
+            for (int index = 0; index < generatedStripeSprites.Length; index++)
+            {
+                Sprite sprite = generatedStripeSprites[index];
+                if (sprite == null)
+                {
+                    continue;
+                }
+
+                Texture texture = sprite.texture;
+                DestroyOwnedObject(sprite);
+                DestroyOwnedObject(texture);
+            }
+
+            generatedStripeSprites = null;
+        }
+
+        private static Sprite CreateSoftGradientSprite(float softness)
+        {
+            Texture2D texture = new Texture2D(2, GradientResolution, TextureFormat.RGBA32, false)
+            {
+                name = "KAELIS_PremiumStripe_Gradient",
+                wrapMode = TextureWrapMode.Clamp,
+                filterMode = FilterMode.Bilinear,
+                hideFlags = HideFlags.DontSave
+            };
+
+            float controlledSoftness = Mathf.Clamp(softness, 0.35f, 0.65f);
+            float fullIntensityRadius = Mathf.Lerp(0.12f, 0.30f, controlledSoftness);
+            for (int y = 0; y < GradientResolution; y++)
+            {
+                float distanceFromCenter = Mathf.Abs((y / (GradientResolution - 1f)) * 2f - 1f);
+                float alpha = 1f - Mathf.SmoothStep(fullIntensityRadius, 1f, distanceFromCenter);
+                Color pixel = new Color(1f, 1f, 1f, alpha);
+                texture.SetPixel(0, y, pixel);
+                texture.SetPixel(1, y, pixel);
+            }
+
+            texture.Apply(false, false);
+            Sprite sprite = Sprite.Create(texture, new Rect(0f, 0f, texture.width, texture.height), new Vector2(0.5f, 0.5f), 100f);
+            sprite.name = "KAELIS_PremiumStripe_SoftGradient";
+            sprite.hideFlags = HideFlags.DontSave;
+            return sprite;
         }
 
         private static RectTransform CreateStretchedRect(string objectName, Transform parent)
@@ -120,28 +208,48 @@ namespace Kaleidoscope2.Menu.FX
             rectTransform.localScale = Vector3.one;
             return rectTransform;
         }
+
+        private static void DestroyOwnedObject(UnityEngine.Object target)
+        {
+            if (target == null)
+            {
+                return;
+            }
+
+            if (Application.isPlaying)
+            {
+                Destroy(target);
+            }
+            else
+            {
+                DestroyImmediate(target);
+            }
+        }
+
+        internal const float MinimumStripeLengthMultiplier = 1.35f;
+        internal static float ConfiguredStripeLengthMultiplier { get { return StripeLengthMultiplier; } }
     }
 
     [Serializable]
     public sealed class PremiumMenuStripeSettings
     {
-        [SerializeField] private Vector2 direction = new Vector2(0.72f, -0.52f);
+        [SerializeField] private Vector2 direction = new Vector2(0.72f, -0.69f);
         [SerializeField, Range(0.01f, 0.45f)] private float width = 0.22f;
-        [SerializeField, Range(0.001f, 0.08f)] private float speed = 0.012f;
-        [SerializeField, Range(0f, 0.2f)] private float opacity = 0.08f;
-        [SerializeField, Range(-90f, 90f)] private float angle = -18f;
-        [SerializeField, Range(0f, 1f)] private float softness = 0.65f;
-        [SerializeField, Range(0.5f, 2f)] private float spacing = 1f;
-        [SerializeField, Range(0f, 1f)] private float startOffset;
-        [SerializeField] private Color color = new Color(0.68f, 0.96f, 1f, 1f);
+        [SerializeField, Range(0.001f, 0.08f)] private float speed = 0.008f;
+        [SerializeField, Range(0f, 0.2f)] private float opacity = 0.07f;
+        [SerializeField, Range(-90f, 110f)] private float angle = 22f;
+        [SerializeField, Range(0.35f, 0.65f)] private float softness = 0.54f;
+        [SerializeField, Range(-0.5f, 0.5f)] private float spacing;
+        [SerializeField, Range(0f, 1f)] private float startOffset = 0.42f;
+        [SerializeField] private Color color = new Color(0.62f, 0.96f, 1f, 1f);
 
         public Vector2 Direction { get { return direction.sqrMagnitude > 0.0001f ? direction.normalized : Vector2.right; } }
         public float Width { get { return Mathf.Clamp(width, 0.01f, 0.45f); } }
         public float Speed { get { return Mathf.Clamp(speed, 0.001f, 0.08f); } }
         public float Opacity { get { return Mathf.Clamp(opacity, 0f, 0.2f); } }
-        public float Angle { get { return Mathf.Clamp(angle, -90f, 90f); } }
-        public float Softness { get { return Mathf.Clamp01(softness); } }
-        public float Spacing { get { return Mathf.Clamp(spacing, 0.5f, 2f); } }
+        public float Angle { get { return Mathf.Clamp(angle, -90f, 110f); } }
+        public float Softness { get { return Mathf.Clamp(softness, 0.35f, 0.65f); } }
+        public float Spacing { get { return Mathf.Clamp(spacing, -0.5f, 0.5f); } }
         public float StartOffset { get { return Mathf.Repeat(startOffset, 1f); } }
         public Color Color { get { return color; } }
 
@@ -166,16 +274,11 @@ namespace Kaleidoscope2.Menu.FX
         {
             return new[]
             {
-                new PremiumMenuStripeSettings(new Vector2(0.72f, -0.52f), 0.26f, 0.010f, 0.10f, -18f, 0.68f, 1.00f, 0.00f, new Color(0.62f, 0.96f, 1f, 1f)),
-                new PremiumMenuStripeSettings(new Vector2(0f, -1f), 0.075f, 0.006f, 0.06f, 0f, 0.84f, 1.18f, 0.20f, new Color(0.90f, 0.98f, 1f, 1f)),
-                new PremiumMenuStripeSettings(new Vector2(0.68f, 0.48f), 0.16f, 0.009f, 0.08f, 16f, 0.58f, 0.92f, 0.40f, new Color(0.76f, 0.92f, 1f, 1f)),
-                new PremiumMenuStripeSettings(new Vector2(1f, 0f), 0.34f, 0.004f, 0.05f, -4f, 0.72f, 1.28f, 0.62f, new Color(1f, 0.82f, 0.48f, 1f)),
-                new PremiumMenuStripeSettings(new Vector2(-0.62f, -0.54f), 0.045f, 0.014f, 0.07f, 24f, 0.46f, 0.84f, 0.82f, new Color(0.78f, 1f, 0.94f, 1f)),
-                new PremiumMenuStripeSettings(new Vector2(-0.80f, 0.28f), 0.12f, 0.0075f, 0.045f, -28f, 0.90f, 1.40f, 0.08f, new Color(0.58f, 0.90f, 1f, 1f)),
-                new PremiumMenuStripeSettings(new Vector2(0.32f, 0.95f), 0.095f, 0.0052f, 0.055f, 33f, 0.63f, 1.10f, 0.29f, new Color(0.80f, 0.96f, 1f, 1f)),
-                new PremiumMenuStripeSettings(new Vector2(-1f, 0.06f), 0.22f, 0.0033f, 0.035f, 7f, 0.78f, 1.55f, 0.52f, new Color(1f, 0.88f, 0.58f, 1f)),
-                new PremiumMenuStripeSettings(new Vector2(0.48f, -0.88f), 0.055f, 0.0122f, 0.065f, -42f, 0.52f, 0.77f, 0.71f, new Color(0.66f, 1f, 0.92f, 1f)),
-                new PremiumMenuStripeSettings(new Vector2(-0.28f, 0.90f), 0.185f, 0.0025f, 0.04f, 12f, 0.94f, 1.72f, 0.91f, new Color(0.70f, 0.88f, 1f, 1f))
+                new PremiumMenuStripeSettings(new Vector2(0.72f, -0.69f), 0.22f, 0.0074f, 0.070f, 22f, 0.56f, -0.18f, 0.42f, new Color(0.62f, 0.96f, 1f, 1f)),
+                new PremiumMenuStripeSettings(new Vector2(-0.48f, -0.88f), 0.145f, 0.0066f, 0.055f, -18f, 0.53f, 0.16f, 0.57f, new Color(0.74f, 0.93f, 1f, 1f)),
+                new PremiumMenuStripeSettings(new Vector2(0.61f, -0.79f), 0.076f, 0.0090f, 0.045f, 35f, 0.48f, 0.31f, 0.48f, new Color(0.80f, 0.97f, 1f, 1f)),
+                new PremiumMenuStripeSettings(new Vector2(1f, -0.08f), 0.30f, 0.0046f, 0.035f, 8f, 0.62f, -0.35f, 0.32f, new Color(1f, 0.84f, 0.52f, 1f)),
+                new PremiumMenuStripeSettings(new Vector2(-0.57f, -0.82f), 0.046f, 0.0078f, 0.050f, -32f, 0.42f, -0.04f, 0.68f, new Color(0.72f, 1f, 0.94f, 1f))
             };
         }
     }
@@ -200,6 +303,7 @@ namespace Kaleidoscope2.Menu.FX
                 Color color = settings.Color;
                 color.a = settings.Opacity;
                 image.color = color;
+                image.raycastTarget = false;
             }
         }
 
@@ -214,22 +318,29 @@ namespace Kaleidoscope2.Menu.FX
             float height = Mathf.Max(1f, bounds.height);
             float diagonal = Mathf.Sqrt(width * width + height * height);
             float thickness = Mathf.Max(8f, Mathf.Min(width, height) * settings.Width);
-            transform.sizeDelta = new Vector2(diagonal * 1.55f, thickness);
+            float stripeLength = Mathf.Max(
+                diagonal * PremiumMenuMotionController.MinimumStripeLengthMultiplier,
+                diagonal * PremiumMenuMotionController.ConfiguredStripeLengthMultiplier);
+
+            transform.sizeDelta = new Vector2(stripeLength, thickness);
             transform.localEulerAngles = new Vector3(0f, 0f, settings.Angle);
 
+            float radians = settings.Angle * Mathf.Deg2Rad;
+            Vector2 stripeAxis = new Vector2(Mathf.Cos(radians), Mathf.Sin(radians));
+            Vector2 stripeAcross = new Vector2(-stripeAxis.y, stripeAxis.x);
             Vector2 direction = settings.Direction;
-            float travel = (diagonal * 0.82f + thickness) * settings.Spacing;
-            float phase = Mathf.Repeat(settings.StartOffset + time * settings.Speed, 1f);
-            float distance = Mathf.Lerp(-travel, travel, phase);
-            transform.anchoredPosition = direction * distance;
+            Vector2 laneOffset = stripeAxis * diagonal * settings.Spacing;
 
-            if (image != null)
-            {
-                float envelope = Mathf.SmoothStep(0f, 1f, 1f - Mathf.Abs(phase * 2f - 1f));
-                Color color = settings.Color;
-                color.a = settings.Opacity * Mathf.Lerp(1f, 0.56f + envelope * 0.44f, settings.Softness);
-                image.color = color;
-            }
+            float halfScreenProjection = Mathf.Abs(direction.x) * width * 0.5f + Mathf.Abs(direction.y) * height * 0.5f;
+            float halfStripeProjection =
+                Mathf.Abs(Vector2.Dot(stripeAxis, direction)) * stripeLength * 0.5f
+                + Mathf.Abs(Vector2.Dot(stripeAcross, direction)) * thickness * 0.5f;
+            float offsetProjection = Mathf.Abs(Vector2.Dot(laneOffset, direction));
+            float offscreenDistance = halfScreenProjection + halfStripeProjection + offsetProjection + thickness;
+
+            float phase = Mathf.Repeat(settings.StartOffset + time * settings.Speed, 1f);
+            float distance = Mathf.Lerp(-offscreenDistance, offscreenDistance, phase);
+            transform.anchoredPosition = direction * distance + laneOffset;
         }
     }
 }

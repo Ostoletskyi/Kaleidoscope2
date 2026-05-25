@@ -39,12 +39,14 @@ namespace Kaleidoscope2.Menu
             KaelisMenuToggleControl control = root.gameObject.AddComponent<KaelisMenuToggleControl>();
             control.row = root.gameObject.AddComponent<KaelisMenuInteractiveRow>();
             string statusText = GetStatusLabel(status);
-            control.row.Configure(surface, highlightGroup, flashGroup, tooltip, title, description + "\nStatus: " + statusText, "OFF / ON", defaultValue ? "ON" : "OFF", KaelisMenuInputHintProvider.Get(KaelisMenuInputHintKind.Toggle));
+            control.row.Configure(surface, highlightGroup, flashGroup, tooltip, title, description + "\nStatus: " + statusText, "OFF / ON", defaultValue ? "ON" : "OFF", "Click to toggle");
 
             control.button = root.gameObject.AddComponent<Button>();
             control.button.transition = Selectable.Transition.None;
             control.button.targetGraphic = surface;
+            control.button.interactable = status != KaelisMenuBindingStatus.Reserved;
             control.button.onClick.AddListener(control.Toggle);
+            MenuAudioFeedbackController.BindToggleButton(control.button, () => control.Value);
 
             TMP_Text label = KaelisMenuUiPrimitives.CreateText(root, "Label", title.ToUpperInvariant(), 14f, KaelisMenuStyle.TextPrimary, TextAlignmentOptions.Left, assets.GetFont(KaelisMenuFontRole.Button));
             label.characterSpacing = 3f;
@@ -124,19 +126,6 @@ namespace Kaleidoscope2.Menu
             if (row != null)
             {
                 row.SetSelectableVisual(interactable);
-            }
-        }
-
-        private void Update()
-        {
-            if (row == null || !row.IsActiveForKeyboard || (button != null && !button.interactable))
-            {
-                return;
-            }
-
-            if (Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter))
-            {
-                Toggle();
             }
         }
 

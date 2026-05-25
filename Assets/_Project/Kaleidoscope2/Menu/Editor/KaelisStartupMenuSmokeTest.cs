@@ -5,6 +5,7 @@ using Kaleidoscope2.DiamondFocus;
 using Kaleidoscope2.DiamondFocus.CrystalStage3D;
 using Kaleidoscope2.DiamondFocus.RealMesh;
 using Kaleidoscope2.DiamondFocus.RealMesh.CrystalStage3D;
+using Kaleidoscope2.InputSystem;
 using Kaleidoscope2.Menu;
 using Kaleidoscope2.Menu.FX;
 using TMPro;
@@ -45,14 +46,32 @@ namespace Kaleidoscope2.Menu.Editor
             Require(canvasTransform.GetComponent<GraphicRaycaster>() != null, "MainMenuCanvas must receive UI raycasts.");
             Require(FindChild<Transform>(canvasTransform, "MenuAtmosphereFX") != null, "Menu atmosphere FX root missing.");
             Require(FindChild<Image>(canvasTransform, "LightBandCausticOverlay") != null, "Menu atmosphere light band overlay missing.");
-            Require(FindChild<PremiumMenuMotionController>(canvasTransform, "MainMenuCanvas") != null, "Premium menu motion controller missing.");
-            for (int stripeIndex = 1; stripeIndex <= 10; stripeIndex++)
+            PremiumMenuMotionController premiumMotion = FindChild<PremiumMenuMotionController>(canvasTransform, "MainMenuCanvas");
+            Require(premiumMotion != null, "Premium menu motion controller missing.");
+            Canvas.ForceUpdateCanvases();
+            InvokePrivate(premiumMotion, "Update");
+            Rect canvasBounds = ((RectTransform)canvasTransform).rect;
+            float screenDiagonal = Mathf.Sqrt(canvasBounds.width * canvasBounds.width + canvasBounds.height * canvasBounds.height);
+            for (int stripeIndex = 1; stripeIndex <= 5; stripeIndex++)
             {
-                Require(FindChild<Image>(canvasTransform, "PremiumLightStripe_" + stripeIndex.ToString()) != null, "Premium menu light stripe " + stripeIndex.ToString() + " missing.");
+                Image stripe = FindChild<Image>(canvasTransform, "PremiumLightStripe_" + stripeIndex.ToString());
+                Require(stripe != null, "Premium menu light stripe " + stripeIndex.ToString() + " missing.");
+                Require(!stripe.raycastTarget, "Premium menu light stripes must not intercept button interaction.");
+                Require(stripe.sprite != null, "Premium menu light stripes must use a soft alpha-gradient sprite.");
+                Require(stripe.rectTransform.sizeDelta.x >= screenDiagonal * 1.35f, "Premium menu light stripes must extend beyond the visible screen diagonal.");
             }
+            Require(FindChild<Image>(canvasTransform, "PremiumLightStripe_6") == null, "Premium menu must expose exactly five coordinated light stripes.");
+            Require(FindChild<Transform>(canvasTransform, "PrismaticSheen") == null, "Legacy hard-edged sheen stripe must not overlap the premium beam layer.");
 
             Require(FindChild<MenuDispersionDustController>(canvasTransform, "DispersionDust") != null, "Menu dispersion dust controller missing.");
             Require(FindChild<MenuCrystalShimmerController>(canvasTransform, "CrystalShimmerHighlights") != null, "Menu crystal shimmer controller missing.");
+
+            MenuAudioFeedbackController audioFeedback = controller.GetComponent<MenuAudioFeedbackController>();
+            Require(audioFeedback != null, "Menu audio feedback controller must be centralized on the startup menu controller.");
+            Require(audioFeedback.PlaybackSource != null && Mathf.Approximately(audioFeedback.PlaybackSource.spatialBlend, 0f), "Menu audio feedback must play through one 2D AudioSource.");
+            Require(audioFeedback.Settings != null && audioFeedback.Settings.ButtonPressClip != null, "Menu click sound clip missing.");
+            Require(audioFeedback.Settings.CheckboxEnabledClip != null && audioFeedback.Settings.CheckboxDisabledClip != null, "Menu checkbox feedback clips missing.");
+            Require(Mathf.Approximately(audioFeedback.Settings.Volume, 0.55f), "Menu audio feedback must use the authored default volume.");
 
             Require(FindChild<Button>(canvasTransform, "EnterExperienceButton") != null, "Enter Experience button missing.");
             Require(FindChild<Toggle>(canvasTransform, "DemoModeToggle") != null, "Demo Mode toggle missing.");
@@ -119,10 +138,15 @@ namespace Kaleidoscope2.Menu.Editor
             ValidatePremiumMorphCompletionRetainsTargetMesh();
             ValidateSharedCrystalDebugEffectMaterials();
             ValidateRuntimeCrystalControlRouting(director);
+            ValidateDedicatedGeometryMorphShortcuts(director);
+            ValidateControlOwnershipContract(director);
+            ValidateStrictInputControlMap();
             ValidatePremiumFactoryPresetPayloads(director);
 
             FindChild<Button>(canvasTransform, "ModesButton").onClick.Invoke();
             Require(modesPanel.gameObject.activeSelf, "Modes button must open Modes section.");
+            TMP_Text geometryHint = FindChild<TMP_Text>(modesPanel, "SmoothGeometryShortcutHint");
+            Require(geometryHint != null && geometryHint.text.Contains("+ / - : Smooth Crystal Geometry") && geometryHint.text.Contains("Num Del"), "Geometry controls must distinguish dedicated smooth +/- morphing from selected-class cycling.");
             Transform showcaseBlock = FindChild<Transform>(modesPanel, "ShowcaseRecordingBlock");
             Require(showcaseBlock != null, "Modes panel must replace Experimental with Showcase / Recording.");
             Require(FindChild<Button>(modesPanel, "ExperimentalComingSoonCommand") == null, "Experimental / Coming Soon row must be removed from Modes.");
@@ -132,6 +156,7 @@ namespace Kaleidoscope2.Menu.Editor
             Require(FindChild<Button>(showcaseBlock, "TestSecondDisplayButton") != null, "Showcase / Recording must expose Test Display action.");
             KaelisMenuToggleControl recordingToggle = FindChild<KaelisMenuToggleControl>(showcaseBlock, "CreateVideoClipToggle");
             Require(recordingToggle != null, "Showcase / Recording must expose Create Video Clip toggle.");
+            Require(!recordingToggle.Button.interactable, "Reserved recording toggle must be visibly inert until a recording backend exists.");
             Require(FindChild<Button>(showcaseBlock, "SelectRecordingOutputFolderButton") != null, "Showcase / Recording must expose recording output folder selector.");
             Require(FindChild<Button>(showcaseBlock, "ClearRecordingOutputFolderButton") != null, "Showcase / Recording must expose recording output folder clear action.");
             TMP_Text hotkeyHint = FindChild<TMP_Text>(showcaseBlock, "RecordingHotkeyHint");
@@ -195,7 +220,7 @@ namespace Kaleidoscope2.Menu.Editor
             Require(brightnessSlider != null, "Optics panel must expose a premium Brightness slider.");
             Require(Mathf.Approximately(brightnessSlider.MinValue, 0.10f) && Mathf.Approximately(brightnessSlider.MaxValue, 3.00f), "Brightness slider must use the expanded creative range.");
             Require(brightnessSlider.GetComponent<KaelisMenuInteractiveRow>().HasTooltipData, "Optics sliders must carry tooltip anchor data.");
-            Require(brightnessSlider.GetComponent<KaelisMenuInteractiveRow>().TooltipKeys.Contains("Home / End"), "Sliders must show slider-specific keyboard hints.");
+            Require(brightnessSlider.GetComponent<KaelisMenuInteractiveRow>().TooltipKeys.Contains("Drag"), "Sliders must expose pointer adjustment without stealing runtime hotkeys.");
             Require(FindDescendant<Transform>(brightnessSlider.transform, "RightGold") != null, "Interactive hover frames must include the right frame edge.");
             Require(FindChild<KaelisMenuToggleControl>(opticsPanel, "CausticsToggle") != null, "Optics panel must expose a premium Caustics toggle.");
             Slider brightnessUnitySlider = brightnessSlider.GetComponentInChildren<Slider>(true);
@@ -262,6 +287,8 @@ namespace Kaleidoscope2.Menu.Editor
             Require(FindChild<KaelisMenuSliderControl>(settingsPanel, "UIScaleSlider") != null, "Settings panel must expose UI Scale slider.");
             Require(FindChild<KaelisMenuSliderControl>(settingsPanel, "TargetFPSSlider") != null, "Settings panel must expose Target FPS slider.");
             Require(FindChild<KaelisMenuToggleControl>(settingsPanel, "InvertZoomToggle") != null, "Settings panel must expose Invert Zoom toggle.");
+            Require(!FindChild<KaelisMenuSliderControl>(settingsPanel, "UIScaleSlider").GetComponentInChildren<Slider>(true).interactable, "Reserved UI Scale slider must not impersonate a runtime binding.");
+            Require(!FindChild<KaelisMenuToggleControl>(settingsPanel, "InvertZoomToggle").Button.interactable, "Reserved Invert Zoom toggle must not impersonate a runtime binding.");
             KaelisMenuToggleControl wheelScaleToggle = FindChild<KaelisMenuToggleControl>(settingsPanel, "MouseWheelCrystalScaleToggle");
             Require(wheelScaleToggle != null, "Settings panel must expose Mouse Wheel Crystal Scale toggle.");
             dispatchedType = KaleidoscopeCommandType.None;
@@ -444,6 +471,8 @@ namespace Kaleidoscope2.Menu.Editor
         private static void ValidateRuntimeCrystalControlRouting(KaleidoscopeDirector director)
         {
             DiamondFocusSettings settings = director.State.DiamondFocusSettings;
+            settings.SetEnabled(false);
+            settings.SetCrystalSimulationMode(CrystalRenderMode.Billboard2D);
             settings.SetPremiumCrystalShape(PremiumCrystalShapeType.Cube);
             settings.SetPremiumCrystalOpticalMode(PremiumCrystalOpticalMode.InternalReflection);
             settings.SetDebugMode(DiamondCrystalDebugMode.SurfaceNormalOnly);
@@ -453,11 +482,16 @@ namespace Kaleidoscope2.Menu.Editor
             director.Dispatch(KaleidoscopeCommand.CycleSelectedCrystalRuntimeControl(1));
             Require(settings.RuntimeControl.SelectedModule == CrystalRuntimeControlModule.PremiumCrystalShape, "Numpad shape module selection must be stored independently.");
             Require(settings.PremiumCrystalShape == PremiumCrystalShapeType.Octahedron, "Selected Shape control must cycle through safe Premium forms.");
+            Require(!settings.Enabled && !settings.IsPremiumCrystalSimulation, "Shape class cycling must not activate or switch Premium mode.");
 
             director.Dispatch(KaleidoscopeCommand.SetCrystalRuntimeControlModule(CrystalRuntimeControlModule.PremiumOpticalMode));
             director.Dispatch(KaleidoscopeCommand.CycleSelectedCrystalRuntimeControl(1));
             Require(settings.ActivePremiumCrystalOpticalMode == PremiumCrystalOpticalMode.AbsoluteMirror, "Selected Optical control must cycle into Absolute Mirror.");
             Require(Mathf.Approximately(settings.PremiumOpticsDirectTransparency, 0f), "Runtime Optical cycling must preserve Absolute Mirror opacity.");
+            Require(!settings.Enabled && !settings.IsPremiumCrystalSimulation, "Optical class cycling must not activate or switch Premium mode.");
+            director.Dispatch(KaleidoscopeCommand.CycleSelectedCrystalRuntimeControl(1));
+            Require(settings.ActivePremiumCrystalOpticalMode == PremiumCrystalOpticalMode.HighPurityDiamond, "Class 2 cycling must not enter the explicit experimental alias.");
+            Require(settings.ActiveExperimentalCrystalPreset == CrystalExperimentPresetType.Normal, "Class 2 cycling must not activate Experimental Crystal presets.");
 
             director.Dispatch(KaleidoscopeCommand.SetCrystalRuntimeControlModule(CrystalRuntimeControlModule.CrystalDebugMode));
             director.Dispatch(KaleidoscopeCommand.CycleSelectedCrystalRuntimeControl(1));
@@ -469,6 +503,97 @@ namespace Kaleidoscope2.Menu.Editor
 
             settings.SetRuntimeControlModule(CrystalRuntimeControlModule.CrystalDebugMode);
             settings.SetDebugMode(DiamondCrystalDebugMode.FinalCrystalComposite);
+        }
+
+        private static void ValidateControlOwnershipContract(KaleidoscopeDirector director)
+        {
+            DiamondFocusSettings settings = director.State.DiamondFocusSettings;
+            settings.SetEnabled(false);
+            settings.SetCrystalSimulationMode(CrystalRenderMode.Billboard2D);
+            settings.SetDebugMode(DiamondCrystalDebugMode.SurfaceNormalOnly);
+
+            director.Dispatch(KaleidoscopeCommand.SetPremiumCrystalShape(PremiumCrystalShapeType.StarPrism));
+            director.Dispatch(KaleidoscopeCommand.SetPremiumCrystalOpticalMode(PremiumCrystalOpticalMode.PrismDispersion));
+            Require(!settings.Enabled && settings.CrystalSimulationMode == CrystalRenderMode.Billboard2D, "Shape and optics commands must remain local state selections until G or an explicit mode/preset action selects Premium.");
+
+            director.Dispatch(KaleidoscopeCommand.SetPremiumCrystalEffectEnabled(PremiumCrystalEffectToggle.DebugOpticalDiagnostics, true));
+            Require(settings.DebugMode == DiamondCrystalDebugMode.SurfaceNormalOnly, "Optical diagnostics must not overwrite the independently selected Debug Mode.");
+
+            settings.SetEnabled(true);
+            director.Dispatch(KaleidoscopeCommand.ToggleDiamondFocus());
+            Require(!settings.Enabled
+                && settings.CrystalSimulationMode == CrystalRenderMode.Billboard2D
+                && settings.ActivePremiumCrystalOpticalMode == PremiumCrystalOpticalMode.PrismDispersion
+                && settings.DebugMode == DiamondCrystalDebugMode.SurfaceNormalOnly,
+                "Backspace visibility routing must not alter simulation, optical, or debug state.");
+
+            director.Dispatch(KaleidoscopeCommand.ApplyExperimentalCrystalPreset(CrystalExperimentPresetType.AlienArtifactCore));
+            Require(settings.Enabled && settings.CrystalSimulationMode == CrystalRenderMode.Billboard2D, "An explicit experimental preset may reveal its crystal but must not change the Classic/Premium simulation mode.");
+            director.Dispatch(KaleidoscopeCommand.RestorePreviousCrystalPreset());
+            Require(!settings.Enabled, "Restoring an experiment must restore the exact pre-lab visibility snapshot.");
+
+            settings.SetEnabled(false);
+            settings.SetDebugMode(DiamondCrystalDebugMode.FinalCrystalComposite);
+            settings.SetPremiumCrystalEffectEnabled(PremiumCrystalEffectToggle.DebugOpticalDiagnostics, false);
+        }
+
+        private static void ValidateDedicatedGeometryMorphShortcuts(KaleidoscopeDirector director)
+        {
+            DiamondFocusSettings settings = director.State.DiamondFocusSettings;
+            settings.SetEnabled(true);
+            settings.SetPremiumCrystalEffectEnabled(PremiumCrystalEffectToggle.ShapeMorphing, true);
+            settings.SetCrystalSimulationMode(CrystalRenderMode.Billboard2D);
+            settings.SetShape(DiamondFocusShape.RhombicCrystal);
+            settings.SetPremiumCrystalOpticalMode(PremiumCrystalOpticalMode.AbsoluteMirror);
+            settings.SetDebugMode(DiamondCrystalDebugMode.ReflectionOnly);
+
+            director.Dispatch(KaleidoscopeCommand.CycleCrystalGeometryForward());
+            Require(settings.ShapeTransitionActive && settings.ShapeTransitionToShape == DiamondFocusShape.OvalRingGem, "Plus must start the existing smooth Classic geometry transition.");
+            Require(!settings.IsPremiumCrystalSimulation, "Classic Plus geometry morph must not switch into Premium mode.");
+            Require(settings.ActivePremiumCrystalOpticalMode == PremiumCrystalOpticalMode.AbsoluteMirror && settings.DebugMode == DiamondCrystalDebugMode.ReflectionOnly, "Classic geometry morph must not alter optics or debug state.");
+
+            director.Dispatch(KaleidoscopeCommand.CycleCrystalGeometryBackward());
+            Require(settings.ShapeTransitionActive && settings.ShapeTransitionToShape == DiamondFocusShape.RhombicCrystal, "Minus must reverse through the existing smooth Classic geometry transition.");
+            settings.TickShapeTransition(settings.ShapeTransitionDuration + 0.01f);
+            Require(!settings.ShapeTransitionActive && settings.Shape == DiamondFocusShape.RhombicCrystal, "Classic shape must remain stable after its morph completes.");
+
+            settings.SetCrystalSimulationMode(CrystalRenderMode.RealMesh3D);
+            settings.SetPremiumCrystalShape(PremiumCrystalShapeType.Cube);
+            director.Dispatch(KaleidoscopeCommand.CycleCrystalGeometryForward());
+            Require(settings.PremiumShapeTransitionActive && settings.PremiumShapeTransitionToShape == PremiumCrystalShapeType.Octahedron, "Plus must start the curated smooth Premium geometry transition.");
+            Require(settings.IsPremiumCrystalSimulation, "Premium Plus geometry morph must not switch back to Classic mode.");
+            Require(settings.ActivePremiumCrystalOpticalMode == PremiumCrystalOpticalMode.AbsoluteMirror && Mathf.Approximately(settings.PremiumOpticsDirectTransparency, 0f), "Premium geometry morph must preserve Absolute Mirror opacity.");
+            Require(settings.DebugMode == DiamondCrystalDebugMode.ReflectionOnly, "Premium geometry morph must not alter the selected debug state.");
+            settings.TickShapeTransition(settings.ShapeTransitionDuration + 0.01f);
+            Require(settings.PremiumCrystalShape == PremiumCrystalShapeType.Octahedron && !settings.PremiumShapeTransitionActive, "Premium Plus morph must settle on its requested curated shape.");
+
+            director.Dispatch(KaleidoscopeCommand.CycleCrystalGeometryBackward());
+            Require(settings.PremiumShapeTransitionActive && settings.PremiumShapeTransitionToShape == PremiumCrystalShapeType.Cube, "Minus must start the reverse curated Premium geometry transition.");
+            settings.TickShapeTransition(settings.ShapeTransitionDuration + 0.01f);
+            Require(settings.PremiumCrystalShape == PremiumCrystalShapeType.Cube && !settings.PremiumShapeTransitionActive, "Premium Minus morph must retain its final curated shape after completion.");
+        }
+
+        private static void ValidateStrictInputControlMap()
+        {
+            InputModule input = UnityEngine.Object.FindObjectOfType<InputModule>();
+            Require(input != null, "Main scene must contain InputModule for control-map validation.");
+            Type inputType = typeof(InputModule);
+            const BindingFlags fields = BindingFlags.Instance | BindingFlags.NonPublic;
+            Require((KeyCode)inputType.GetField("crystalSimulationModeToggleKey", fields).GetValue(input) == KeyCode.G, "G must remain the sole keyboard Classic/Premium switch.");
+            Require((KeyCode)inputType.GetField("selectPremiumShapeModuleKey", fields).GetValue(input) == KeyCode.Keypad1, "Numpad 1 must select Class 1: Premium Shapes.");
+            Require((KeyCode)inputType.GetField("selectPremiumOpticalModeModuleKey", fields).GetValue(input) == KeyCode.Keypad3, "Numpad 3 must select Class 2: Premium Optical Modes.");
+            Require((KeyCode)inputType.GetField("selectCrystalDebugModeModuleKey", fields).GetValue(input) == KeyCode.Keypad7, "Numpad 7 must select Class 3: Debug Modes.");
+            Require((KeyCode)inputType.GetField("selectCrystalDebugEffectModuleKey", fields).GetValue(input) == KeyCode.Keypad9, "Numpad 9 must select Class 4: Debug Effects.");
+            Require((KeyCode)inputType.GetField("crystalGeometryForwardKey", fields).GetValue(input) == KeyCode.KeypadPlus, "Numpad Plus must be the dedicated smooth crystal geometry-forward shortcut.");
+            Require((KeyCode)inputType.GetField("crystalGeometryBackwardKey", fields).GetValue(input) == KeyCode.KeypadMinus, "Numpad Minus must be the dedicated smooth crystal geometry-backward shortcut.");
+            Require(inputType.GetField("toggleSecondDisplayOutputKey", fields) == null, "Function keys must not trigger second-display output.");
+            Require(inputType.GetField("diamondRotateDownLeftKey", fields) == null
+                && inputType.GetField("diamondRotateDownRightKey", fields) == null
+                && inputType.GetField("diamondRotateUpLeftKey", fields) == null
+                && inputType.GetField("diamondRotateUpRightKey", fields) == null, "Numpad class selectors must not remain bound to diagonal crystal rotation.");
+            Require(inputType.GetField("diamondNextShapeKey", fields) == null
+                && inputType.GetField("diamondPreviousShapeKey", fields) == null
+                && inputType.GetField("diamondNextMaterialModeKey", fields) == null, "Legacy ambiguous field routes must stay removed; dedicated geometry shortcut and selected-class routes are explicit.");
         }
 
         private static void ValidatePremiumFactoryPresetPayloads(KaleidoscopeDirector director)
@@ -499,10 +624,12 @@ namespace Kaleidoscope2.Menu.Editor
             };
 
             DiamondFocusSettings settings = director.State.DiamondFocusSettings;
+            settings.SetEnabled(false);
+            settings.SetCrystalSimulationMode(CrystalRenderMode.Billboard2D);
             for (int index = 0; index < presets.Length; index++)
             {
                 director.Dispatch(KaleidoscopeCommand.ApplyPremiumCrystalPreset(presets[index]));
-                Require(settings.Enabled && settings.IsPremiumCrystalSimulation, "Factory preset must enable the Premium crystal renderer.");
+                Require(settings.Enabled && settings.IsPremiumCrystalSimulation, "Applying a factory Premium preset must enter its authored Premium crystal state explicitly.");
                 Require(settings.PremiumShapeTransitionActive, "Factory preset must retain smooth Premium shape transitions.");
                 Require(settings.CrystalDebugEffects.SelectedEffect == effects[index], "Factory preset must apply its authored shared debug effect: " + presets[index] + ".");
                 Require(settings.PremiumOpticsReflectionStrength > 0f && settings.PremiumOpticsBloomGlow >= 0f, "Factory preset must apply real optical values: " + presets[index] + ".");
@@ -514,6 +641,8 @@ namespace Kaleidoscope2.Menu.Editor
             Require(Mathf.Approximately(settings.PremiumOpticsDirectTransparency, 0f), "Absolute Mirror preset must store zero direct transparency.");
             Require(Mathf.Approximately(sharedSettings.DirectTransmission, 0f), "Absolute Mirror shared render state must store zero direct transmission.");
             Require(Mathf.Approximately(sharedSettings.Transparency, 0f), "Absolute Mirror shared render state must remain opaque.");
+            settings.SetEnabled(true);
+            settings.SetCrystalSimulationMode(CrystalRenderMode.RealMesh3D);
         }
 
         private static T FindChild<T>(Transform root, string name) where T : Component

@@ -973,9 +973,6 @@ namespace Kaleidoscope2.Core
                     break;
                 case PremiumCrystalEffectToggle.DebugOpticalDiagnostics:
                     premiumDebugOpticalDiagnosticsEnabled = value;
-                    debugMode = value
-                        ? DiamondCrystalDebugMode.ReflectionOnly
-                        : DiamondCrystalDebugMode.FinalCrystalComposite;
                     break;
             }
         }
@@ -1033,7 +1030,6 @@ namespace Kaleidoscope2.Core
             premiumFacetHighlightsEnabled = true;
             premiumShapeMorphingEnabled = true;
             premiumDebugOpticalDiagnosticsEnabled = false;
-            debugMode = DiamondCrystalDebugMode.FinalCrystalComposite;
         }
 
         public void ApplyPremiumCrystalPreset(PremiumCrystalFactoryPreset preset)

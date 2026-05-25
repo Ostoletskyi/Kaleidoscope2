@@ -5654,6 +5654,15 @@ MonoBehaviour:
   backgroundTexture: {fileID: 2800000, guid: a4f0a04b0b448ed45b56ce16f7ea67c4, type: 3}
   previewTexture: {fileID: 2800000, guid: a4f0a04b0b448ed45b56ce16f7ea67c4, type: 3}
   fallbackConceptTexture: {fileID: 2800000, guid: a4f0a04b0b448ed45b56ce16f7ea67c4, type: 3}
+  menuAudioFeedbackSettings:
+    buttonPressClip: {fileID: 8300000, guid: b86ab87bf1d00174493d938dcfb383d9, type: 3}
+    checkboxEnabledClip: {fileID: 8300000, guid: fd454ed82a4718c4d8d9c4671775a143, type: 3}
+    checkboxDisabledClip: {fileID: 8300000, guid: b86ab87bf1d00174493d938dcfb383d9, type: 3}
+    volume: 0.55
+    randomizePitch: 1
+    minimumPitch: 0.97
+    maximumPitch: 1.03
+    minimumPlayInterval: 0.035
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

@@ -52,6 +52,7 @@ namespace Kaleidoscope2.Menu
             Button button = rect.gameObject.AddComponent<Button>();
             button.transition = Selectable.Transition.None;
             button.targetGraphic = hitArea;
+            MenuAudioFeedbackController.BindButton(button);
 
             KaelisMenuButton menuButton = rect.gameObject.AddComponent<KaelisMenuButton>();
             menuButton.Button = button;
@@ -71,6 +72,7 @@ namespace Kaleidoscope2.Menu
             menuButton.Toggle = toggle;
             menuButton.Build(label, tone, icon, assets, height);
             toggle.onValueChanged.AddListener(menuButton.SetSelectedVisual);
+            MenuAudioFeedbackController.BindToggle(toggle);
             return menuButton;
         }
 

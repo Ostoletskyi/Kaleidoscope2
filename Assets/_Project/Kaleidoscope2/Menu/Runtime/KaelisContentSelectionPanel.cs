@@ -219,6 +219,7 @@ namespace Kaleidoscope2.Menu
                 interactive.Flash();
                 Invoke(action);
             });
+            MenuAudioFeedbackController.BindButton(button);
 
             TMP_Text text = KaelisMenuUiPrimitives.CreateText(chip, "Label", label, 13f, KaelisMenuStyle.TextPrimary, TextAlignmentOptions.Center, assets.GetFont(KaelisMenuFontRole.Button));
             text.characterSpacing = 3f;

@@ -1,7 +1,6 @@
 using System;
 using TMPro;
 using UnityEngine;
-using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 namespace Kaleidoscope2.Menu
@@ -12,8 +11,6 @@ namespace Kaleidoscope2.Menu
         private TMP_Text valueText;
         private KaelisMenuInteractiveRow row;
         private float defaultValue;
-        private float smallStep;
-        private float largeStep;
         private string[] options;
         private string suffix;
         private Action<float> changedHandler;
@@ -59,8 +56,6 @@ namespace Kaleidoscope2.Menu
             control.defaultValue = defaultValue;
             control.suffix = suffix;
             control.options = options;
-            control.smallStep = options != null ? 1f : Mathf.Max((max - min) / 100f, 0.01f);
-            control.largeStep = control.smallStep * 10f;
 
             string rangeText = options != null ? string.Join(" / ", options) : Format(min, suffix) + " - " + Format(max, suffix);
             string statusText = GetStatusLabel(status);
@@ -100,6 +95,7 @@ namespace Kaleidoscope2.Menu
             control.slider.minValue = min;
             control.slider.maxValue = max;
             control.slider.wholeNumbers = options != null;
+            control.slider.interactable = status != KaelisMenuBindingStatus.Reserved;
 
             RectTransform rail = KaelisMenuUiPrimitives.CreateRect("GlassRail", sliderRoot);
             rail.anchorMin = new Vector2(0f, 0.5f);
@@ -140,40 +136,6 @@ namespace Kaleidoscope2.Menu
         internal void SetChangedHandler(Action<float> handler)
         {
             changedHandler = handler;
-        }
-
-        private void Update()
-        {
-            if (row == null || slider == null || !row.IsActiveForKeyboard)
-            {
-                return;
-            }
-
-            if (Input.GetKeyDown(KeyCode.LeftArrow) || Input.GetKeyDown(KeyCode.LeftBracket) || Input.GetKeyDown(KeyCode.Minus))
-            {
-                AddValue(Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift) ? -largeStep : -smallStep);
-            }
-            else if (Input.GetKeyDown(KeyCode.RightArrow) || Input.GetKeyDown(KeyCode.RightBracket) || Input.GetKeyDown(KeyCode.Equals))
-            {
-                AddValue(Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift) ? largeStep : smallStep);
-            }
-            else if (Input.GetKeyDown(KeyCode.Home))
-            {
-                slider.value = slider.minValue;
-            }
-            else if (Input.GetKeyDown(KeyCode.End))
-            {
-                slider.value = slider.maxValue;
-            }
-            else if (Input.GetKeyDown(KeyCode.R))
-            {
-                slider.value = defaultValue;
-            }
-        }
-
-        private void AddValue(float delta)
-        {
-            slider.value = Mathf.Clamp(slider.value + delta, slider.minValue, slider.maxValue);
         }
 
         private void SetValueVisual(float value)

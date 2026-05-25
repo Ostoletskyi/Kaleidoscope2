@@ -14,10 +14,10 @@ namespace Kaleidoscope2.Menu.FX
 
         [Header("Light Bands")]
         [SerializeField] private float BandSpeed = 0.018f;
-        [SerializeField] private float BandOpacity = 0.28f;
+        [SerializeField] private float BandOpacity = 0f;
         [SerializeField] private float BandSoftness = 0.075f;
         [SerializeField] private float WideBandSpeed = 0.010f;
-        [SerializeField] private float WideBandOpacity = 0.13f;
+        [SerializeField] private float WideBandOpacity = 0f;
         [SerializeField] private Vector2 BandDirection = new Vector2(0.82f, 0.57f);
         [SerializeField] private Vector2 WideBandDirection = new Vector2(0.62f, 0.78f);
         [SerializeField] private Color CyanTint = new Color(0.58f, 0.95f, 1f, 1f);
@@ -25,9 +25,9 @@ namespace Kaleidoscope2.Menu.FX
         [SerializeField] private bool AdditiveBlend = true;
 
         [Header("Caustics")]
-        [SerializeField] private float CausticIntensity = 0.12f;
-        [SerializeField] private float NoiseDistortion = 0.022f;
-        [SerializeField] private float IntensityBreathing = 0.45f;
+        [SerializeField] private float CausticIntensity = 0.065f;
+        [SerializeField] private float NoiseDistortion = 0.012f;
+        [SerializeField] private float IntensityBreathing = 0.25f;
         [SerializeField] private Vector2 CausticDrift = new Vector2(0.018f, 0.011f);
 
         [Header("Dispersion Dust")]

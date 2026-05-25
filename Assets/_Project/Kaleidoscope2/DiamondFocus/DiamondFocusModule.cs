@@ -122,7 +122,23 @@ namespace Kaleidoscope2.DiamondFocus
                 return false;
             }
 
-            return command.Type == KaleidoscopeCommandType.SetDiamondRotationDirection
+            return command.Type == KaleidoscopeCommandType.SetDiamondFocusEnabled
+                || command.Type == KaleidoscopeCommandType.ToggleDiamondFocus
+                || command.Type == KaleidoscopeCommandType.ToggleCrystalSimulationMode
+                || command.Type == KaleidoscopeCommandType.SetCrystalSimulationMode
+                || command.Type == KaleidoscopeCommandType.SetDiamondShape
+                || command.Type == KaleidoscopeCommandType.SetPremiumCrystalShape
+                || command.Type == KaleidoscopeCommandType.CyclePremiumCrystalShape
+                || command.Type == KaleidoscopeCommandType.CycleCrystalGeometryForward
+                || command.Type == KaleidoscopeCommandType.CycleCrystalGeometryBackward
+                || command.Type == KaleidoscopeCommandType.SetPremiumCrystalOptic
+                || command.Type == KaleidoscopeCommandType.SetPremiumCrystalEffectEnabled
+                || command.Type == KaleidoscopeCommandType.ApplyPremiumCrystalPreset
+                || command.Type == KaleidoscopeCommandType.ApplyExperimentalCrystalPreset
+                || command.Type == KaleidoscopeCommandType.RestorePreviousCrystalPreset
+                || command.Type == KaleidoscopeCommandType.SetPremiumCrystalOpticalMode
+                || command.Type == KaleidoscopeCommandType.CyclePremiumCrystalOpticalMode
+                || command.Type == KaleidoscopeCommandType.SetDiamondRotationDirection
                 || command.Type == KaleidoscopeCommandType.AdjustDiamondRotationSpeed
                 || command.Type == KaleidoscopeCommandType.SetDiamondRotationSpeed
                 || command.Type == KaleidoscopeCommandType.IncreaseDiamondRotationSpeed
@@ -162,6 +178,42 @@ namespace Kaleidoscope2.DiamondFocus
 
             switch (command.Type)
             {
+                case KaleidoscopeCommandType.SetDiamondFocusEnabled:
+                    settings.SetEnabled(command.BoolValue);
+                    break;
+
+                case KaleidoscopeCommandType.ToggleDiamondFocus:
+                    settings.ToggleEnabled();
+                    break;
+
+                case KaleidoscopeCommandType.ToggleCrystalSimulationMode:
+                    settings.ToggleCrystalSimulationMode();
+                    break;
+
+                case KaleidoscopeCommandType.SetCrystalSimulationMode:
+                    settings.SetCrystalSimulationMode((CrystalRenderMode)command.IntValue);
+                    break;
+
+                case KaleidoscopeCommandType.SetDiamondShape:
+                    settings.BeginShapeTransition((DiamondFocusShape)Mathf.Clamp(command.IntValue, 0, DiamondFocusSettings.ShapeCount - 1));
+                    break;
+
+                case KaleidoscopeCommandType.SetPremiumCrystalShape:
+                    settings.BeginPremiumCrystalShapeTransition((PremiumCrystalShapeType)command.IntValue);
+                    break;
+
+                case KaleidoscopeCommandType.CyclePremiumCrystalShape:
+                    settings.CyclePremiumCrystalShape(command.IntValue);
+                    break;
+
+                case KaleidoscopeCommandType.CycleCrystalGeometryForward:
+                    CycleActiveCrystalGeometry(settings, 1);
+                    break;
+
+                case KaleidoscopeCommandType.CycleCrystalGeometryBackward:
+                    CycleActiveCrystalGeometry(settings, -1);
+                    break;
+
                 case KaleidoscopeCommandType.SetDiamondRotationDirection:
                     settings.SetTargetRotationDirection(command.Vector2Value);
                     break;
@@ -210,12 +262,22 @@ namespace Kaleidoscope2.DiamondFocus
                     break;
 
                 case KaleidoscopeCommandType.CycleCrystalDebugEffect:
+                    settings.CycleCrystalDebugEffect(command.IntValue);
+                    ReportCrystalDebugEffect(settings);
+                    break;
+
                 case KaleidoscopeCommandType.SetCrystalDebugEffect:
+                    settings.SetCrystalDebugEffect((CrystalDebugEffectType)command.IntValue);
                     ReportCrystalDebugEffect(settings);
                     break;
 
                 case KaleidoscopeCommandType.SetCrystalRuntimeControlModule:
+                    settings.SetRuntimeControlModule((CrystalRuntimeControlModule)command.IntValue);
+                    ReportRuntimeControl(settings);
+                    break;
+
                 case KaleidoscopeCommandType.CycleSelectedCrystalRuntimeControl:
+                    settings.CycleSelectedRuntimeControl(command.IntValue);
                     ReportRuntimeControl(settings);
                     break;
 
@@ -240,16 +302,48 @@ namespace Kaleidoscope2.DiamondFocus
                     break;
 
                 case KaleidoscopeCommandType.ToggleCrystalLightRig:
+                    settings.CrystalLightRigSettings.ToggleRigEnabled();
+                    ReportCrystalLightRig(settings);
+                    break;
+
                 case KaleidoscopeCommandType.SetCrystalLightRigEnabled:
+                    settings.CrystalLightRigSettings.SetRigEnabled(command.BoolValue);
+                    ReportCrystalLightRig(settings);
+                    break;
+
                 case KaleidoscopeCommandType.AdjustCrystalLightRigIntensity:
+                    settings.AdjustCrystalLightRigIntensityForCurrentMode(command.FloatValue);
+                    ReportCrystalLightRig(settings);
+                    break;
+
                 case KaleidoscopeCommandType.SetCrystalLightRigIntensity:
+                    settings.SetCrystalLightRigIntensityForCurrentMode(command.FloatValue);
+                    ReportCrystalLightRig(settings);
+                    break;
+
                 case KaleidoscopeCommandType.SetCrystalLightRigActiveLightCount:
+                    settings.CrystalLightRigSettings.SetActiveLightCountLimit(command.IntValue);
                     ReportCrystalLightRig(settings);
                     break;
 
                 case KaleidoscopeCommandType.AdjustPremiumCrystalScalePercent:
-                case KaleidoscopeCommandType.SetPremiumCrystalScalePercent:
+                    settings.AdjustPremiumCrystalScalePercent(command.FloatValue);
                     ReportPremiumCrystalScale(settings);
+                    break;
+
+                case KaleidoscopeCommandType.SetPremiumCrystalScalePercent:
+                    settings.SetPremiumCrystalScalePercent(command.FloatValue);
+                    ReportPremiumCrystalScale(settings);
+                    break;
+
+                case KaleidoscopeCommandType.SetPremiumCrystalOptic:
+                    settings.SetPremiumCrystalOptic((PremiumCrystalOpticsParameter)command.IntValue, command.FloatValue);
+                    ReportPremiumCrystalEffects(settings);
+                    break;
+
+                case KaleidoscopeCommandType.SetPremiumCrystalEffectEnabled:
+                    settings.SetPremiumCrystalEffectEnabled((PremiumCrystalEffectToggle)command.IntValue, command.BoolValue);
+                    ReportPremiumCrystalEffects(settings);
                     break;
 
                 case KaleidoscopeCommandType.TogglePremiumCrystalEffect:
@@ -257,10 +351,59 @@ namespace Kaleidoscope2.DiamondFocus
                     ReportPremiumCrystalEffects(settings);
                     break;
 
+                case KaleidoscopeCommandType.ApplyPremiumCrystalPreset:
+                    settings.ApplyPremiumCrystalPreset((PremiumCrystalFactoryPreset)command.IntValue);
+                    State.SetActivePreset(command.StringValue);
+                    ReportPremiumCrystalEffects(settings);
+                    break;
+
+                case KaleidoscopeCommandType.ApplyExperimentalCrystalPreset:
+                    settings.ApplyExperimentalCrystalPreset((CrystalExperimentPresetType)command.IntValue);
+                    ReportPremiumCrystalEffects(settings);
+                    break;
+
+                case KaleidoscopeCommandType.RestorePreviousCrystalPreset:
+                    settings.RestorePreviousCrystalPreset();
+                    ReportPremiumCrystalEffects(settings);
+                    break;
+
+                case KaleidoscopeCommandType.SetPremiumCrystalOpticalMode:
+                    settings.SetPremiumCrystalOpticalMode((PremiumCrystalOpticalMode)command.IntValue);
+                    ReportPremiumCrystalEffects(settings);
+                    break;
+
+                case KaleidoscopeCommandType.CyclePremiumCrystalOpticalMode:
+                    settings.CyclePremiumCrystalOpticalMode(command.IntValue);
+                    ReportPremiumCrystalEffects(settings);
+                    break;
+
                 case KaleidoscopeCommandType.ResetPremiumCrystalOpticalControls:
                     settings.ResetPremiumCrystalOpticalControls();
                     ReportPremiumCrystalEffects(settings);
                     break;
+            }
+        }
+
+        private void CycleActiveCrystalGeometry(DiamondFocusSettings settings, int direction)
+        {
+            if (settings == null || direction == 0)
+            {
+                return;
+            }
+
+            if (settings.IsPremiumCrystalSimulation)
+            {
+                settings.CyclePremiumCrystalShape(direction);
+                return;
+            }
+
+            if (direction > 0)
+            {
+                shapeController.NextShape(settings);
+            }
+            else
+            {
+                shapeController.PreviousShape(settings);
             }
         }
 

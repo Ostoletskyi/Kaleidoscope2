@@ -391,117 +391,12 @@ namespace Kaleidoscope2.Core
                     state.SetSecondDisplayOutputEnabled(command.BoolValue);
                     return true;
 
-                case KaleidoscopeCommandType.SetDiamondFocusEnabled:
-                    state.DiamondFocusSettings.SetEnabled(command.BoolValue);
-                    return true;
-
-                case KaleidoscopeCommandType.ToggleDiamondFocus:
-                    state.DiamondFocusSettings.ToggleEnabled();
-                    return true;
-
-                case KaleidoscopeCommandType.ToggleCrystalLightRig:
-                    state.DiamondFocusSettings.CrystalLightRigSettings.ToggleRigEnabled();
-                    return true;
-
-                case KaleidoscopeCommandType.SetCrystalLightRigEnabled:
-                    state.DiamondFocusSettings.CrystalLightRigSettings.SetRigEnabled(command.BoolValue);
-                    return true;
-
-                case KaleidoscopeCommandType.AdjustCrystalLightRigIntensity:
-                    state.DiamondFocusSettings.AdjustCrystalLightRigIntensityForCurrentMode(command.FloatValue);
-                    return true;
-
-                case KaleidoscopeCommandType.SetCrystalLightRigIntensity:
-                    state.DiamondFocusSettings.SetCrystalLightRigIntensityForCurrentMode(command.FloatValue);
-                    return true;
-
-                case KaleidoscopeCommandType.SetCrystalLightRigActiveLightCount:
-                    state.DiamondFocusSettings.CrystalLightRigSettings.SetActiveLightCountLimit(command.IntValue);
-                    return true;
-
-                case KaleidoscopeCommandType.ToggleCrystalSimulationMode:
-                    state.DiamondFocusSettings.ToggleCrystalSimulationMode();
-                    return true;
-
-                case KaleidoscopeCommandType.SetCrystalSimulationMode:
-                    state.DiamondFocusSettings.SetCrystalSimulationMode((CrystalRenderMode)command.IntValue);
-                    return true;
-
-                case KaleidoscopeCommandType.SetDiamondShape:
-                    state.DiamondFocusSettings.BeginShapeTransition((DiamondFocusShape)Mathf.Clamp(command.IntValue, 0, DiamondFocusSettings.ShapeCount - 1));
-                    return true;
-
-                case KaleidoscopeCommandType.SetPremiumCrystalShape:
-                    state.DiamondFocusSettings.BeginPremiumCrystalShapeTransition((PremiumCrystalShapeType)command.IntValue);
-                    return true;
-
-                case KaleidoscopeCommandType.CyclePremiumCrystalShape:
-                    state.DiamondFocusSettings.CyclePremiumCrystalShape(command.IntValue);
-                    return true;
-
-                case KaleidoscopeCommandType.AdjustPremiumCrystalScalePercent:
-                    state.DiamondFocusSettings.AdjustPremiumCrystalScalePercent(command.FloatValue);
-                    return true;
-
-                case KaleidoscopeCommandType.SetPremiumCrystalScalePercent:
-                    state.DiamondFocusSettings.SetPremiumCrystalScalePercent(command.FloatValue);
-                    return true;
-
-                case KaleidoscopeCommandType.SetPremiumCrystalOptic:
-                    state.DiamondFocusSettings.SetPremiumCrystalOptic((PremiumCrystalOpticsParameter)command.IntValue, command.FloatValue);
-                    return true;
-
-                case KaleidoscopeCommandType.SetPremiumCrystalEffectEnabled:
-                    state.DiamondFocusSettings.SetPremiumCrystalEffectEnabled((PremiumCrystalEffectToggle)command.IntValue, command.BoolValue);
-                    return true;
-
                 case KaleidoscopeCommandType.SetPremiumCrystalWheelScaleEnabled:
                     state.SetMouseWheelVisualScaleEnabled(command.BoolValue);
                     return true;
 
                 case KaleidoscopeCommandType.SetPremiumCrystalWheelScaleStepPercent:
                     state.SetMouseWheelVisualScaleStepPercent(command.FloatValue);
-                    return true;
-
-                case KaleidoscopeCommandType.ApplyPremiumCrystalPreset:
-                    state.DiamondFocusSettings.ApplyPremiumCrystalPreset((PremiumCrystalFactoryPreset)command.IntValue);
-                    state.SetActivePreset(command.StringValue);
-                    return true;
-
-                case KaleidoscopeCommandType.ApplyExperimentalCrystalPreset:
-                    state.DiamondFocusSettings.ApplyExperimentalCrystalPreset((CrystalExperimentPresetType)command.IntValue);
-                    return true;
-
-                case KaleidoscopeCommandType.RestorePreviousCrystalPreset:
-                    state.DiamondFocusSettings.RestorePreviousCrystalPreset();
-                    return true;
-
-                case KaleidoscopeCommandType.SetPremiumCrystalOpticalMode:
-                    state.DiamondFocusSettings.SetPremiumCrystalOpticalMode((PremiumCrystalOpticalMode)command.IntValue);
-                    return true;
-
-                case KaleidoscopeCommandType.CyclePremiumCrystalOpticalMode:
-                    state.DiamondFocusSettings.CyclePremiumCrystalOpticalMode(command.IntValue);
-                    return true;
-
-                case KaleidoscopeCommandType.SetCrystalDebugEffect:
-                    state.DiamondFocusSettings.SetCrystalDebugEffect((CrystalDebugEffectType)command.IntValue);
-                    return true;
-
-                case KaleidoscopeCommandType.CycleCrystalDebugEffect:
-                    state.DiamondFocusSettings.CycleCrystalDebugEffect(command.IntValue);
-                    return true;
-
-                case KaleidoscopeCommandType.SetCrystalRuntimeControlModule:
-                    state.DiamondFocusSettings.SetRuntimeControlModule((CrystalRuntimeControlModule)command.IntValue);
-                    return true;
-
-                case KaleidoscopeCommandType.CycleSelectedCrystalRuntimeControl:
-                    state.DiamondFocusSettings.CycleSelectedRuntimeControl(command.IntValue);
-                    return true;
-
-                case KaleidoscopeCommandType.ResetPremiumCrystalOpticalControls:
-                    state.DiamondFocusSettings.ResetPremiumCrystalOpticalControls();
                     return true;
 
                 case KaleidoscopeCommandType.SetImageFilePath:

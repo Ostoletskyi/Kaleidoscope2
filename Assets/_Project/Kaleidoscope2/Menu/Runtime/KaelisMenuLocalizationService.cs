@@ -268,8 +268,10 @@ namespace Kaleidoscope2.Menu
             Add(table, "Enter / Click", action);
             Add(table, "Enter / Click to select", select);
             Add(table, "Enter / Space / Click to toggle", toggle);
+            Add(table, "Click to toggle", table == German ? "Klicken zum Umschalten" : (table == Russian ? "Клик для переключения" : "Клік для перемикання"));
             Add(table, "Enter / Click to change language", language);
             Add(table, "Click to view reserved action", reserved);
+            Add(table, "Drag to adjust", table == German ? "Ziehen zum Anpassen" : (table == Russian ? "Перетащите для настройки" : "Перетягніть для налаштування"));
             Add(table, "Left / Right = small step\nShift + Left / Right = large step\nHome / End = min / max\nR = reset current control",
                 table == German
                     ? "Left / Right = kleiner Schritt\nShift + Left / Right = großer Schritt\nHome / End = Min / Max\nR = Regler zurücksetzen"

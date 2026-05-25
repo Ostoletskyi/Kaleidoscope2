@@ -19,6 +19,9 @@ namespace Kaleidoscope2.Menu
         [SerializeField] private Texture previewTexture;
         [SerializeField] private Texture fallbackConceptTexture;
 
+        [Header("Audio Feedback")]
+        [SerializeField] private MenuAudioFeedbackSettings menuAudioFeedbackSettings = new MenuAudioFeedbackSettings();
+
         private KaelisMenuAssets assets;
         private KaelisStartupMenuView view;
         private MenuAtmosphereFXController atmosphereFX;
@@ -36,6 +39,7 @@ namespace Kaleidoscope2.Menu
         private void Awake()
         {
             KaelisMenuLocalizationService.LoadSavedLanguage();
+            MenuAudioFeedbackController.Ensure(gameObject, menuAudioFeedbackSettings);
             assets = KaelisMenuAssets.Load(backgroundTexture, previewTexture, fallbackConceptTexture);
             EnsureEventSystem();
 
@@ -73,14 +77,6 @@ namespace Kaleidoscope2.Menu
 
             SetVisible(startVisible, true);
             UpdateDemoState(false);
-        }
-
-        private void Update()
-        {
-            if (Input.GetKeyDown(KeyCode.Escape))
-            {
-                SetVisible(!visible, false);
-            }
         }
 
         private void OnDestroy()

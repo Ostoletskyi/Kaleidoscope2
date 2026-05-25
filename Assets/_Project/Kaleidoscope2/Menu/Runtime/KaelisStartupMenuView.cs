@@ -153,17 +153,6 @@ namespace Kaleidoscope2.Menu
                 premiumMotion.Build(canvasRect, assets.SolidSprite);
             }
 
-            RectTransform shimmer = KaelisMenuUiPrimitives.CreateRect("PrismaticSheen", canvasRect);
-            shimmer.anchorMin = new Vector2(-0.06f, 0.82f);
-            shimmer.anchorMax = new Vector2(1.08f, 0.90f);
-            shimmer.offsetMin = Vector2.zero;
-            shimmer.offsetMax = Vector2.zero;
-            shimmer.localEulerAngles = new Vector3(0f, 0f, -9f);
-            KaelisMenuUiPrimitives.AddImage(shimmer, assets.SolidSprite, new Color(0.55f, 0.93f, 1f, 0.10f), false);
-            if (animator != null)
-            {
-                animator.BindShimmerLayer(shimmer);
-            }
         }
 
         private void BuildLeftPanel(RectTransform safeFrame)

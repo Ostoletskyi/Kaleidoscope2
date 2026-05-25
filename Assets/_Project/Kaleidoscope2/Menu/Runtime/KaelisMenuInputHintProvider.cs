@@ -6,6 +6,7 @@ namespace Kaleidoscope2.Menu
         Toggle,
         Slider,
         Action,
+        Geometry,
         Language,
         Reserved
     }
@@ -19,9 +20,11 @@ namespace Kaleidoscope2.Menu
                 case KaelisMenuInputHintKind.Toggle:
                     return "Enter / Space / Click to toggle";
                 case KaelisMenuInputHintKind.Slider:
-                    return "Left / Right = small step\nShift + Left / Right = large step\nHome / End = min / max\nR = reset current control";
+                    return "Drag to adjust";
                 case KaelisMenuInputHintKind.Action:
                     return "Enter / Click";
+                case KaelisMenuInputHintKind.Geometry:
+                    return "+ / - : Smooth Crystal Geometry\nNum Del : Cycle Selected Control Class";
                 case KaelisMenuInputHintKind.Language:
                     return "Enter / Click to change language";
                 case KaelisMenuInputHintKind.Reserved:

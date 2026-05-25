@@ -117,6 +117,7 @@ namespace Kaleidoscope2.Menu
             AddModeRow(panel.Content, "4D Tunnel / Funnel", "Depth/funnel mode with curved visual space.", "SAFE COMMAND", "SetVisualMode(Tunnel)", KaelisMenuPanelCommand.ApplyTunnelMode, KaelisMenuStyle.Cyan, true);
             AddModeRow(panel.Content, "5D Endless Flight", "Continuous movement toward the kaleidoscope center.", "SAFE COMMAND", "SetVisualMode(FiveD)", KaelisMenuPanelCommand.ApplyFiveDMode, KaelisMenuStyle.Cyan, true);
             AddGroupLabel(panel.Content, "PREMIUM3D FORMS");
+            AddStatusLine(panel.Content, "SmoothGeometryShortcutHint", "+ / - : Smooth Crystal Geometry    Num Del : Cycle Selected Control Class", KaelisMenuStyle.TextSecondary, 26f);
             AddPremiumShapeRow(panel.Content, PremiumCrystalShapeType.Sphere, "Sphere", "Centered multifacet sphere with a balanced optical core.", KaelisMenuStyle.Cyan);
             AddPremiumShapeRow(panel.Content, PremiumCrystalShapeType.Cube, "Cube", "Symmetric faceted cube with broad polished planes.", KaelisMenuStyle.GoldSoft);
             AddPremiumShapeRow(panel.Content, PremiumCrystalShapeType.Octahedron, "Octahedron", "Clean double-sided point crystal with four-way symmetry.", KaelisMenuStyle.Cyan);
@@ -237,7 +238,7 @@ namespace Kaleidoscope2.Menu
             AddPresetCard(panel.Content, "Absolute Mirror", "Solid mirror-polished facets, zero transparency, hidden reflection depth, sharp highlights.", PremiumCrystalFactoryPreset.AbsoluteMirror, KaelisMenuStyle.GoldSoft);
 
             RectTransform actions = CreateActionRow(panel.Content, "PresetActions");
-            presetApplyButton = AddActionChip(actions, "ApplyPresetButton", "APPLY SELECTED", KaelisMenuPanelCommand.ApplySelectedPreset, KaelisMenuStyle.GoldSoft);
+            presetApplyButton = AddActionChip(actions, "ApplyPresetButton", "APPLY PREMIUM LOOK", KaelisMenuPanelCommand.ApplySelectedPreset, KaelisMenuStyle.GoldSoft);
             presetApplyRow = presetApplyButton.GetComponent<KaelisMenuInteractiveRow>();
             SetPresetApplyAvailable(false);
             AddActionChip(actions, "SaveCurrentPresetButton", "SAVE CURRENT", KaelisMenuPanelCommand.ReservedAction, KaelisMenuStyle.TextMuted);
@@ -322,7 +323,7 @@ namespace Kaleidoscope2.Menu
             KaelisMenuUiPrimitives.AddLayout(body.gameObject, -1f, 120f);
 
             RectTransform actions = CreateActionRow(panel.Content, "ExitActions");
-            AddActionChip(actions, "ExitSaveAndQuitButton", "SAVE SETTINGS AND EXIT", KaelisMenuPanelCommand.SaveAndExit, KaelisMenuStyle.GoldSoft);
+            AddActionChip(actions, "ExitSaveAndQuitButton", "SAVE UNAVAILABLE", KaelisMenuPanelCommand.ReservedAction, KaelisMenuStyle.TextMuted);
             AddActionChip(actions, "ExitWithoutSavingButton", "EXIT WITHOUT SAVING", KaelisMenuPanelCommand.ExitWithoutSaving, KaelisMenuStyle.Red);
             AddActionChip(actions, "ExitCancelButton", "CANCEL", KaelisMenuPanelCommand.CancelExit, KaelisMenuStyle.Cyan);
         }
@@ -427,28 +428,33 @@ namespace Kaleidoscope2.Menu
                 row.Flash();
                 Submit(command);
             });
+            MenuAudioFeedbackController.BindButton(button);
         }
 
         private void AddPremiumShapeRow(RectTransform parent, PremiumCrystalShapeType shape, string title, string description, Color accent)
         {
             string commandId = "SetPremiumCrystalShape(" + shape + ")";
-            KaelisMenuInteractiveRow row = AddCommandRow(parent, title, description, "REAL FORM", commandId, KaelisMenuPanelCommand.ReservedAction, accent, 56f);
+            KaelisMenuInteractiveRow row = AddCommandRow(parent, title, description, "REAL FORM", commandId, KaelisMenuPanelCommand.ReservedAction, accent, 56f, KaelisMenuInputHintProvider.Get(KaelisMenuInputHintKind.Geometry));
             Button button = row.GetComponent<Button>();
             button.onClick.RemoveAllListeners();
+            button.interactable = true;
             button.onClick.AddListener(() =>
             {
                 SelectPremiumShapeRow(row);
                 row.Flash();
                 DispatchPremiumShape(shape);
             });
+            MenuAudioFeedbackController.BindButton(button);
         }
 
         private void AddPremiumOpticalModeRow(RectTransform parent, PremiumCrystalOpticalMode mode, string title, string description, Color accent)
         {
             string commandId = "SetPremiumCrystalOpticalMode(" + mode + ")";
-            KaelisMenuInteractiveRow row = AddCommandRow(parent, title, description, "REAL OPTIC", commandId, KaelisMenuPanelCommand.ReservedAction, accent, 56f, PremiumCrystalOpticalModeLibrary.GetTooltip(mode));
+            string badge = mode == PremiumCrystalOpticalMode.AlienArtifactExperimental ? "EXPLICIT EXPERIMENT" : "REAL OPTIC";
+            KaelisMenuInteractiveRow row = AddCommandRow(parent, title, description, badge, commandId, KaelisMenuPanelCommand.ReservedAction, accent, 56f, PremiumCrystalOpticalModeLibrary.GetTooltip(mode));
             Button button = row.GetComponent<Button>();
             button.onClick.RemoveAllListeners();
+            button.interactable = true;
             button.onClick.AddListener(() =>
             {
                 row.Flash();
@@ -457,18 +463,21 @@ namespace Kaleidoscope2.Menu
                     premiumOpticalModeHandler(mode);
                 }
             });
+            MenuAudioFeedbackController.BindButton(button);
         }
 
         private void AddPresetCard(RectTransform parent, string title, string description, PremiumCrystalFactoryPreset preset, Color accent)
         {
-            KaelisMenuInteractiveRow row = AddCommandRow(parent, title, description, "FACTORY", "ApplyPremiumCrystalPreset(" + preset + ")", KaelisMenuPanelCommand.ReservedAction, accent, 62f);
+            KaelisMenuInteractiveRow row = AddCommandRow(parent, title, description, "SELECT", "SelectPremiumCrystalPreset(" + preset + ")", KaelisMenuPanelCommand.ReservedAction, accent, 62f);
             Button button = row.GetComponent<Button>();
             button.onClick.RemoveAllListeners();
+            button.interactable = true;
             button.onClick.AddListener(() =>
             {
                 SelectPresetRow(row, preset);
                 row.Flash();
             });
+            MenuAudioFeedbackController.BindButton(button);
         }
 
         private void AddExperimentalPresetCard(RectTransform parent, CrystalExperimentPresetType preset, string title, string description, Color accent)
@@ -476,6 +485,7 @@ namespace Kaleidoscope2.Menu
             KaelisMenuInteractiveRow row = AddCommandRow(parent, title, description, preset == CrystalExperimentPresetType.Normal ? "RESTORE" : "EXPERIMENT", "ApplyExperimentalCrystalPreset(" + preset + ")", KaelisMenuPanelCommand.ReservedAction, accent, 62f);
             Button button = row.GetComponent<Button>();
             button.onClick.RemoveAllListeners();
+            button.interactable = true;
             button.onClick.AddListener(() =>
             {
                 row.Flash();
@@ -484,6 +494,7 @@ namespace Kaleidoscope2.Menu
                     experimentalCrystalPresetHandler(preset);
                 }
             });
+            MenuAudioFeedbackController.BindButton(button);
         }
 
         private void AddLanguageRow(RectTransform parent)
@@ -491,6 +502,7 @@ namespace Kaleidoscope2.Menu
             KaelisMenuInteractiveRow row = AddCommandRow(parent, "Language", "Changes the KAELIS menu language immediately and stores it for the next session.", KaelisMenuLocalizationService.GetCurrentLanguageDisplayName(), "English / Русский / Deutsch / Українська", KaelisMenuPanelCommand.ReservedAction, KaelisMenuStyle.Cyan, 56f, KaelisMenuInputHintProvider.Get(KaelisMenuInputHintKind.Language));
             Button button = row.GetComponent<Button>();
             button.onClick.RemoveAllListeners();
+            button.interactable = true;
 
             TMP_Text badge = null;
             Transform badgeTransform = row.transform.Find("ItemBadge");
@@ -504,6 +516,7 @@ namespace Kaleidoscope2.Menu
             row.SetSelected(true);
             row.SetTooltipCurrent(KaelisMenuLocalizationService.GetCurrentLanguageDisplayName());
             button.onClick.AddListener(selector.CycleLanguage);
+            MenuAudioFeedbackController.BindButton(button);
         }
 
         private void AddOpticsSlider(RectTransform parent, string title, string description, float min, float max, float defaultValue, PremiumCrystalOpticsParameter parameter)
@@ -760,11 +773,13 @@ namespace Kaleidoscope2.Menu
             Button button = row.gameObject.AddComponent<Button>();
             button.transition = Selectable.Transition.None;
             button.targetGraphic = surface;
+            button.interactable = command != KaelisMenuPanelCommand.ReservedAction;
             button.onClick.AddListener(() =>
             {
                 interactive.Flash();
                 Submit(command);
             });
+            MenuAudioFeedbackController.BindButton(button);
 
             RectTransform accentBar = KaelisMenuUiPrimitives.CreateRect("AccentBar", row);
             accentBar.anchorMin = new Vector2(0f, 0.18f);
@@ -849,11 +864,13 @@ namespace Kaleidoscope2.Menu
             Button button = chip.gameObject.AddComponent<Button>();
             button.transition = Selectable.Transition.None;
             button.targetGraphic = surface;
+            button.interactable = command != KaelisMenuPanelCommand.ReservedAction;
             button.onClick.AddListener(() =>
             {
                 interactive.Flash();
                 Submit(command);
             });
+            MenuAudioFeedbackController.BindButton(button);
 
             TMP_Text text = KaelisMenuUiPrimitives.CreateText(chip, "Label", label, 12.5f, KaelisMenuStyle.TextPrimary, TextAlignmentOptions.Center, assets.GetFont(KaelisMenuFontRole.Button));
             text.enableAutoSizing = true;
