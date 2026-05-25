@@ -7,9 +7,11 @@ namespace Kaleidoscope2.Menu.FX
     [DisallowMultipleComponent]
     public sealed class PremiumMenuMotionController : MonoBehaviour
     {
-        private const int PremiumStripeCount = 5;
+        private const int PremiumStripeCount = 6;
         private const float StripeLengthMultiplier = 2.65f;
         private const int GradientResolution = 64;
+        internal const float MinimumVisibleBeamWidth = 0.105f;
+        internal const float MaximumVisibleBeamWidth = 0.245f;
 
         [SerializeField] private PremiumMenuStripeSettings[] stripeSettings = PremiumMenuStripeSettings.CreateDefaults();
 
@@ -17,6 +19,11 @@ namespace Kaleidoscope2.Menu.FX
         private PremiumMenuStripe[] stripes;
         private Sprite[] generatedStripeSprites;
         private Sprite fallbackSprite;
+
+        internal int BeamCount
+        {
+            get { return stripes != null ? stripes.Length : 0; }
+        }
 
         internal static PremiumMenuMotionController Ensure(GameObject host)
         {
@@ -68,6 +75,17 @@ namespace Kaleidoscope2.Menu.FX
                     stripes[index].Tick(rect, time);
                 }
             }
+        }
+
+        internal bool TryGetBeamSample(int index, float time, out PremiumMenuBeamSample sample)
+        {
+            sample = default(PremiumMenuBeamSample);
+            if (root == null || stripes == null || index < 0 || index >= stripes.Length || stripes[index] == null)
+            {
+                return false;
+            }
+
+            return stripes[index].TrySample(root.rect, time, out sample);
         }
 
         private void OnDestroy()
@@ -234,7 +252,7 @@ namespace Kaleidoscope2.Menu.FX
     public sealed class PremiumMenuStripeSettings
     {
         [SerializeField] private Vector2 direction = new Vector2(0.72f, -0.69f);
-        [SerializeField, Range(0.01f, 0.45f)] private float width = 0.22f;
+        [SerializeField, Range(PremiumMenuMotionController.MinimumVisibleBeamWidth, PremiumMenuMotionController.MaximumVisibleBeamWidth)] private float width = 0.14f;
         [SerializeField, Range(0.001f, 0.08f)] private float speed = 0.008f;
         [SerializeField, Range(0f, 0.2f)] private float opacity = 0.07f;
         [SerializeField, Range(-90f, 110f)] private float angle = 22f;
@@ -244,7 +262,7 @@ namespace Kaleidoscope2.Menu.FX
         [SerializeField] private Color color = new Color(0.62f, 0.96f, 1f, 1f);
 
         public Vector2 Direction { get { return direction.sqrMagnitude > 0.0001f ? direction.normalized : Vector2.right; } }
-        public float Width { get { return Mathf.Clamp(width, 0.01f, 0.45f); } }
+        public float Width { get { return Mathf.Clamp(width, PremiumMenuMotionController.MinimumVisibleBeamWidth, PremiumMenuMotionController.MaximumVisibleBeamWidth); } }
         public float Speed { get { return Mathf.Clamp(speed, 0.001f, 0.08f); } }
         public float Opacity { get { return Mathf.Clamp(opacity, 0f, 0.2f); } }
         public float Angle { get { return Mathf.Clamp(angle, -90f, 110f); } }
@@ -274,13 +292,24 @@ namespace Kaleidoscope2.Menu.FX
         {
             return new[]
             {
-                new PremiumMenuStripeSettings(new Vector2(0.72f, -0.69f), 0.22f, 0.0074f, 0.070f, 22f, 0.56f, -0.18f, 0.42f, new Color(0.62f, 0.96f, 1f, 1f)),
-                new PremiumMenuStripeSettings(new Vector2(-0.48f, -0.88f), 0.145f, 0.0066f, 0.055f, -18f, 0.53f, 0.16f, 0.57f, new Color(0.74f, 0.93f, 1f, 1f)),
-                new PremiumMenuStripeSettings(new Vector2(0.61f, -0.79f), 0.076f, 0.0090f, 0.045f, 35f, 0.48f, 0.31f, 0.48f, new Color(0.80f, 0.97f, 1f, 1f)),
-                new PremiumMenuStripeSettings(new Vector2(1f, -0.08f), 0.30f, 0.0046f, 0.035f, 8f, 0.62f, -0.35f, 0.32f, new Color(1f, 0.84f, 0.52f, 1f)),
-                new PremiumMenuStripeSettings(new Vector2(-0.57f, -0.82f), 0.046f, 0.0078f, 0.050f, -32f, 0.42f, -0.04f, 0.68f, new Color(0.72f, 1f, 0.94f, 1f))
+                new PremiumMenuStripeSettings(new Vector2(0.375f, -0.927f), 0.140f, 0.0060f, 0.122f, 22f, 0.50f, 0.02f, 0.08f, new Color(0.62f, 0.96f, 1f, 1f)),
+                new PremiumMenuStripeSettings(new Vector2(-0.309f, -0.951f), 0.130f, 0.0057f, 0.108f, -18f, 0.52f, -0.18f, 0.24f, new Color(0.74f, 0.93f, 1f, 1f)),
+                new PremiumMenuStripeSettings(new Vector2(0.574f, -0.819f), 0.110f, 0.0064f, 0.142f, 35f, 0.45f, 0.25f, 0.40f, new Color(0.80f, 0.97f, 1f, 1f)),
+                new PremiumMenuStripeSettings(new Vector2(0.990f, -0.139f), 0.215f, 0.0052f, 0.084f, 82f, 0.61f, -0.30f, 0.55f, new Color(0.55f, 0.88f, 1f, 1f)),
+                new PremiumMenuStripeSettings(new Vector2(0.122f, -0.993f), 0.180f, 0.0048f, 0.094f, 7f, 0.58f, 0.02f, 0.70f, new Color(1f, 0.84f, 0.52f, 1f)),
+                new PremiumMenuStripeSettings(new Vector2(-0.530f, -0.848f), 0.115f, 0.0061f, 0.132f, -32f, 0.43f, 0.28f, 0.86f, new Color(0.72f, 1f, 0.94f, 1f))
             };
         }
+    }
+
+    internal struct PremiumMenuBeamSample
+    {
+        public Vector2 Center;
+        public Vector2 Direction;
+        public Vector2 Normal;
+        public float Thickness;
+        public float Length;
+        public float Opacity;
     }
 
     internal sealed class PremiumMenuStripe
@@ -309,9 +338,23 @@ namespace Kaleidoscope2.Menu.FX
 
         public void Tick(Rect bounds, float time)
         {
-            if (transform == null || settings == null)
+            PremiumMenuBeamSample sample;
+            if (transform == null || !TrySample(bounds, time, out sample))
             {
                 return;
+            }
+
+            transform.sizeDelta = new Vector2(sample.Length, sample.Thickness);
+            transform.localEulerAngles = new Vector3(0f, 0f, settings.Angle);
+            transform.anchoredPosition = sample.Center;
+        }
+
+        internal bool TrySample(Rect bounds, float time, out PremiumMenuBeamSample sample)
+        {
+            sample = default(PremiumMenuBeamSample);
+            if (settings == null)
+            {
+                return false;
             }
 
             float width = Mathf.Max(1f, bounds.width);
@@ -321,9 +364,6 @@ namespace Kaleidoscope2.Menu.FX
             float stripeLength = Mathf.Max(
                 diagonal * PremiumMenuMotionController.MinimumStripeLengthMultiplier,
                 diagonal * PremiumMenuMotionController.ConfiguredStripeLengthMultiplier);
-
-            transform.sizeDelta = new Vector2(stripeLength, thickness);
-            transform.localEulerAngles = new Vector3(0f, 0f, settings.Angle);
 
             float radians = settings.Angle * Mathf.Deg2Rad;
             Vector2 stripeAxis = new Vector2(Mathf.Cos(radians), Mathf.Sin(radians));
@@ -336,11 +376,17 @@ namespace Kaleidoscope2.Menu.FX
                 Mathf.Abs(Vector2.Dot(stripeAxis, direction)) * stripeLength * 0.5f
                 + Mathf.Abs(Vector2.Dot(stripeAcross, direction)) * thickness * 0.5f;
             float offsetProjection = Mathf.Abs(Vector2.Dot(laneOffset, direction));
-            float offscreenDistance = halfScreenProjection + halfStripeProjection + offsetProjection + thickness;
+            float offscreenDistance = halfScreenProjection + halfStripeProjection + offsetProjection + thickness * 0.12f;
 
             float phase = Mathf.Repeat(settings.StartOffset + time * settings.Speed, 1f);
             float distance = Mathf.Lerp(-offscreenDistance, offscreenDistance, phase);
-            transform.anchoredPosition = direction * distance + laneOffset;
+            sample.Center = direction * distance + laneOffset;
+            sample.Direction = direction;
+            sample.Normal = stripeAcross;
+            sample.Thickness = thickness;
+            sample.Length = stripeLength;
+            sample.Opacity = settings.Opacity;
+            return true;
         }
     }
 }

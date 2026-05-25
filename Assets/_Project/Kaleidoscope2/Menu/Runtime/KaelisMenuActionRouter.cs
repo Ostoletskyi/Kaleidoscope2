@@ -86,6 +86,26 @@ namespace Kaleidoscope2.Menu
             Debug.Log("[KAELIS Menu] Opened section: " + section + ".");
         }
 
+        public void ReturnToInitialMenu()
+        {
+            if (sectionController != null)
+            {
+                sectionController.Close();
+            }
+
+            if (contentSelectionPanel != null)
+            {
+                contentSelectionPanel.SetVisible(false);
+            }
+
+            if (setMainMenuVisible != null)
+            {
+                setMainMenuVisible(true);
+            }
+
+            SetStatus("SYSTEM READY");
+        }
+
         public void HandlePanelCommand(KaelisMenuPanelCommand command)
         {
             switch (command)

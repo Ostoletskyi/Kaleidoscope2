@@ -130,6 +130,7 @@ namespace Kaleidoscope2.Menu
             control.slider.value = Mathf.Clamp(defaultValue, min, max);
             control.slider.onValueChanged.AddListener(control.SetValueVisual);
             control.SetValueVisual(control.slider.value);
+            MenuAudioFeedbackController.BindSlider(control.slider);
             return control;
         }
 

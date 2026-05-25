@@ -64,4 +64,39 @@ fixed4 KaelisMenuDustFragment(float2 uv, fixed4 vertexColor)
     return fixed4(color, alpha);
 }
 
+fixed4 KaelisMenuPrismReactionFragment(float2 uv, float time)
+{
+    float intensity = saturate(_PrismReaction.z);
+    float2 center = _PrismReaction.xy;
+    float softness = clamp(_PrismReaction.w, 0.35, 0.65);
+    float2 direction = KaelisMenuSafeDirection(_PrismDirection.xy, float2(0.72, -0.69));
+    float2 across = float2(-direction.y, direction.x);
+    float spread = max(0.012, _PrismDirection.w);
+    float separation = max(0.001, _PrismOptics.x);
+
+    float2 rectMin = _PrismCrystalRect.xy;
+    float2 rectSize = max(_PrismCrystalRect.zw, float2(0.02, 0.02));
+    float2 rectCenter = rectMin + rectSize * 0.5;
+    float2 normalizedCrystal = (uv - rectCenter) / (rectSize * 0.5);
+    float crystalDistance = length(normalizedCrystal * float2(0.92, 1.0));
+    float crystalMask = 1.0 - smoothstep(0.82, 1.08, crystalDistance);
+
+    float2 p = uv - center;
+    float longitudinal = dot(p, direction);
+    float transverse = dot(p, across);
+    float taper = 1.0 - smoothstep(spread * 1.25, spread * (2.10 + softness), abs(transverse));
+    float refractedFalloff = 1.0 - smoothstep(-spread * 0.70, spread * 3.7, longitudinal);
+    float bloom = 1.0 - smoothstep(spread * 0.45, spread * (2.7 + softness), length(p));
+    float opticalPulse = 0.94 + 0.06 * sin(time * 0.42 + longitudinal * 26.0);
+
+    float hueCoordinate = transverse / separation + longitudinal * 2.2 + time * 0.018;
+    fixed3 spectral = KaelisMenuSpectral(hueCoordinate);
+    fixed3 secondary = KaelisMenuSpectral(hueCoordinate + separation * 7.0 + 0.18);
+    fixed3 prismColor = lerp(spectral, secondary, 0.28);
+    prismColor = lerp(prismColor, fixed3(0.76, 0.95, 1.0), bloom * 0.12);
+
+    float alpha = saturate(intensity * 1.26 * opticalPulse * crystalMask * saturate(taper * refractedFalloff + bloom * 0.32));
+    return fixed4(prismColor * (1.12 + bloom * 0.48), alpha);
+}
+
 #endif

@@ -16,6 +16,10 @@ Shader "Kaleidoscope2/Menu/AtmosphereOverlay"
         _ShimmerParams ("Shimmer Params", Vector) = (0.65, 0.7, 0.45, 0)
         _ShimmerTintA ("Shimmer Cool Tint", Color) = (0.55, 0.95, 1.0, 1)
         _ShimmerTintB ("Shimmer Warm Tint", Color) = (1.0, 0.72, 0.34, 1)
+        _PrismCrystalRect ("Prism Crystal Rect", Vector) = (0.47, 0.22, 0.36, 0.61)
+        _PrismReaction ("Prism Reaction", Vector) = (0.65, 0.48, 0, 0.50)
+        _PrismDirection ("Prism Direction", Vector) = (0.72, -0.69, 0.22, 0.24)
+        _PrismOptics ("Prism Optics", Vector) = (0.052, 0.30, 1.70, 0.86)
 
         [HideInInspector] _SrcBlend ("Source Blend", Float) = 5
         [HideInInspector] _DstBlend ("Destination Blend", Float) = 1
@@ -78,6 +82,10 @@ Shader "Kaleidoscope2/Menu/AtmosphereOverlay"
             float4 _ShimmerParams;
             fixed4 _ShimmerTintA;
             fixed4 _ShimmerTintB;
+            float4 _PrismCrystalRect;
+            float4 _PrismReaction;
+            float4 _PrismDirection;
+            float4 _PrismOptics;
             float4 _ClipRect;
 
             #include "MenuLightBands.hlsl"
@@ -130,9 +138,15 @@ Shader "Kaleidoscope2/Menu/AtmosphereOverlay"
                     result.rgb *= tex.rgb * i.color.rgb;
                     result.a *= tex.a * i.color.a;
                 }
-                else
+                else if (_EffectMode < 2.5)
                 {
                     result = KaelisMenuDustFragment(i.texcoord, i.color);
+                }
+                else
+                {
+                    result = KaelisMenuPrismReactionFragment(i.texcoord, _MenuTime);
+                    result.rgb *= i.color.rgb;
+                    result.a *= i.color.a;
                 }
 
                 #ifdef UNITY_UI_CLIP_RECT

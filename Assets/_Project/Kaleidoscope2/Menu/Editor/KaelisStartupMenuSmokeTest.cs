@@ -44,7 +44,15 @@ namespace Kaleidoscope2.Menu.Editor
             Require(canvasTransform != null, "MainMenuCanvas must be created on Awake.");
             Require(canvasTransform.GetComponent<Canvas>() != null, "MainMenuCanvas must have a Canvas.");
             Require(canvasTransform.GetComponent<GraphicRaycaster>() != null, "MainMenuCanvas must receive UI raycasts.");
-            Require(FindChild<Transform>(canvasTransform, "MenuAtmosphereFX") != null, "Menu atmosphere FX root missing.");
+            Transform backgroundArtwork = FindChild<Transform>(canvasTransform, "ReferenceAtmosphere");
+            Transform beamLayer = FindChild<Transform>(canvasTransform, "PremiumMenuMotionStripes");
+            Transform atmosphereLayer = FindChild<Transform>(canvasTransform, "MenuAtmosphereFX");
+            Transform safeFrame = FindChild<Transform>(canvasTransform, "SafeFrame");
+            Require(backgroundArtwork != null && beamLayer != null && atmosphereLayer != null && safeFrame != null, "Premium background hierarchy layers missing.");
+            Require(backgroundArtwork.GetSiblingIndex() < beamLayer.GetSiblingIndex()
+                && beamLayer.GetSiblingIndex() < atmosphereLayer.GetSiblingIndex()
+                && atmosphereLayer.GetSiblingIndex() < safeFrame.GetSiblingIndex(),
+                "Premium beams and prism must render above background artwork and behind menu panels.");
             Require(FindChild<Image>(canvasTransform, "LightBandCausticOverlay") != null, "Menu atmosphere light band overlay missing.");
             PremiumMenuMotionController premiumMotion = FindChild<PremiumMenuMotionController>(canvasTransform, "MainMenuCanvas");
             Require(premiumMotion != null, "Premium menu motion controller missing.");
@@ -52,7 +60,7 @@ namespace Kaleidoscope2.Menu.Editor
             InvokePrivate(premiumMotion, "Update");
             Rect canvasBounds = ((RectTransform)canvasTransform).rect;
             float screenDiagonal = Mathf.Sqrt(canvasBounds.width * canvasBounds.width + canvasBounds.height * canvasBounds.height);
-            for (int stripeIndex = 1; stripeIndex <= 5; stripeIndex++)
+            for (int stripeIndex = 1; stripeIndex <= 6; stripeIndex++)
             {
                 Image stripe = FindChild<Image>(canvasTransform, "PremiumLightStripe_" + stripeIndex.ToString());
                 Require(stripe != null, "Premium menu light stripe " + stripeIndex.ToString() + " missing.");
@@ -60,18 +68,25 @@ namespace Kaleidoscope2.Menu.Editor
                 Require(stripe.sprite != null, "Premium menu light stripes must use a soft alpha-gradient sprite.");
                 Require(stripe.rectTransform.sizeDelta.x >= screenDiagonal * 1.35f, "Premium menu light stripes must extend beyond the visible screen diagonal.");
             }
-            Require(FindChild<Image>(canvasTransform, "PremiumLightStripe_6") == null, "Premium menu must expose exactly five coordinated light stripes.");
+            Require(FindChild<Image>(canvasTransform, "PremiumLightStripe_7") == null, "Premium menu must expose exactly six coordinated light beams.");
             Require(FindChild<Transform>(canvasTransform, "PrismaticSheen") == null, "Legacy hard-edged sheen stripe must not overlap the premium beam layer.");
 
             Require(FindChild<MenuDispersionDustController>(canvasTransform, "DispersionDust") != null, "Menu dispersion dust controller missing.");
+            PremiumMenuPrismReactionController prismReaction = FindChild<PremiumMenuPrismReactionController>(canvasTransform, "PrismReaction");
+            Require(prismReaction != null, "Menu reactive prism controller missing.");
+            Require(!prismReaction.raycastTarget, "Menu reactive prism effect must not intercept button interaction.");
             Require(FindChild<MenuCrystalShimmerController>(canvasTransform, "CrystalShimmerHighlights") != null, "Menu crystal shimmer controller missing.");
+            PremiumMenuPrismReactionController previewPrism = FindChild<PremiumMenuPrismReactionController>(canvasTransform, "PreviewPrismReaction");
+            Require(previewPrism != null && !previewPrism.raycastTarget, "Preview artwork must expose a non-raycasting prism overlay above its image.");
 
             MenuAudioFeedbackController audioFeedback = controller.GetComponent<MenuAudioFeedbackController>();
             Require(audioFeedback != null, "Menu audio feedback controller must be centralized on the startup menu controller.");
             Require(audioFeedback.PlaybackSource != null && Mathf.Approximately(audioFeedback.PlaybackSource.spatialBlend, 0f), "Menu audio feedback must play through one 2D AudioSource.");
             Require(audioFeedback.Settings != null && audioFeedback.Settings.ButtonPressClip != null, "Menu click sound clip missing.");
             Require(audioFeedback.Settings.CheckboxEnabledClip != null && audioFeedback.Settings.CheckboxDisabledClip != null, "Menu checkbox feedback clips missing.");
+            Require(audioFeedback.Settings.ButtonForwardClip != null && audioFeedback.Settings.ButtonBackClip != null, "Menu slider directional feedback clips missing.");
             Require(Mathf.Approximately(audioFeedback.Settings.Volume, 0.55f), "Menu audio feedback must use the authored default volume.");
+            Require(audioFeedback.Settings.SliderCooldown >= 0.08f && audioFeedback.Settings.SliderCooldown <= 0.15f, "Menu slider feedback must use a controlled anti-spam cooldown.");
 
             Require(FindChild<Button>(canvasTransform, "EnterExperienceButton") != null, "Enter Experience button missing.");
             Require(FindChild<Toggle>(canvasTransform, "DemoModeToggle") != null, "Demo Mode toggle missing.");
@@ -99,6 +114,7 @@ namespace Kaleidoscope2.Menu.Editor
             Require(FindChild<Transform>(canvasTransform, "GemReleaseFlashLine") == null, "Release flash must not draw a thin line through button labels.");
             Require(FindChild<Transform>(canvasTransform, "ActivationTop") == null, "Button activation must not draw a thin top/strike line.");
             Require(FindChild<RawImage>(canvasTransform, "PreviewRawImage") != null, "Preview RawImage missing.");
+            Require(FindChild<RawImage>(canvasTransform, "PreviewRawImage").color.a <= 0.60f, "Preview artwork opacity must allow the optical reaction to remain visible through the crystal image.");
             RawImage brandLogo = FindChild<RawImage>(canvasTransform, "BrandLogoImage");
             Require(brandLogo != null, "KAELIS brand logo image missing.");
             Require(brandLogo.texture != null, "KAELIS brand logo texture missing.");
@@ -341,6 +357,21 @@ namespace Kaleidoscope2.Menu.Editor
             Require(!contentFlow.gameObject.activeSelf, "Back must close the content selection flow.");
             Require(FindChild<Transform>(canvasTransform, "SafeFrame").gameObject.activeSelf, "Back must return to the main startup menu.");
 
+            FindChild<Button>(canvasTransform, "OpticsButton").onClick.Invoke();
+            Require(opticsPanel.gameObject.activeSelf, "Optics section must be open before return-to-root navigation validation.");
+            KaleidoscopeVisualMode preservedVisualMode = director.State.ActiveVisualMode;
+            bool preservedCrystalEnabled = director.State.DiamondFocusSettings.Enabled;
+            CrystalRenderMode preservedCrystalSimulation = director.State.DiamondFocusSettings.CrystalSimulationMode;
+            director.Dispatch(KaleidoscopeCommand.SetControlMenuVisible(true));
+            director.Dispatch(KaleidoscopeCommand.SetHotkeysHelpVisible(true));
+            director.Dispatch(KaleidoscopeCommand.ReturnToInitialMenu());
+            Require(!opticsPanel.gameObject.activeSelf && FindChild<Transform>(canvasTransform, "SafeFrame").gameObject.activeSelf, "Escape navigation command must return submenus to the initial KAELIS menu.");
+            Require(!director.State.ControlMenuVisible && !director.State.HotkeysHelpVisible, "Escape navigation command must close runtime UI overlays.");
+            Require(director.State.ActiveVisualMode == preservedVisualMode
+                && director.State.DiamondFocusSettings.Enabled == preservedCrystalEnabled
+                && director.State.DiamondFocusSettings.CrystalSimulationMode == preservedCrystalSimulation,
+                "Escape navigation command must preserve visual and crystal state.");
+
             FindChild<Button>(canvasTransform, "SettingsButton").onClick.Invoke();
             languageCommand.onClick.Invoke();
             Require(KaelisMenuLocalizationService.CurrentLanguage == KaelisMenuLanguage.Russian, "Language selector must switch to Russian.");
@@ -402,7 +433,15 @@ namespace Kaleidoscope2.Menu.Editor
                 }
 
                 effectSettings.SetEffect(CrystalDebugEffectType.SeaFrostedBrokenBottleGlass);
+                effectApplier.Apply(classicMaterial, effectSettings, false);
                 effectApplier.Apply(premiumMaterial, effectSettings, true);
+                Require(classicMaterial.GetFloat("_CrystalDebugRoughness") >= 0.9f
+                    && classicMaterial.GetFloat("_CrystalDebugEdgeGlow") >= 1f
+                    && classicMaterial.GetFloat("_CrystalDebugHalo") > 0f,
+                    "Classic Frosted Glass must receive matte and edge-readability effect values.");
+                Require(premiumMaterial.GetFloat("_CrystalDebugRoughness") >= 0.9f
+                    && premiumMaterial.GetFloat("_CrystalDebugEdgeGlow") >= 1f,
+                    "Premium Frosted Glass must receive matte and edge-readability effect values.");
                 Require(Mathf.Approximately(premiumMaterial.GetFloat("_CrystalDebugAbsoluteMirrorGuard"), 1f), "Absolute Mirror must enable the shared-effect opacity guard.");
             }
             finally
@@ -586,6 +625,8 @@ namespace Kaleidoscope2.Menu.Editor
             Require((KeyCode)inputType.GetField("selectCrystalDebugEffectModuleKey", fields).GetValue(input) == KeyCode.Keypad9, "Numpad 9 must select Class 4: Debug Effects.");
             Require((KeyCode)inputType.GetField("crystalGeometryForwardKey", fields).GetValue(input) == KeyCode.KeypadPlus, "Numpad Plus must be the dedicated smooth crystal geometry-forward shortcut.");
             Require((KeyCode)inputType.GetField("crystalGeometryBackwardKey", fields).GetValue(input) == KeyCode.KeypadMinus, "Numpad Minus must be the dedicated smooth crystal geometry-backward shortcut.");
+            Require((KeyCode)inputType.GetField("toggleHotkeysHelpKey", fields).GetValue(input) == KeyCode.F1, "F1 must open the current hotkey help.");
+            Require((KeyCode)inputType.GetField("closeMenuKey", fields).GetValue(input) == KeyCode.Escape, "Escape must route back to the initial menu.");
             Require(inputType.GetField("toggleSecondDisplayOutputKey", fields) == null, "Function keys must not trigger second-display output.");
             Require(inputType.GetField("diamondRotateDownLeftKey", fields) == null
                 && inputType.GetField("diamondRotateDownRightKey", fields) == null

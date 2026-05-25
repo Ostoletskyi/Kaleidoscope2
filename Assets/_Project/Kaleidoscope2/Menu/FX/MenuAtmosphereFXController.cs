@@ -40,13 +40,20 @@ namespace Kaleidoscope2.Menu.FX
         [SerializeField] private float SparkleIntensity = 0.70f;
         [SerializeField] private float SparkleSpeed = 0.45f;
 
+        [Header("Reactive Prism")]
+        [SerializeField] private PremiumMenuPrismReactionSettings PrismReaction = new PremiumMenuPrismReactionSettings();
+
         private RectTransform fxRoot;
         private MenuLightBandAnimator lightBandAnimator;
         private MenuDispersionDustController dustController;
         private MenuCrystalShimmerController shimmerController;
+        private PremiumMenuPrismReactionController prismReactionController;
+        private PremiumMenuPrismReactionController previewPrismReactionController;
         private Material lightBandMaterial;
         private Material dustMaterial;
         private Material shimmerMaterial;
+        private Material prismReactionMaterial;
+        private Material previewPrismReactionMaterial;
         private Shader overlayShader;
 
         internal bool AtmosphereEnabled { get { return EnableAtmosphereFX; } }
@@ -115,13 +122,41 @@ namespace Kaleidoscope2.Menu.FX
                 dustController.AssignMaterial(dustMaterial);
             }
 
+            if (prismReactionController == null)
+            {
+                PremiumMenuMotionController motion = canvasRoot.GetComponent<PremiumMenuMotionController>();
+                if (motion != null)
+                {
+                    RectTransform prismRect = CreateStretchedRect("PrismReaction", fxRoot);
+                    prismReactionMaterial = CreateRuntimeMaterial("KAELIS_Menu_ReactivePrism", 3f, true);
+                    prismReactionController = prismRect.gameObject.AddComponent<PremiumMenuPrismReactionController>();
+                    prismReactionController.AssignMaterial(prismReactionMaterial);
+                    prismReactionController.Configure(motion, PrismReaction);
+                }
+            }
+
             ApplySettings();
         }
 
         internal void BindCrystalShimmerTarget(RectTransform previewRoot)
         {
-            if (previewRoot == null || ResolveShader() == null || shimmerController != null)
+            if (previewRoot == null || ResolveShader() == null)
             {
+                return;
+            }
+
+            if (previewPrismReactionController == null && prismReactionController != null)
+            {
+                RectTransform prismRect = CreateStretchedRect("PreviewPrismReaction", previewRoot);
+                previewPrismReactionMaterial = CreateRuntimeMaterial("KAELIS_Menu_PreviewReactivePrism", 3f, true);
+                previewPrismReactionController = prismRect.gameObject.AddComponent<PremiumMenuPrismReactionController>();
+                previewPrismReactionController.AssignMaterial(previewPrismReactionMaterial);
+                previewPrismReactionController.MirrorFrom(prismReactionController, PrismReaction, 1.30f);
+            }
+
+            if (shimmerController != null)
+            {
+                ApplySettings();
                 return;
             }
 
@@ -149,9 +184,13 @@ namespace Kaleidoscope2.Menu.FX
             DestroyRuntimeMaterial(lightBandMaterial);
             DestroyRuntimeMaterial(dustMaterial);
             DestroyRuntimeMaterial(shimmerMaterial);
+            DestroyRuntimeMaterial(prismReactionMaterial);
+            DestroyRuntimeMaterial(previewPrismReactionMaterial);
             lightBandMaterial = null;
             dustMaterial = null;
             shimmerMaterial = null;
+            prismReactionMaterial = null;
+            previewPrismReactionMaterial = null;
         }
 
         private void ApplySettings()
@@ -177,6 +216,18 @@ namespace Kaleidoscope2.Menu.FX
             {
                 shimmerController.gameObject.SetActive(active && CrystalShimmerIntensity > 0.001f);
                 shimmerController.Configure(CrystalShimmerIntensity, SparkleIntensity, SparkleSpeed, CyanTint, GoldTint);
+            }
+
+            if (prismReactionController != null)
+            {
+                prismReactionController.gameObject.SetActive(active && PrismReaction != null && PrismReaction.PrismIntensity > 0.001f);
+                prismReactionController.Configure(fxRoot != null ? fxRoot.parent.GetComponent<PremiumMenuMotionController>() : null, PrismReaction);
+            }
+
+            if (previewPrismReactionController != null)
+            {
+                previewPrismReactionController.gameObject.SetActive(active && PrismReaction != null && PrismReaction.PrismIntensity > 0.001f);
+                previewPrismReactionController.MirrorFrom(prismReactionController, PrismReaction, 1.30f);
             }
         }
 
@@ -283,6 +334,10 @@ namespace Kaleidoscope2.Menu.FX
         public static readonly int ShimmerParams = Shader.PropertyToID("_ShimmerParams");
         public static readonly int ShimmerTintA = Shader.PropertyToID("_ShimmerTintA");
         public static readonly int ShimmerTintB = Shader.PropertyToID("_ShimmerTintB");
+        public static readonly int PrismCrystalRect = Shader.PropertyToID("_PrismCrystalRect");
+        public static readonly int PrismReaction = Shader.PropertyToID("_PrismReaction");
+        public static readonly int PrismDirection = Shader.PropertyToID("_PrismDirection");
+        public static readonly int PrismOptics = Shader.PropertyToID("_PrismOptics");
         public static readonly int SrcBlend = Shader.PropertyToID("_SrcBlend");
         public static readonly int DstBlend = Shader.PropertyToID("_DstBlend");
     }

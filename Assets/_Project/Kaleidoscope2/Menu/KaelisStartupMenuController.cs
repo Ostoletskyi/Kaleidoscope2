@@ -1,4 +1,5 @@
 using System.Collections;
+using Kaleidoscope2.Core;
 using Kaleidoscope2.Menu.FX;
 using UnityEngine;
 using UnityEngine.Events;
@@ -27,6 +28,7 @@ namespace Kaleidoscope2.Menu
         private MenuAtmosphereFXController atmosphereFX;
         private KaelisMenuCommandBridge commandBridge;
         private KaelisMenuActionRouter actionRouter;
+        private KaleidoscopeDirector director;
         private Coroutine visibilityRoutine;
         private bool demoModeEnabled;
         private bool visible;
@@ -49,6 +51,7 @@ namespace Kaleidoscope2.Menu
 
             commandBridge = new KaelisMenuCommandBridge();
             actionRouter = new KaelisMenuActionRouter(view.SectionController, view.ContentSelectionPanel, commandBridge, SetStatus, view.SetMainMenuVisible, HideStartupMenu);
+            SubscribeToNavigationCommands();
             if (view.SectionController != null)
             {
                 view.SectionController.SetCommandHandler(actionRouter.HandlePanelCommand);
@@ -81,6 +84,12 @@ namespace Kaleidoscope2.Menu
 
         private void OnDestroy()
         {
+            if (director != null)
+            {
+                director.CommandDispatched -= HandleDirectorCommand;
+                director = null;
+            }
+
             if (view != null)
             {
                 view.Dispose();
@@ -118,6 +127,31 @@ namespace Kaleidoscope2.Menu
             {
                 actionRouter.OpenSection(section);
             }
+        }
+
+        private void SubscribeToNavigationCommands()
+        {
+            director = FindObjectOfType<KaleidoscopeDirector>();
+            if (director != null)
+            {
+                director.CommandDispatched -= HandleDirectorCommand;
+                director.CommandDispatched += HandleDirectorCommand;
+            }
+        }
+
+        private void HandleDirectorCommand(KaleidoscopeCommand command)
+        {
+            if (command == null || command.Type != KaleidoscopeCommandType.ReturnToInitialMenu)
+            {
+                return;
+            }
+
+            if (actionRouter != null)
+            {
+                actionRouter.ReturnToInitialMenu();
+            }
+
+            SetVisible(true, false);
         }
 
         private void UpdateDemoState(bool enabled)

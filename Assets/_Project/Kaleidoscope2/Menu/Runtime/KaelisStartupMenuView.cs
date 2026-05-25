@@ -269,7 +269,7 @@ namespace Kaleidoscope2.Menu
 
             if (assets.PreviewTexture != null)
             {
-                PreviewRawImage = KaelisMenuUiPrimitives.AddRawImage(display, assets.PreviewTexture, Color.white, false);
+                PreviewRawImage = KaelisMenuUiPrimitives.AddRawImage(display, assets.PreviewTexture, new Color(1f, 1f, 1f, 0.58f), false);
                 PreviewRawImage.name = "PreviewRawImage";
                 PreviewRawImage.uvRect = KaelisMenuStyle.PreviewUv;
             }
