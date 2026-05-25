@@ -1,433 +1,293 @@
-# AGENTS.md — KAELIS Crystal Breakthrough Mode
+# AGENTS.md — KAELIS / Kaleidoscope2 Control Architecture Cleanup
 
-## 0. Main Decision
+## Mission
 
-The project is now in **Crystal Breakthrough Mode**.
+You are working on KAELIS / Kaleidoscope2.
 
-The previous cautious approach did not produce the requested visual result. Codex is now allowed to work more boldly on Premium3D crystal optics, crystal scaling, crystal shape transfer, and menu bindings.
+Your task is not to add random effects.
+Your task is to audit, detect, and fix architectural inconsistencies, broken control logic, duplicated commands, fake UI bindings, accidental mode switches, and unclear effect ownership.
 
-The goal is not to preserve weak existing Premium3D behavior. The goal is to make KAELIS move forward.
+The current problem:
+Effects, debug modes, premium modes, classic modes, presets, and input bindings have become chaotic.
+Some buttons enable/disable unrelated effects.
+Some keys switch modes in ways not intended by the control logic.
+Some UI rows may claim one action but dispatch another.
+Some systems overlap and mutate the same state directly.
 
-Main user criticism:
+Your job:
+Bring order.
 
-- Premium3D forms still look like before.
-- Classic2D has the best crystal forms and the most beautiful form transitions.
-- Mouse wheel scaling works only in Premium3D, but should also affect Classic2D visual scale.
-- Premium3D crystals remain too transparent.
-- The user asked for gemstone-like refraction, not see-through glass.
-- Menu controls still do not produce enough visible difference.
+You have full permission to refactor, rename, move, delete obsolete wiring, and reorganize systems if needed.
 
-Therefore:
-
-
-Protect only what is truly successful.
-Free everything else for improvement.
-
+But preserve useful visual behavior whenever possible.
 
 ---
 
-## 1. Absolute Protected Zone
+## Hard Rules
 
-Do NOT modify or degrade:
+### 1. Classic/Premium mode switching
 
+Only the `G` key may switch between Classic and Premium crystal mode.
 
-Classic2D mirror system
-Classic2D kaleidoscope shader behavior
-Classic2D existing crystal/form templates
-Classic2D existing form switching / morphing behavior
+No other key may switch Classic <-> Premium.
 
-
-This is the project’s current strongest visual asset.
-
-Classic2D forms and transitions are the reference and must remain intact.
-
----
-
-## 2. Active Development Zone
-
-Codex may freely inspect, copy concepts from, refactor, extend, adapt, or rebuild:
-
-
-Premium3D crystal forms
-Premium3D volumetric mesh generation
-Premium3D material/optics system
-Premium3D shader/material parameters
-Premium3D reflection/refraction/transparency behavior
-Premium3D input binding
-Premium3D mouse wheel scaling
-Classic2D-inspired scaling behavior
-Menu optics bindings
-Menu modes/presets/settings bindings
-Crystal settings bridge
-Command routing
-Diagnostics
-Preset payloads
-
-
-Codex may change files under:
-
-
-Assets/_Project/Kaleidoscope2/Menu/**
-Assets/_Project/Kaleidoscope2/DiamondFocus/**
-Assets/_Project/Kaleidoscope2/Input/**
-Assets/_Project/Kaleidoscope2/Core/**
-Assets/_Project/Kaleidoscope2/Diagnostics/**
-
-
-Codex may inspect Classic2D implementation and copy ideas, formulas, shape definitions, parameters, and transition logic into Premium3D equivalents, but must not damage the original Classic2D behavior.
+Forbidden:
+- Numpad 1 switching Classic/Premium
+- Numpad 3 switching Classic/Premium
+- Numpad 7 switching Classic/Premium
+- Numpad 9 switching Classic/Premium
+- F-keys switching Classic/Premium
+- Debug effects secretly switching Classic/Premium
 
 ---
 
-## 3. Forbidden / High-Risk Areas
+### 2. Function keys
 
-Do not casually modify:
+Function keys are reserved for local crystal effects only.
 
+Scope:
+- Classic crystal effects
+- Premium crystal effects
 
-Source/**
-OutputPreview internals
-RuntimeMenuController internals
-camera/render pipeline logic
-global render settings
-scene-wide camera setup
-Classic2D shader internals
+Function keys must not:
+- switch Classic/Premium mode;
+- change visual source mode;
+- open/close file browser;
+- change unrelated global systems;
+- trigger hidden mode jumps.
 
-
-Exception:
-If the planned fix absolutely requires a change outside the allowed zone, Codex must first report:
-
-- why it is required;
-- what file must change;
-- what behavior is protected;
-- expected risk;
-- validation plan.
+They may only affect local crystal-related effects.
 
 ---
 
-## 4. Block Architecture Requirement
+### 3. Keys above cursor
 
-Even with expanded freedom, the architecture must remain block-based.
+Keys above the cursor cluster must operate within value ranges from 0 to 40.
 
-Required separation:
+Their logic must be explicit, documented, and reflected in the menu.
 
+Examples:
+- increase/decrease intensity;
+- adjust effect index;
+- adjust strength;
+- adjust speed;
+- adjust density.
 
-Classic2D reference system
-Premium3D crystal system
-Menu control system
-Command bridge
-Input system
-Preset system
-Diagnostics
+But every such action must clamp to:
+0..40
 
-
-Preferred flow:
-
-
-Menu / Input
-    -> Command / Action Router
-        -> Crystal Settings / Mode Settings
-            -> Premium3D Renderer / Mesh / Material
-                -> Diagnostics
-
-
-No random cross-wiring.
-No hidden direct hacks from UI into shader values without a named bridge or settings object.
-No new giant god-class.
+No hidden values outside this range unless explicitly documented and justified.
 
 ---
 
-## 5. Classic2D As Source Of Inspiration
+### 4. Numpad module selection
 
-Classic2D is not to be broken.
-Classic2D is to be studied.
+Numpad keys 1, 3, 7, 9 do NOT switch Classic/Premium mode.
 
-Codex must analyze:
+They select crystal capability classes.
 
+Required mapping:
 
-How Classic2D shapes are generated
-How Classic2D forms transition/morph
-Why Classic2D looks more beautiful
-Which parameters create its “wow” effect
-How scale/zoom/center/mirror geometry contribute to the result
+Numpad 1
+→ Select Class 1
 
+Numpad 3
+→ Select Class 2
 
-Then Codex must transfer the experience to Premium3D.
+Numpad 7
+→ Select Class 3
 
-Meaning:
+Numpad 9
+→ Select Class 4
 
+The selected class becomes the active control context.
 
-Classic2D remains 2D.
-Premium3D gets corresponding 3D volumetric crystal forms inspired by Classic2D.
+Numpad Del / "." cycles subclasses inside the selected class.
 
+Example:
 
-Do not simply rename existing Premium3D shapes.
+Class 1 selected:
+Numpad Del cycles subclasses of Class 1.
 
-Premium3D shapes must become a real volumetric continuation of Classic2D visual language.
+Class 2 selected:
+Numpad Del cycles subclasses of Class 2.
 
----
+Class 3 selected:
+Numpad Del cycles subclasses of Class 3.
 
-## 6. Premium3D Crystal Shape Requirements
+Class 4 selected:
+Numpad Del cycles subclasses of Class 4.
 
-Premium3D crystals must:
-
-
-have real volume
-have real side faces
-have front/back depth
-preserve recognizable silhouette
-support all optics materials
-support mouse wheel scale
-support smooth form transitions where feasible
-look more interesting than current weak shapes
-
-
-Required shape direction:
-
-
-Classic2D-derived radial shard
-Classic2D-derived mandala crystal
-Classic2D-derived diamond/star form
-Classic2D-derived polygon crystal
-Classic2D-derived rhombic/marquise form
-Classic2D-derived round/disco multifacet form
-Classic2D-derived triangular/trilliant form
-Classic2D-derived oval/ring-like form
-
-
-If existing Premium3D forms are weak, Codex may replace them.
+Numpad Del must never randomly cycle a different module.
 
 ---
 
-## 7. Mouse Wheel Scaling Requirement
+### 5. Suggested class ownership
 
-Mouse wheel scaling must work consistently.
+Use this mapping unless project audit discovers a better one:
 
-Required:
+Class 1:
+Premium Crystal Shapes
 
+Class 2:
+Premium Optical Modes
 
-Classic2D visible result responds to mouse wheel where appropriate.
-Premium3D crystal scale responds to mouse wheel.
-All Premium3D shapes respond.
-Range: 20% – 300%.
-Default: 100%.
-No pulsing.
-No background counter-scaling.
-No mode-specific failure.
+Class 3:
+Crystal Debug Modes
 
+Class 4:
+Crystal Debug Effects / Experimental Crystal Effects
 
-If Classic2D already uses wheel for zoom, Codex must analyze current behavior and reconcile it with user expectation:
-
-
-Wheel should visibly change crystal/visual scale in Classic2D too.
-
-
-Do not break existing Classic2D beauty.
+If this mapping is changed, document the reason.
 
 ---
 
-## 8. Transparency Rule: No See-Through Crystal
+### 6. Menu visibility
 
-The user explicitly rejects “transparent bubble” crystals.
+Every hotkey binding must be visible in the menu.
 
-Premium3D crystals must not look like empty glass.
+Every control must have:
+- current value;
+- hotkey hint;
+- short tooltip;
+- scope: Classic, Premium, or Both.
 
-Required:
-
-
-No direct see-through window through the center.
-No soap-bubble lens look.
-No fully transparent crystal body.
-No background visible directly through the whole crystal.
-
-
-Correct behavior:
-
-
-The crystal may transmit light through facets.
-The crystal may refract the background.
-The crystal may show color and depth through optical paths.
-But it must never behave like fully transparent flat glass.
-
-
-A real cut diamond is optically clear as material, but visually it is not a simple transparent window. It bends, reflects, splits, blocks, and redirects light.
-
-Therefore Premium3D default must favor:
-
-
-low direct transmission
-strong facet refraction
-strong internal reflection
-strong Fresnel/edge reflection
-controlled opacity
-hidden reflection environment
-spectral dispersion
-
-
-Direct Transparency must become a real control, but the default should be gemstone-like, not window-like.
+No invisible “secret” runtime behavior.
 
 ---
 
-## 9. Absolute Mirror Requirement
+### 7. Block architecture
 
-Absolute Mirror must be a real mode, not a label.
+Strict block architecture is mandatory.
 
-Required:
+InputModule:
+- reads keys only;
+- emits commands only;
+- never directly changes shader/material/mesh state.
 
+KaleidoscopeCommand:
+- describes intent only.
 
-facets behave like polished mirror surfaces
-direct transmission is near zero
-reflection dominates
-hidden/backdrop reflection is visible in facets
-material looks luxurious and reflective
-not white, not flat, not opaque plastic
+KaleidoscopeDirector:
+- routes commands to responsible modules.
 
+Each feature must have an owning module.
 
----
+RuntimeMenuController:
+- displays state;
+- dispatches commands;
+- never directly mutates shader/material internals.
 
-## 10. Facet Refraction Requirement
+Shaders:
+- render only;
+- do not own gameplay/control logic.
 
-Facet refraction must be real and obvious.
-
-Required:
-
-
-different facets distort the image differently
-distortion depends on facet normals
-high values produce dramatic but stable bending
-prism/dispersion is visible on edges and facets
-internal reflections create depth
-
-
-Wrong result:
-
-
-one smooth bubble lens
-flat transparent pane
-weak distortion invisible to user
-
-
-At high slider values, the result must be surprising and expressive.
+Forbidden:
+- UI directly changes shader floats;
+- Input directly changes material;
+- Debug Mode secretly changes Premium mode;
+- Preset directly bypasses Director;
+- multiple systems writing the same state without ownership.
 
 ---
 
-## 11. Menu Control Truth Rule
+## Audit Requirements
 
-No fake controls.
+Before changing code, audit:
 
-Every menu control must be one of:
+1. All keyboard input bindings.
+2. All menu buttons and their dispatched commands.
+3. All commands in KaleidoscopeCommand.
+4. All Director routing.
+5. All state fields related to:
+   - Classic/Premium mode
+   - Premium shapes
+   - Premium optical modes
+   - Debug modes
+   - Debug effects
+   - Experimental presets
+   - Backspace crystal toggle
+6. All shader/material mutation paths.
+7. All duplicated or conflicting control paths.
 
-
-REAL_BINDING
-PARTIAL_BINDING
-RESERVED
-BROKEN
-
-
-Target for this phase:
-
-
-Premium3D optics controls should become REAL_BINDING.
-Mouse wheel scaling controls should become REAL_BINDING.
-Preset Apply should become REAL_BINDING.
-Classic/Premium shape transfer controls should become REAL_BINDING where feasible.
-
-
----
-
-## 12. Preset Requirement
-
-Factory presets must become meaningful.
-
-Required:
-
-
-Diamond Palace
-Blue Ice
-Golden Prism
-Ruby Night
-Emerald Depth
-Opal Dream
-Cosmic Glass
-Dark Luxury
-Absolute Mirror
-
-
-Each preset should apply:
-
-
-mode
-shape
-material
-direct transparency
-reflection
-refraction
-dispersion
-internal reflections
-brightness/contrast
-bloom/glow
-scale if appropriate
-
-
-Do not fake preset application.
+Produce a short internal report:
+- Found conflict
+- File/method
+- What it currently does
+- What it should do
+- Fix applied
 
 ---
 
-## 13. Freedom With Responsibility
+## Control Map Target
 
-Codex may change more than before.
+Final control logic must be deterministic:
 
-Codex may:
+G:
+Switch Classic/Premium only.
 
+Backspace:
+Enable/disable crystal only.
 
-replace weak Premium3D mesh generation
-add new volumetric mesh factories
-add new crystal shape enum values
-add new settings objects
-add new command routes
-add new diagnostics
-add new menu bridges
-adjust shader/material properties
-expand ranges
-remove obsolete Premium3D dead code
+Numpad 1:
+Select capability Class 1.
 
+Numpad 3:
+Select capability Class 2.
 
-But Codex must not:
+Numpad 7:
+Select capability Class 3.
 
+Numpad 9:
+Select capability Class 4.
 
-break Classic2D forms
-break Classic2D transitions
-destroy block architecture
-hide failures behind vague reports
-claim visual success without validation
+Numpad Del / ".":
+Cycle subclass inside currently selected capability class.
 
+Function keys:
+Local crystal effects only.
 
----
+Cursor-cluster keys:
+Adjust assigned values in range 0..40 only.
 
-## 14. Required Reporting
-
-Every planning/implementation pass must report:
-
-
-What Classic2D behavior was inspected
-What was copied/adapted into Premium3D
-What files changed
-What controls are real
-What controls are still reserved
-Whether Classic2D remained untouched
-Whether wheel scaling works in both modes
-Whether transparency is fully controlled
-Whether absolute mirror is real
-Whether facet refraction is visibly stronger
-Whether shape transfer produced new 3D volumetric shapes
-
+Plus/Minus:
+May cycle crystal shape only if already assigned and documented.
+Must not conflict with Numpad class logic.
 
 ---
 
-## 15. Final Principle
+## Output Requirements
 
-The project can be rolled back with Git.
+Every Codex response must include:
 
-Do not waste time preserving weak Premium3D code.
+1. What was audited.
+2. What inconsistencies were found.
+3. What was changed.
+4. Why the change was needed.
+5. Files changed.
+6. Validation performed.
+7. Remaining risks.
+8. Final runtime control table.
 
-Preserve the beautiful Classic2D behavior.
-Use it as inspiration.
-Make Premium3D worthy of it.
+---
+
+## Validation
+
+Required validation:
+
+- G switches Classic/Premium.
+- No other key switches Classic/Premium.
+- Backspace toggles crystal only.
+- Numpad 1/3/7/9 select classes only.
+- Numpad Del cycles only selected class.
+- Function keys affect only local crystal effects.
+- Cursor-cluster values clamp to 0..40.
+- Menu shows all bindings.
+- Tooltips exist.
+- Classic mode works.
+- Premium mode works.
+- Absolute Mirror remains opaque.
+- Experimental effects preserved.
+- File browser untouched.
+- Slideshow untouched.
+- No compile errors.
