@@ -16,6 +16,7 @@ namespace Kaleidoscope2.Menu
         private readonly Action<string> setStatus;
         private readonly Action<bool> setMainMenuVisible;
         private readonly Action hideStartupMenu;
+        private readonly Action hideStartupMenuForSession;
         private string imageFolderPath;
         private string musicFolderPath;
 
@@ -25,7 +26,8 @@ namespace Kaleidoscope2.Menu
             KaelisMenuCommandBridge commandBridge,
             Action<string> setStatus,
             Action<bool> setMainMenuVisible,
-            Action hideStartupMenu)
+            Action hideStartupMenu,
+            Action hideStartupMenuForTemporarySession)
         {
             this.sectionController = sectionController;
             this.contentSelectionPanel = contentSelectionPanel;
@@ -33,6 +35,7 @@ namespace Kaleidoscope2.Menu
             this.setStatus = setStatus;
             this.setMainMenuVisible = setMainMenuVisible;
             this.hideStartupMenu = hideStartupMenu;
+            hideStartupMenuForSession = hideStartupMenuForTemporarySession;
 
             if (contentSelectionPanel != null)
             {
@@ -81,6 +84,8 @@ namespace Kaleidoscope2.Menu
                 return;
             }
 
+            RefreshBenchmarkResultAvailability();
+            RefreshSettingsPersistenceState();
             sectionController.SetActiveSection(section);
             SetStatus(GetSectionStatus(section));
             Debug.Log("[KAELIS Menu] Opened section: " + section + ".");
@@ -147,9 +152,81 @@ namespace Kaleidoscope2.Menu
                 case KaelisMenuPanelCommand.ApplySelectedPreset:
                     ApplySelectedPremiumPreset();
                     break;
+                case KaelisMenuPanelCommand.OpenAboutPanel:
+                    OpenSection(KaelisMenuSection.About);
+                    break;
+                case KaelisMenuPanelCommand.OpenMeditationPanel:
+                    OpenSection(KaelisMenuSection.MeditationSetup);
+                    break;
+                case KaelisMenuPanelCommand.StartMeditationMode:
+                    if (commandBridge != null && commandBridge.StartMeditationMode())
+                    {
+                        SetStatus("MEDITATION MODE STARTED - ESC OR MIDDLE MOUSE TO RESTORE");
+                        hideStartupMenuForSession?.Invoke();
+                    }
+                    else
+                    {
+                        SetStatus("MEDITATION MODE UNAVAILABLE");
+                    }
+                    break;
+                case KaelisMenuPanelCommand.ToggleCrystalSplitComfort:
+                    SetStatus(commandBridge != null && commandBridge.ToggleCrystalSplitComfort()
+                        ? "SPLIT COMFORT TOGGLED FOR MEDITATION SESSION"
+                        : "SPLIT COMFORT UNAVAILABLE");
+                    break;
+                case KaelisMenuPanelCommand.OpenReplayPanel:
+                    OpenSection(KaelisMenuSection.ReplaySetup);
+                    break;
+                case KaelisMenuPanelCommand.StartReplayDemo:
+                    if (commandBridge != null && commandBridge.StartReplayDemo())
+                    {
+                        SetStatus("REPLAY DEMO STARTED - ESC OR MIDDLE MOUSE TO RESTORE");
+                        hideStartupMenuForSession?.Invoke();
+                    }
+                    else
+                    {
+                        SetStatus("REPLAY DEMO UNAVAILABLE - RECORD A VISUAL ACTION FIRST");
+                    }
+                    break;
+                case KaelisMenuPanelCommand.OpenBenchmarkPanel:
+                    OpenSection(KaelisMenuSection.Benchmark);
+                    break;
+                case KaelisMenuPanelCommand.StartBenchmarkDemo:
+                    if (commandBridge != null && commandBridge.StartBenchmarkDemo())
+                    {
+                        SetStatus("BENCHMARK RUNNING - 60 SECONDS");
+                        hideStartupMenuForSession?.Invoke();
+                    }
+                    else
+                    {
+                        SetStatus("BENCHMARK UNAVAILABLE");
+                    }
+                    break;
+                case KaelisMenuPanelCommand.CancelTemporarySession:
+                    SetStatus(commandBridge != null && commandBridge.CancelTemporarySession()
+                        ? "TEMPORARY SESSION STOPPED; STATE RESTORED"
+                        : "NO TEMPORARY SESSION ROUTE");
+                    break;
+                case KaelisMenuPanelCommand.SaveBenchmarkResult:
+                    SetStatus(commandBridge != null && commandBridge.SaveBenchmarkResult()
+                        ? "BENCHMARK SAVE REQUESTED"
+                        : "BENCHMARK RESULT UNAVAILABLE");
+                    break;
+                case KaelisMenuPanelCommand.CycleLanguage:
+                    SetStatus("LANGUAGE SELECTOR ACTIVE");
+                    break;
+                case KaelisMenuPanelCommand.SelectPremiumCrystalShape:
+                case KaelisMenuPanelCommand.SelectPremiumCrystalOpticalMode:
+                case KaelisMenuPanelCommand.SelectFactoryPresetCard:
+                case KaelisMenuPanelCommand.ApplyExperimentalPresetCard:
+                    SetStatus("DIRECT MENU ROW HANDLER ACTIVE");
+                    break;
+                case KaelisMenuPanelCommand.SetAutoSaveSettings:
+                    SetAutoSaveSettings();
+                    break;
                 case KaelisMenuPanelCommand.SaveAndExit:
-                    SetStatus("SAVE RESERVED - EXITING");
-                    Debug.Log("[KAELIS Menu] Save settings before exit is reserved; exiting without changing persistence.");
+                    SetStatus("SAVE-AND-EXIT CONFIRMATION NOT CONNECTED - EXITING WITHOUT SAVE");
+                    Debug.Log("[KAELIS Menu] Save-and-exit remains disabled until the confirmation flow is connected.");
                     if (commandBridge != null)
                     {
                         commandBridge.ExitApplication();
@@ -341,7 +418,7 @@ namespace Kaleidoscope2.Menu
                 }
                 else
                 {
-                    recordingStartStatus = "SESSION STARTED - RECORDING RESERVED";
+                    recordingStartStatus = "SESSION STARTED - SHOWCASE RECORDING SERVICE MISSING";
                 }
             }
 
@@ -425,7 +502,7 @@ namespace Kaleidoscope2.Menu
                 options.IsRecording = dispatched && !options.IsRecording;
             }
 
-            SetStatus(dispatched ? (options != null && options.IsRecording ? "RECORDING STARTED" : "RECORDING STOPPED") : "RECORDING HOTKEY RESERVED");
+            SetStatus(dispatched ? (options != null && options.IsRecording ? "RECORDING STARTED" : "RECORDING STOPPED") : "SHOWCASE RECORDING SERVICE MISSING");
         }
 
         private void SetSecondDisplayOutput()
@@ -478,7 +555,7 @@ namespace Kaleidoscope2.Menu
             KaelisProductionOptions options = sectionController != null ? sectionController.ProductionOptions : null;
             if (options == null)
             {
-                SetStatus("RECORDING RESERVED");
+                SetStatus("SHOWCASE RECORDING SERVICE MISSING");
                 return;
             }
 
@@ -493,6 +570,12 @@ namespace Kaleidoscope2.Menu
         private void SelectRecordingOutputFolder()
         {
             KaelisProductionOptions options = sectionController != null ? sectionController.ProductionOptions : null;
+            if (options == null || !options.RecordingBackendAvailable)
+            {
+                SetStatus("SHOWCASE RECORDING SERVICE MISSING");
+                return;
+            }
+
             string currentPath = options != null ? options.RecordingOutputFolder : null;
             string selectedPath;
             if (commandBridge == null || !commandBridge.TryOpenFolderPicker("Select KAELIS Recording Output Folder", currentPath, out selectedPath))
@@ -511,6 +594,13 @@ namespace Kaleidoscope2.Menu
 
         private void ClearRecordingOutputFolder()
         {
+            KaelisProductionOptions options = sectionController != null ? sectionController.ProductionOptions : null;
+            if (options == null || !options.RecordingBackendAvailable)
+            {
+                SetStatus("SHOWCASE RECORDING SERVICE MISSING");
+                return;
+            }
+
             if (sectionController != null)
             {
                 sectionController.ClearRecordingOutputFolder();
@@ -529,6 +619,38 @@ namespace Kaleidoscope2.Menu
             }
 
             SetStatus(status);
+        }
+
+        private void RefreshBenchmarkResultAvailability()
+        {
+            if (sectionController != null)
+            {
+                sectionController.SetBenchmarkResultAvailable(commandBridge != null && commandBridge.HasBenchmarkResult());
+            }
+        }
+
+        private void RefreshSettingsPersistenceState()
+        {
+            if (sectionController == null || commandBridge == null)
+            {
+                return;
+            }
+
+            if (commandBridge.TryGetSettingsAutoSaveEnabled(out bool enabled))
+            {
+                sectionController.SetSettingsAutoSaveState(enabled);
+            }
+        }
+
+        private void SetAutoSaveSettings()
+        {
+            bool enabled = sectionController != null
+                && sectionController.SettingsOptions != null
+                && sectionController.SettingsOptions.AutoSaveSettings;
+            bool dispatched = commandBridge != null && commandBridge.SetSettingsAutoSaveEnabled(enabled);
+            SetStatus(dispatched
+                ? "AUTO SAVE SETTINGS " + (enabled ? "ON" : "OFF")
+                : "SETTINGS PERSISTENCE SERVICE UNAVAILABLE");
         }
 
         private void SetStatus(string value)
@@ -551,6 +673,16 @@ namespace Kaleidoscope2.Menu
                     return "PRESETS SECTION";
                 case KaelisMenuSection.Settings:
                     return "SETTINGS SECTION";
+                case KaelisMenuSection.About:
+                    return "ABOUT / CREDITS";
+                case KaelisMenuSection.Demo:
+                    return "DEMO AND COMFORT TOOLS";
+                case KaelisMenuSection.MeditationSetup:
+                    return "MEDITATION PREVIEW - PRESS START WHEN READY";
+                case KaelisMenuSection.ReplaySetup:
+                    return "REPLAY PREVIEW - PRESS START WHEN READY";
+                case KaelisMenuSection.Benchmark:
+                    return "VISUAL PERFORMANCE MODE - PRESS START WHEN READY";
                 case KaelisMenuSection.Exit:
                     return "EXIT CONFIRMATION";
                 default:

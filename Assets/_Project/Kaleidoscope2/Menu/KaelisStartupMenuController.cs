@@ -30,12 +30,12 @@ namespace Kaleidoscope2.Menu
         private KaelisMenuActionRouter actionRouter;
         private KaleidoscopeDirector director;
         private Coroutine visibilityRoutine;
-        private bool demoModeEnabled;
         private bool visible;
+        private bool restoreAfterTemporarySession;
 
         public bool DemoModeEnabled
         {
-            get { return demoModeEnabled; }
+            get { return false; }
         }
 
         private void Awake()
@@ -50,7 +50,7 @@ namespace Kaleidoscope2.Menu
             view.Build(transform);
 
             commandBridge = new KaelisMenuCommandBridge();
-            actionRouter = new KaelisMenuActionRouter(view.SectionController, view.ContentSelectionPanel, commandBridge, SetStatus, view.SetMainMenuVisible, HideStartupMenu);
+            actionRouter = new KaelisMenuActionRouter(view.SectionController, view.ContentSelectionPanel, commandBridge, SetStatus, view.SetMainMenuVisible, HideStartupMenu, HideStartupMenuForTemporarySession);
             SubscribeToNavigationCommands();
             if (view.SectionController != null)
             {
@@ -67,19 +67,16 @@ namespace Kaleidoscope2.Menu
             }
 
             BindMenuButton(view.EnterButton, EnterExperience);
+            BindMenuButton(view.MeditationButton, () => OpenSection(KaelisMenuSection.MeditationSetup));
+            BindMenuButton(view.DemoButton, () => OpenSection(KaelisMenuSection.Demo));
             BindMenuButton(view.ModesButton, () => OpenSection(KaelisMenuSection.Modes));
             BindMenuButton(view.OpticsButton, () => OpenSection(KaelisMenuSection.Optics));
             BindMenuButton(view.PresetsButton, () => OpenSection(KaelisMenuSection.Presets));
             BindMenuButton(view.SettingsButton, () => OpenSection(KaelisMenuSection.Settings));
+            BindMenuButton(view.AboutButton, () => OpenSection(KaelisMenuSection.About));
             BindMenuButton(view.ExitButton, () => OpenSection(KaelisMenuSection.Exit));
 
-            if (view.DemoToggle != null)
-            {
-                view.DemoToggle.onValueChanged.AddListener(UpdateDemoState);
-            }
-
             SetVisible(startVisible, true);
-            UpdateDemoState(false);
         }
 
         private void OnDestroy()
@@ -87,6 +84,7 @@ namespace Kaleidoscope2.Menu
             if (director != null)
             {
                 director.CommandDispatched -= HandleDirectorCommand;
+                director.SemanticCommandDispatched -= HandleSemanticCommand;
                 director = null;
             }
 
@@ -136,6 +134,8 @@ namespace Kaleidoscope2.Menu
             {
                 director.CommandDispatched -= HandleDirectorCommand;
                 director.CommandDispatched += HandleDirectorCommand;
+                director.SemanticCommandDispatched -= HandleSemanticCommand;
+                director.SemanticCommandDispatched += HandleSemanticCommand;
             }
         }
 
@@ -154,17 +154,18 @@ namespace Kaleidoscope2.Menu
             SetVisible(true, false);
         }
 
-        private void UpdateDemoState(bool enabled)
+        private void HandleSemanticCommand(KaleidoscopeCommandDispatchEvent dispatchEvent)
         {
-            demoModeEnabled = enabled;
-
-            if (view != null)
+            if (!restoreAfterTemporarySession
+                || dispatchEvent.Origin != KaleidoscopeCommandOrigin.Restore
+                || dispatchEvent.Command == null
+                || dispatchEvent.Command.Type != KaleidoscopeCommandType.SetControlMenuVisible)
             {
-                view.SetDemoState(demoModeEnabled);
-                view.SetStatus(demoModeEnabled ? "SYSTEM READY     DEMO RESERVED" : "SYSTEM READY     DEMO OFF");
+                return;
             }
 
-            Debug.Log("[KAELIS Menu] Demo Mode reserved state stored: " + (demoModeEnabled ? "ON" : "OFF") + ".");
+            restoreAfterTemporarySession = false;
+            SetVisible(true, false);
         }
 
         private void SetVisible(bool shouldShow, bool instant)
@@ -197,7 +198,7 @@ namespace Kaleidoscope2.Menu
                         view.ContentSelectionPanel.SetVisible(false);
                     }
 
-                    SetStatus(demoModeEnabled ? "SYSTEM READY     DEMO RESERVED" : "SYSTEM READY     DEMO OFF");
+                    SetStatus("SYSTEM READY     COMFORT AND DEMO AVAILABLE");
                 }
 
                 return;
@@ -239,7 +240,7 @@ namespace Kaleidoscope2.Menu
             }
             else
             {
-                SetStatus(demoModeEnabled ? "SYSTEM READY     DEMO RESERVED" : "SYSTEM READY     DEMO OFF");
+                SetStatus("SYSTEM READY     COMFORT AND DEMO AVAILABLE");
             }
 
             visibilityRoutine = null;
@@ -248,6 +249,12 @@ namespace Kaleidoscope2.Menu
         private void HideStartupMenu()
         {
             SetVisible(false, false);
+        }
+
+        private void HideStartupMenuForTemporarySession()
+        {
+            restoreAfterTemporarySession = visible;
+            HideStartupMenu();
         }
 
         private void SetStatus(string value)

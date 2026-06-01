@@ -8,6 +8,12 @@ It is not a collection of unrelated visual switches. Every feature must fit a
 layered control model with explicit ownership, truthful controls, and
 deterministic routing.
 
+The instrument may create strong visual fixation and motion aftereffects when
+viewed continuously. Comfort and safety are therefore product capabilities,
+not disclaimers or optional cleanup. Demonstration and benchmarking tools must
+be transparent, reversible, and routed through the same public architecture as
+ordinary performance controls.
+
 Audit discipline is permanent. Before adding or repairing behavior, Codex must
 identify which layer owns it, which command represents it, which feature
 module interprets it, and how the result will be validated.
@@ -44,6 +50,11 @@ architecture.
 
 They are not competing state machines. A shared user intent may be interpreted
 differently by each renderer while preserving its philosophy.
+
+Comfort/Safety is not a third rendering philosophy. It is an independently
+enabled constraint and transition layer that may safely limit resolved motion
+or visual intensity without secretly changing the selected philosophy,
+capability, subclass, or authored preset.
 
 Example:
 
@@ -127,6 +138,11 @@ Examples:
 - dispersion and chromatic amount
 - transparency and direct transmission
 - curvature and scale
+- mouse-wheel visual scale: owned by shared wheel-scale state, resolved as
+  Classic crystal overlay scale or Premium crystal scale through the public
+  command route in every runtime mode where that crystal presentation is
+  visible; mouse wheel must not alter mirror/kaleidoscope zoom, which remains
+  owned by Arrow Up / Arrow Down
 - rotation, motion speed, and atmospheric distortion
 
 Rules:
@@ -135,8 +151,69 @@ Rules:
 - Menu and keyboard input dispatch parameter intent only.
 - Renderers and shaders consume resolved values; they do not invent control
   ownership.
+- Mouse-wheel scaling is a `Both`-scope Layer 4 crystal control. Classic
+  resolves to bounded Diamond Focus crystal overlay scale, not mirror zoom or
+  scene zoom; Premium resolves to bounded crystal scale. The menu toggle/step
+  labels must remain truthful for both.
 - Values outside a preferred `0..40` performance range require a stated
   artistic or legacy justification and a documented bound.
+
+### Layer 5 - Comfort / Safety Constraints
+
+Owns active viewing-comfort rules that mediate potentially fatiguing output
+while preserving the user's selected visual intent wherever safe.
+
+Responsibilities:
+
+- reduce sustained central fixation, excessive motion speed, aggressive
+  strobing, abrupt intensity changes, and prolonged forced one-direction
+  motion;
+- apply explicit comfort caps and smooth transition policies when a comfort
+  session or reduced-motion preference is active;
+- expose which safety rule is active and which resolved parameter it limits;
+- provide a visible, reliable exit route from controlled sessions.
+
+Ownership:
+
+- `ComfortSafetyManager` owns comfort constraints and resolves capped/smoothed
+  safety values; it does not own Render Philosophy or capability selection.
+- `MeditationModeController` owns the Meditation session timeline.
+- `CrystalSplitComfortController` owns the reversible detach/orbit/re-form
+  anti-fixation presentation as a `CrystalFormationMode` /
+  `SixCopyOrbitFormation` behavior.
+- Feature owners retain the authored/requested state; safety owners may
+  temporarily constrain the resolved state only while the safety mode applies.
+
+Rules:
+
+- Comfort rules must be deterministic, inspectable, and independently
+  testable.
+- An active guard modifies only unsafe resolved values; it must not silently
+  replace a selected effect, shape, optical mode, or philosophy.
+- Disabling or exiting a temporary safety-controlled session restores captured
+  state through `SettingsRestoreService`.
+- Normal Classic, Premium, and 3D behavior remains unchanged while comfort
+  features are inactive.
+
+### Session Tools - Not Visual State Layers
+
+`Meditation Mode`, `Replay Demo`, and `Benchmark Demo` are temporary,
+reversible sessions. They coordinate commands and constraints, but do not form
+another renderer, state machine, or capability enum.
+
+Every such session must:
+
+- open a dedicated setup/preview panel first and issue no session-changing
+  command until its visible `START` action is pressed;
+- capture a full `SettingsSnapshot` before issuing changing commands;
+- declare whether successful completion restores previous state or documented
+  defaults;
+- restore safely on cancellation, exception, disable, or failed startup;
+- prevent overlapping sessions unless their interaction has been explicitly
+  authored and validated;
+- hide non-essential runtime/menu/help frames after successful start so the
+  visual presentation remains primary;
+- display only useful minimal active status and an exit instruction.
 
 ---
 
@@ -167,10 +244,11 @@ Example:
 Required runtime flow:
 
 
-InputModule / RuntimeMenuController
+InputModule / RuntimeMenuController / Semantic Demo Source
     -> KaleidoscopeCommand
         -> KaleidoscopeDirector
             -> Feature Module / State Owner
+                -> ComfortSafetyManager (active constraints only)
                 -> Renderer / Material Binder
                     -> Shader
 
@@ -181,9 +259,15 @@ Responsibilities:
 | --- | --- |
 | `InputModule` | Read physical input and emit commands only. |
 | `RuntimeMenuController` and menu views | Display state, tooltip scope, and dispatch commands only. |
+| `DemoPanel` / `DemoMenuController` | Display Demo tools/status and dispatch session commands only. |
+| `VisualSessionUiController` | Hide non-essential UI after successful session start and display minimal Meditation/Replay exit status only. |
+| `CleanViewController` | Toggle non-essential overlay visibility from `H` without altering visual or session state. |
 | `KaleidoscopeCommand` | Describe intent with explicit payloads. |
 | `KaleidoscopeDirector` | Route commands and coordinate state ownership only. |
 | Feature modules/settings | Own capability logic, selected subclasses, guards, transitions, and resolved values. |
+| `ComfortSafetyManager` | Resolve active comfort limits and safe easing without selecting visual modes. |
+| Session controllers | Orchestrate Meditation, Replay, or Benchmark timelines using public commands. |
+| `SettingsSnapshot` / `SettingsRestoreService` | Capture reversible session state and safely restore it. |
 | Preset module/state service | Apply authored state through command/state routing. |
 | Renderers/material binders | Translate resolved state into renderer/material inputs. |
 | Shaders | Render received values only. |
@@ -200,6 +284,12 @@ Forbidden:
 - Hidden input side effects.
 - Renderer fallback behavior that replaces a selected user-facing geometry
   with an ugly primitive after a transition.
+- Meditation, replay, or benchmark controllers directly mutating a renderer,
+  material, shader, or mesh where a command/state-owner route exists.
+- Any temporary session failing to restore prior/default state according to
+  its declared completion and failure policy.
+- A benchmark or comfort mode leaving extreme, capped, or split state active
+  after it has exited.
 
 ---
 
@@ -219,10 +309,19 @@ menu/help description, one tooltip, and a declared scope: `Classic`,
 | `Numpad 9` | Select the `Experimental / Debug Effects` capability class. | Both where supported |
 | `Numpad Del` / `Numpad .` | Cycle the subclass inside the currently selected class only. | Selected class |
 | `Numpad +` / `Numpad -` | Smooth curated crystal geometry morph forward/backward, independently of selected class. | Both |
+| `Mouse Wheel` | Scale the visible crystal presentation through the shared wheel-scale owner: Classic crystal overlay or Premium crystal size. It must not alter mirror zoom, camera, tunnel, source image, or global scene scale. | Both |
 | `F1` | Open or toggle the current hotkey/help view. | UI |
+| `H` | Toggle clean view for non-essential menu/help/status/HUD overlays only. | UI |
 | `Escape` | Return to the initial/root menu without resetting visual or crystal state. | UI |
 | `F2..F12` | Local crystal modifiers/effects/optical operations only, truthfully documented per key. | Declared per key |
 | Cursor-cluster keys | Adjust only their documented numeric parameters and ranges. | Declared per parameter |
+| `Meditation Mode` menu button/tab | Open the Meditation setup panel only; do not alter visual/audio state. | UI |
+| `Meditation Mode > START` | Capture state, hide non-essential UI, and enter the comfort-governed Meditation session. | Both |
+| `Demo > Replay Demo` | Open the Replay setup panel only; do not start playback. | UI |
+| `Replay Demo > START` | If actions exist, capture state, hide non-essential UI, and enter semantic action replay. | Both |
+| `Demo > Benchmark Demo` | Open the dedicated visual-performance setup panel only. | UI |
+| `Benchmark Demo > START` | Capture state, hide runtime panels, and run the declared 60-second benchmark/results flow. | Both |
+| `Escape` / `Mouse Wheel Press` during a temporary visual session | Stop the active session and restore its captured visual/source/audio/UI state. | Meditation / Replay / Benchmark |
 
 ### Control Invariants
 
@@ -238,6 +337,14 @@ menu/help description, one tooltip, and a declared scope: `Classic`,
   choices only, never ordinary cycle outcomes.
 - Help text and tooltips must be changed in the same task as any user-facing
   control change.
+- `H` may hide or reveal overlay presentation only; it must not stop a
+  session, alter renderer/source/audio state, or stop benchmark measurement.
+- Outside an active temporary session, `Escape` retains its UI-only behavior.
+  While Meditation, Replay Demo, or Benchmark Demo is active, the documented
+  exit action may cancel that session and restore its captured state; this is
+  session cleanup, not a general visual reset.
+- Replay Demo may not intercept real user input invisibly; active replay and
+  its stop controls must be visibly indicated.
 
 ### Cursor-Cluster Range Policy
 
@@ -322,6 +429,10 @@ User-facing crystal states must remain legible on bright and dark sources.
 - Stone must retain a solid silhouette.
 - Refraction must be normal/facet-driven rather than a transparent viewer-facing
   window.
+- Premium material/effect cycling must not expose ugly white, empty, or cheap
+  placeholder surfaces. Legacy weak names may be preserved as serialized enum
+  values only when their labels and profiles resolve to authored premium glass,
+  gem, mirror, stone, or metal looks.
 
 ---
 
@@ -356,6 +467,248 @@ preset explicitly declares that behavior and the menu communicates it.
 
 ---
 
+## Settings Persistence Contract
+
+Persistent settings store stable user preferences only. They are not an input
+recording or replay log.
+
+Ownership:
+
+- `SettingsPersistenceService` owns loading, sanitizing, autosaving, manual
+  saving, explicit reset, and corruption recovery for versioned
+  `KaelisSettingsData`.
+- The settings file lives under `Application.persistentDataPath`.
+- Raw key/action history belongs only to Replay Demo / `InputRecorder`.
+
+Rules:
+
+- Missing settings files create safe defaults.
+- Corrupted settings files must be backed up/ignored and replaced with safe
+  defaults without crashing.
+- Auto Save writes supported stable preferences after user-originated state
+  changes only; temporary Meditation/Replay/Benchmark commands must not become
+  startup defaults.
+- Reset Settings / Factory Reset may clear or rewrite the settings file only
+  after an explicit user reset action, never automatically on stop/restart.
+- Menu labels must distinguish real persisted preferences from still-reserved
+  display/audio/input services.
+
+---
+
+## Comfort And Safety Contract
+
+Safety and comfort are first-class systems because prolonged centered,
+high-motion visuals can cause fatigue or motion aftereffects. This contract
+governs new comfort experiences and any future safety-limited preset.
+
+### General Visual Safety Rules
+
+Avoid:
+
+- sudden full-screen flashes or aggressive strobing;
+- instant split/merge geometry transitions;
+- prolonged forced center fixation;
+- uncontrolled speed spikes or direction reversals;
+- benchmark extrema remaining active after the run.
+
+Prefer:
+
+- eased motion ramps and reversals;
+- crossfades or continuous interpolation;
+- reversible transitions driven by explicit session state;
+- visible exit controls and status;
+- documented comfort caps.
+
+### Meditation Mode
+
+The menu must expose a truthful `Meditation Mode` button/tab that opens a
+setup/preview panel. Opening the panel is UI-only; the temporary
+comfort-governed session begins only from its visible `START` control.
+
+When enabled, `MeditationModeController` must:
+
+- capture a full `SettingsSnapshot` before any state change;
+- request automatic hiding of runtime frames/help only after startup succeeds,
+  retaining a minimal exit instruction while the visuals play;
+- request the default illustration folder through the normal source command
+  route;
+- request sequential, looping playback of the curated DemoContent audio
+  playlist through the normal audio command route, continuing silently with a
+  non-intrusive status if no valid track is available;
+- enable applicable `ComfortSafetyManager` limits;
+- cap kaleidoscope rotation speed at `1.5` rotations per second;
+- run for `1` minute in one direction, then force `1` minute in the opposite
+  direction, repeating while the mode remains active;
+- smoothly cycle speed from `1.5` down to `0.25` rotations per second and
+  back to `1.5` over each `10` second breathing period;
+- generate gentle session-owned semantic W/A/S/D movements with occasional
+  paired directions, rare `0.1` second Q/E-equivalent pulses, weighted
+  mirror-count variation favoring lower digits, and a reliable semantic image
+  reset every `40` seconds;
+- request the preferred crystal presentation basis by routing the semantic
+  equivalent of `Numpad 7` followed by `Numpad Del` during session setup;
+- keep ordinary controls available unless a requested value violates active
+  comfort limits;
+- use easing for speed and directional transitions with no abrupt jumps;
+- expose an immediate visible exit and restore the captured state on exit or
+  failure.
+
+Direction changes may be mediated through a smooth zero-crossing or equivalent
+eased transition, but the minute-by-minute alternation must remain observable
+and deterministic.
+
+### Crystal Formation Comfort Pattern
+
+`CrystalSplitComfortController` reduces continuous central fixation without
+changing the selected crystal concept. This is a Crystal Formation Behavior,
+not a shape, material, optical mode, debug effect, or input shortcut.
+
+While its parent comfort session enables the pattern:
+
+- Classic formation starts with one whole Classic crystal, performs one smooth
+  pre-split self-rotation intent through the same semantic diamond-rotation
+  route used by Numpad `4` / `6`, then reveals `6` full intact copies of the
+  Classic crystal; it must never geometry-morph, cut, slice, stretch, squash,
+  UV-rotate, distort, or replace the Classic crystal with fragments, wedges,
+  shards, debris, or primitive placeholders;
+- Premium formation starts from one solid Premium crystal and transforms into
+  `6` full Premium crystal copies that share the selected Premium mesh and
+  material/optics; controlled duplicates are preferred over mesh splitting
+  when splitting would produce broken topology; it must never use broken mesh
+  debris, random shards, invisible stand-ins, blobs, or white primitive
+  placeholders;
+- after detaching, the units complete one eased orbit near the outer
+  composition; Premium copies must remain inside viewport `x/y` `0.15..0.85`
+  by calculating orbit radius from current copy scale, estimated visual bounds,
+  viewport aspect, and safe margin, then reducing copy scale when needed;
+- after the complete revolution, they converge and re-form one coherent
+  crystal;
+- child units use authored orientation, phase, brightness, and drift
+  differences while preserving full-copy readability;
+- the authored rhythm should remain calm: about `2.5` seconds of Classic
+  semantic pre-rotation, `2.5` seconds to detach, `5` seconds for one orbit,
+  and `2.5` seconds to re-form;
+- motion must read as a coherent unfolding/transformation, never as an
+  explosion or gear-like clone array;
+- split and merge must use continuous easing with no hard flicker or
+  strobe-like frame transition;
+- disabling, exiting, or failing the session returns to a coherent single
+  crystal or the captured prior state.
+
+The controller owns only the comfort presentation arrangement. It must not
+overwrite selected Geometry, Optics, Debug, Experimental effect, or Render
+Philosophy state.
+
+---
+
+## Demo And Benchmark Contract
+
+The menu must expose a `Demo` tab/button containing two independent tools:
+`Replay Demo` and `Benchmark Demo`. Neither tool may masquerade as normal user
+input, modify shader/material state directly, or share mutable timeline state
+with the other.
+
+### Replay Demo
+
+`InputRecorder` and `DemoReplayController` provide a reversible performance
+replay:
+
+- selecting Replay opens a dedicated setup panel without changing state;
+- pressing `START` starts playback only when semantic actions exist, otherwise
+  the panel remains visible with a truthful unavailable status;
+- retain the last `500` user control actions in a bounded ring buffer;
+- store semantic commands and payloads as the authoritative record, including
+  action type, press duration where applicable, timestamp/delta timing,
+  repetition frequency, and effect toggle state;
+- raw key/button input may be retained only as optional debug metadata;
+- if at least one but fewer than `500` recorded actions exists, duplicate or
+  extend the chronological recorded sequence deterministically until the
+  playback list contains `500` entries;
+- if no semantic actions exist, Replay remains unavailable or uses a clearly
+  labeled authored safe demo sequence; it must not silently invent a recording;
+- loop playback like a music box until the user exits;
+- stop by default on `Escape` or mouse wheel press;
+- dispatch replayed semantic intent through the same public
+  `KaleidoscopeCommand` / `KaleidoscopeDirector` route used by genuine input
+  wherever that route exists;
+- capture state before playback and restore it on stop or failure.
+
+The recorder observes dispatched user-originated commands without changing
+their behavior. It must distinguish playback-generated commands to prevent a
+replay loop from recording itself.
+
+### Benchmark Demo
+
+`BenchmarkController`, `BenchmarkMetrics`, and `BenchmarkResultView` own a
+transparent `60` second demonstration and measurement run:
+
+- selecting Benchmark Demo first opens a dedicated setup panel; no visual
+  state or session lease changes until the visible `START` action is pressed;
+- capture a full `SettingsSnapshot` when `START` is pressed and before any
+  benchmark-owned state change;
+- automatically hide runtime menu frames during measured playback so the
+  curated visuals remain the primary presentation;
+- sequentially enable and disable all declared major modes/effects through
+  public commands;
+- sweep relevant settings from documented minimum to maximum using safe,
+  visible transitions;
+- display an upper-left live HUD with elapsed/total time, current phase,
+  current FPS, running average FPS, peak FPS, and live `1% low FPS`;
+- permit `H` to hide/show the live HUD during the active run without pausing
+  collection or suppressing the final results state;
+- collect average FPS, peak FPS, and `1% low FPS` / first-percentile FPS using
+  a documented sampling method;
+- on successful completion, restore the captured pre-benchmark settings,
+  show the results screen, and allow saving the results to a timestamped file;
+- on cancellation, startup failure, or runtime exception, restore the captured
+  pre-benchmark state safely;
+- never leave extreme swept settings active after completion or interruption.
+
+Saved benchmark output must include date/time, Unity version if available,
+resolution, average FPS, peak FPS, `1% low FPS`, and active rendering
+mode/pipeline information if available.
+
+### Snapshot / Restore Rule
+
+`SettingsSnapshot` and `SettingsRestoreService` are shared infrastructure for
+temporary sessions. The snapshot must include every setting a session may
+modify, including where available:
+
+- render philosophy/visual mode and active capability selections;
+- geometry, optics, debug/experimental modes, active effects, and preset
+  contributions;
+- motion direction, rotation speed, comfort limits, transitions, and split
+  presentation state;
+- material and numeric visual parameters touched by a run;
+- source mode, image folder/file/slideshow state, audio folder/file/playback
+  state, and relevant UI session state.
+
+Restore must be idempotent, safe during partial startup/failure, and routed
+through state owners or public commands. A session may not start changing
+state until snapshot capture succeeds.
+
+### Required Module Isolation
+
+Implement these as separate testable responsibilities, not as one giant
+`MonoBehaviour`:
+
+| Required Module | Sole Responsibility |
+| --- | --- |
+| `ComfortSafetyManager` | Active comfort constraints, caps, and safe easing policies. |
+| `MeditationModeController` | Meditation session lifecycle and timed motion/audio/source intent. |
+| `CrystalSplitComfortController` | Soft anti-fixation `SixCopyOrbitFormation`: Classic six full copies and Premium six full mesh copies detach/orbit/re-form. |
+| `DemoPanel` / `DemoMenuController` | Demo UI, truthful state display, and session command dispatch. |
+| `VisualSessionUiController` | Successful-session menu/help hiding and minimal Meditation/Replay status HUD. |
+| `CleanViewController` | Central `H` visibility toggle for non-essential overlays and live HUD presentation. |
+| `InputRecorder` | Last-500 semantic user-command ring buffer and timing metadata. |
+| `DemoReplayController` | Build/replay/stop semantic playback sequences. |
+| `BenchmarkController` | Execute the declared timed feature/sweep sequence and cleanup. |
+| `BenchmarkMetrics` | Sample FPS and calculate required reported metrics. |
+| `BenchmarkResultView` | Display live benchmark HUD/results and request result-file saving. |
+| `SettingsSnapshot` / `SettingsRestoreService` | Capture and restore complete temporary-session state. |
+
+---
+
 ## Menu, Help, And Audio Truth Rules
 
 Every visible UI control must be classified:
@@ -371,6 +724,14 @@ Requirements:
 - Tooltips state affected layer and scope (`Classic`, `Premium`, or `Both`).
 - Button/toggle/slider feedback belongs to the central menu audio controller.
 - UI audio must never modify visual state or bypass commands.
+- Menu background crystal interaction maps must use normalized coordinates
+  owned by the menu FX controller. Moving light stripes may trigger prism/lens
+  flare or camera glow only when they cross the declared crystal line/zone; the
+  overlay must remain above the background, below UI, and non-raycasting.
+- `Meditation Mode`, `Replay Demo`, and `Benchmark Demo` must show active,
+  stopped, unavailable, or results status truthfully.
+- Demo timer, live FPS, metrics definitions, stop controls, and result-save
+  action must be visible whenever they are relevant.
 
 ---
 
@@ -386,10 +747,13 @@ Preserve unless a task explicitly targets them:
 - file browser and slideshow
 - existing tunnel/4D/5D/6D/7D systems
 - menu motion stripes and centralized menu feedback
+- public input/command routing and semantic control ownership
+- shader/material binding pipeline and existing serialized inspector links
 
 High-risk areas include render pipeline/camera setup, scene-wide rendering,
 OutputPreview internals, source/slideshow systems, baseline Classic shader
-logic, and broad `RuntimeMenuController` rewrites.
+logic, broad `RuntimeMenuController` rewrites, and attempts to implement
+comfort/demo sessions directly in renderer or input monoliths.
 
 Before a necessary high-risk edit, state:
 
@@ -411,6 +775,8 @@ Before implementation:
 3. Identify current menu/help/tooltip claims.
 4. Name ownership conflicts, bypasses, fallbacks, or hidden side effects.
 5. Define the minimal repair or extension and its invariants.
+6. For Comfort, Meditation, Replay, or Benchmark work, identify the snapshot
+   surface, restoration policy, safe exit path, and any currently reserved UI.
 
 During implementation:
 
@@ -419,6 +785,7 @@ During implementation:
 3. Preserve independent stackable layers.
 4. Update help/tooltips for control changes.
 5. Add diagnostics/tests proportional to risk.
+6. Keep temporary sessions isolated, semantic-command-driven, and reversible.
 
 After implementation:
 
@@ -428,6 +795,10 @@ After implementation:
 4. Test Absolute Mirror when transmission/material logic changed.
 5. Test normal cycling for visible, curated outcomes.
 6. Test protected neighboring systems relevant to the touched route.
+7. Test comfort caps, easing, snapshot restore, and visible exit behavior for
+   every changed temporary session.
+8. Test Replay does not self-record and Benchmark cannot leave extreme state
+   active.
 
 Audit is not a temporary cleanup phase. It is the admission gate for every
 future feature and fix.
@@ -447,6 +818,8 @@ Every meaningful planning, implementation, or review pass must report:
 7. Validation performed or planned.
 8. Remaining risks, reserved controls, or incomplete bindings.
 9. Final affected runtime control table, including scope and owner.
+10. Snapshot/restore coverage and exit/failure policy for temporary-session
+    work.
 
 For visual work also state:
 
@@ -455,6 +828,10 @@ For visual work also state:
 - Whether shared controls work in both philosophies where required.
 - Whether Absolute Mirror remains opaque.
 - Whether any effect/preset/control remains reserved rather than real.
+- Whether comfort constraints were active and which resolved values they cap.
+- Whether Meditation split/merge remains smooth and reduces fixed-center
+  presentation without changing selected crystal ownership.
+- Whether Demo/Benchmark restore policies were executed and verified.
 
 ---
 
@@ -468,4 +845,5 @@ KAELIS must feel like a professional instrument:
 - explicit continuous control
 - deterministic routing
 - truthful UI
+- responsible comfort constraints and reversible demonstration sessions
 - expressive results without architectural chaos

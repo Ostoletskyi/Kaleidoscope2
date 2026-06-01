@@ -1,0 +1,60 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 96113bc65708499ab9a4f738ea9dd61d, type: 3}
+  m_Name: Kaleidoscope2_DemoContentCatalog
+  m_EditorClassIdentifier: 
+  demoImages:
+  - {fileID: 2800000, guid: 36ae80604fca14c4288db494e58694b2, type: 3}
+  - {fileID: 2800000, guid: 8c1e16b0b0faac94fa1b5719d29647ee, type: 3}
+  - {fileID: 2800000, guid: fdccdbaa428de0f4494ffa6fad099692, type: 3}
+  - {fileID: 2800000, guid: 3e0931f6ab7782f4d9b7e79c8bb7291c, type: 3}
+  - {fileID: 2800000, guid: e058cc1b84bb7594b960a1735f587fc5, type: 3}
+  - {fileID: 2800000, guid: 14b3f5f101cf70348862a4f49451c316, type: 3}
+  - {fileID: 2800000, guid: 3d25f44a3f4d23e419ecc1ad31c067f3, type: 3}
+  - {fileID: 2800000, guid: 7cf0b3802dc4fd648a17d9c8445f2e7d, type: 3}
+  - {fileID: 2800000, guid: 27e9af463fbd78449bafef25b5a85750, type: 3}
+  - {fileID: 2800000, guid: 11aaa0adf73921446851c07f480e9514, type: 3}
+  - {fileID: 2800000, guid: adb8269b067312c4e8f03f5d95e1b2eb, type: 3}
+  - {fileID: 2800000, guid: 45052daa9c1918a4585a00920648d91f, type: 3}
+  - {fileID: 2800000, guid: b7ac942a366c99246a9ce9d1b4ae2061, type: 3}
+  - {fileID: 2800000, guid: 6e848597c5faa8945a027981f35a6911, type: 3}
+  - {fileID: 2800000, guid: 3596f53e5401105488afaf36204139d9, type: 3}
+  - {fileID: 2800000, guid: 5eb781c46d282af44881b126d4c9b359, type: 3}
+  - {fileID: 2800000, guid: 88d6153ab430a074780c2f00390a7eb2, type: 3}
+  - {fileID: 2800000, guid: 61742684ba6b3254b96a5ac556637a77, type: 3}
+  - {fileID: 2800000, guid: b11c3ded8bbc6ba4582122cac79c2df3, type: 3}
+  - {fileID: 2800000, guid: 70d18bbe9e1d5ed4aa1dc525a986ac4e, type: 3}
+  - {fileID: 2800000, guid: ce54b4670279a594fbeb62aacaf41df3, type: 3}
+  - {fileID: 2800000, guid: 58ccf8173461d314e980809931a9f820, type: 3}
+  - {fileID: 2800000, guid: 60f35a8d234301a489dc6e9ddaba4c54, type: 3}
+  - {fileID: 2800000, guid: 51e8d804bbe38944b996fa3923bc028c, type: 3}
+  - {fileID: 2800000, guid: 39ebe6f5a3ac7b947a5589c75d3a6e24, type: 3}
+  - {fileID: 2800000, guid: 348c68ea028a9b34fa07ce13417ae0c6, type: 3}
+  - {fileID: 2800000, guid: a60e02c133003664fa9ef2b271b7d356, type: 3}
+  - {fileID: 2800000, guid: 4dbbc7f48c64c4e4e902ae1f6ce5818e, type: 3}
+  defaultMeditationAudio: {fileID: 8300000, guid: 8c677daf2c2ef6d4ca016a3530196d1e, type: 3}
+  meditationAudioPlaylist:
+  - {fileID: 8300000, guid: 8c677daf2c2ef6d4ca016a3530196d1e, type: 3}
+  - {fileID: 8300000, guid: 4c0a22bba5d947545ade39b1d96bdb06, type: 3}
+  - {fileID: 8300000, guid: 50cdd14a6e8d8a7458cb00b2dcd92109, type: 3}
+  - {fileID: 8300000, guid: 7db75a61d25fb9e49a13974a6e760a57, type: 3}
+  - {fileID: 8300000, guid: bbc89e4f39c2b524a9143cdf99ca072e, type: 3}
+  - {fileID: 8300000, guid: 29bbc5a9251ac8d4db9d09e60a329c21, type: 3}
+  - {fileID: 8300000, guid: 03ffda23ad3c63d43be4c13b3b18dc4f, type: 3}
+  - {fileID: 8300000, guid: b85f23aefea17684abc664da63fa278f, type: 3}
+  - {fileID: 8300000, guid: cd8c83abd6bb1b441a6879dd027b6caf, type: 3}
+  - {fileID: 8300000, guid: 5532e575dd30f574686b31b4b3e048f8, type: 3}
+  - {fileID: 8300000, guid: 02cc75c1cc4ef4142b858d2156f882e6, type: 3}
+  - {fileID: 8300000, guid: 43c84c193297fa34dbe1d65d2ba9add8, type: 3}
+  - {fileID: 8300000, guid: f20c956e95e657840bac04257ab65b0e, type: 3}
+  - {fileID: 8300000, guid: be873bcdd1eaef0488ac59f3a0c1592c, type: 3}
+  - {fileID: 8300000, guid: de7949f31625a5945a5402f7e1ea8d22, type: 3}

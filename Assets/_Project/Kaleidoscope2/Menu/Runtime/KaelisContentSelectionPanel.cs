@@ -34,13 +34,13 @@ namespace Kaleidoscope2.Menu
             root.sizeDelta = new Vector2(980f, 700f);
             root.anchoredPosition = Vector2.zero;
 
-            KaelisMenuUiPrimitives.AddImage(root, assets.SolidSprite, new Color(0.006f, 0.030f, 0.044f, 0.88f), true);
-            KaelisMenuUiPrimitives.AddFrame(root, new Color(0.76f, 0.98f, 1f, 0.46f), new Color(0.20f, 0.82f, 0.92f, 0.28f), 1.1f, assets.SolidSprite);
-            KaelisMenuUiPrimitives.AddCornerCuts(root, new Color(1f, 0.76f, 0.36f, 0.38f), 42f, 1.25f, assets.SolidSprite);
+            KaelisMenuUiPrimitives.AddImage(root, assets.SolidSprite, KaelisMenuStyle.SectionPanelGlass, true);
+            KaelisMenuUiPrimitives.AddFrame(root, KaelisMenuStyle.SectionFrameOuter, KaelisMenuStyle.SectionFrameInner, 1.1f, assets.SolidSprite);
+            KaelisMenuUiPrimitives.AddCornerCuts(root, KaelisMenuStyle.SectionCorner, 42f, 1.25f, assets.SolidSprite);
 
             RectTransform haze = KaelisMenuUiPrimitives.CreateRect("ContentSelectionHaze", root);
             KaelisMenuUiPrimitives.Stretch(haze);
-            KaelisMenuUiPrimitives.AddImage(haze, assets.SolidSprite, new Color(0.13f, 0.62f, 0.82f, 0.08f), false);
+            KaelisMenuUiPrimitives.AddImage(haze, assets.SolidSprite, KaelisMenuStyle.SectionPanelHaze, false);
 
             canvasGroup = root.gameObject.AddComponent<CanvasGroup>();
             Build();
@@ -95,15 +95,30 @@ namespace Kaleidoscope2.Menu
         {
             TMP_Text title = KaelisMenuUiPrimitives.CreateText(root, "ContentSelectionTitle", "SELECT EXPERIENCE CONTENT", 30f, KaelisMenuStyle.TextPrimary, TextAlignmentOptions.Center, assets.GetFont(KaelisMenuFontRole.Button));
             title.characterSpacing = 8f;
+            KaelisMenuLocalizationService.SetText(title, "SELECT EXPERIENCE CONTENT");
             RectTransform titleRect = (RectTransform)title.transform;
             titleRect.offsetMin = new Vector2(60f, 612f);
             titleRect.offsetMax = new Vector2(-60f, -34f);
 
             TMP_Text subtitle = KaelisMenuUiPrimitives.CreateText(root, "ContentSelectionSubtitle", "Choose image and audio sources for this session.", 15f, KaelisMenuStyle.TextSecondary, TextAlignmentOptions.Center, assets.GetFont(KaelisMenuFontRole.Status));
             subtitle.characterSpacing = 3f;
+            KaelisMenuLocalizationService.SetText(subtitle, "Choose image and audio sources for this session.");
             RectTransform subtitleRect = (RectTransform)subtitle.transform;
             subtitleRect.offsetMin = new Vector2(70f, 570f);
             subtitleRect.offsetMax = new Vector2(-70f, -86f);
+
+            RectTransform divider = KaelisMenuUiPrimitives.CreateRect("ContentSelectionHeaderDivider", root);
+            divider.anchorMin = new Vector2(0f, 0f);
+            divider.anchorMax = new Vector2(1f, 0f);
+            divider.offsetMin = new Vector2(70f, 548f);
+            divider.offsetMax = new Vector2(-70f, 549.2f);
+            KaelisMenuUiPrimitives.AddImage(divider, assets.SolidSprite, KaelisMenuStyle.SectionHeaderDivider, false);
+
+            RectTransform headerSafeZone = KaelisMenuUiPrimitives.CreateRect("ContentSelectionHeaderSafeZone", root);
+            headerSafeZone.anchorMin = new Vector2(0f, 0f);
+            headerSafeZone.anchorMax = new Vector2(1f, 0f);
+            headerSafeZone.offsetMin = new Vector2(70f, 476f);
+            headerSafeZone.offsetMax = new Vector2(-70f, 548f);
 
             imagePathText = BuildSourceBlock(
                 "ImagesSourceBlock",
@@ -112,7 +127,7 @@ namespace Kaleidoscope2.Menu
                 "SELECT IMAGE FOLDER",
                 "SelectImageFolderButton",
                 "ClearImageFolderButton",
-                new Vector2(58f, 342f),
+                new Vector2(58f, 306f),
                 () => Invoke(selectImageFolder),
                 () => Invoke(clearImageFolder));
 
@@ -123,22 +138,22 @@ namespace Kaleidoscope2.Menu
                 "SELECT MUSIC FOLDER",
                 "SelectMusicFolderButton",
                 "ClearMusicFolderButton",
-                new Vector2(58f, 144f),
+                new Vector2(58f, 118f),
                 () => Invoke(selectMusicFolder),
                 () => Invoke(clearMusicFolder));
 
             validationText = KaelisMenuUiPrimitives.CreateText(root, "ContentValidationMessage", "Image folder is required. Music folder is optional.", 14f, new Color(0.70f, 0.96f, 1f, 0.90f), TextAlignmentOptions.Center, assets.GetFont(KaelisMenuFontRole.Status));
             validationText.enableWordWrapping = true;
             RectTransform validationRect = (RectTransform)validationText.transform;
-            validationRect.offsetMin = new Vector2(80f, 94f);
-            validationRect.offsetMax = new Vector2(-80f, -568f);
+            validationRect.offsetMin = new Vector2(80f, 84f);
+            validationRect.offsetMax = new Vector2(-80f, -588f);
 
             RectTransform actions = KaelisMenuUiPrimitives.CreateRect("ContentSelectionActions", root);
             actions.anchorMin = new Vector2(0f, 0f);
             actions.anchorMax = new Vector2(1f, 0f);
             actions.pivot = new Vector2(0.5f, 0f);
-            actions.offsetMin = new Vector2(236f, 36f);
-            actions.offsetMax = new Vector2(-236f, 92f);
+            actions.offsetMin = new Vector2(236f, 28f);
+            actions.offsetMax = new Vector2(-236f, 78f);
             HorizontalLayoutGroup layout = actions.gameObject.AddComponent<HorizontalLayoutGroup>();
             layout.spacing = 20f;
             layout.childAlignment = TextAnchor.MiddleCenter;

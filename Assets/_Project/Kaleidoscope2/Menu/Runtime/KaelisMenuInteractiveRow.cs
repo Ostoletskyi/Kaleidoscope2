@@ -95,6 +95,15 @@ namespace Kaleidoscope2.Menu
             }
         }
 
+        public void SetTooltipRange(string range)
+        {
+            tooltipRange = range;
+            if (hovered && tooltip != null)
+            {
+                ShowTooltip();
+            }
+        }
+
         public void OnPointerEnter(PointerEventData eventData)
         {
             hovered = true;

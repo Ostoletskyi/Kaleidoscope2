@@ -18,6 +18,7 @@ Shader "Kaleidoscope2/Menu/AtmosphereOverlay"
         _ShimmerTintB ("Shimmer Warm Tint", Color) = (1.0, 0.72, 0.34, 1)
         _PrismCrystalRect ("Prism Crystal Rect", Vector) = (0.47, 0.22, 0.36, 0.61)
         _PrismReaction ("Prism Reaction", Vector) = (0.65, 0.48, 0, 0.50)
+        _PrismFlare ("Prism Flare", Vector) = (0.65, 0.48, 0, 1.35)
         _PrismDirection ("Prism Direction", Vector) = (0.72, -0.69, 0.22, 0.24)
         _PrismOptics ("Prism Optics", Vector) = (0.052, 0.30, 1.70, 0.86)
 
@@ -84,6 +85,7 @@ Shader "Kaleidoscope2/Menu/AtmosphereOverlay"
             fixed4 _ShimmerTintB;
             float4 _PrismCrystalRect;
             float4 _PrismReaction;
+            float4 _PrismFlare;
             float4 _PrismDirection;
             float4 _PrismOptics;
             float4 _ClipRect;

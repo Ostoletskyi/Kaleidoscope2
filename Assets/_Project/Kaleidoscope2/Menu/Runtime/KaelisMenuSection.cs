@@ -7,6 +7,11 @@ namespace Kaleidoscope2.Menu
         Optics,
         Presets,
         Settings,
+        About,
+        Demo,
+        MeditationSetup,
+        ReplaySetup,
+        Benchmark,
         Exit
     }
 
@@ -25,6 +30,22 @@ namespace Kaleidoscope2.Menu
         SelectRecordingOutputFolder,
         ClearRecordingOutputFolder,
         ApplySelectedPreset,
+        OpenAboutPanel,
+        OpenMeditationPanel,
+        StartMeditationMode,
+        ToggleCrystalSplitComfort,
+        OpenReplayPanel,
+        StartReplayDemo,
+        OpenBenchmarkPanel,
+        StartBenchmarkDemo,
+        CancelTemporarySession,
+        SaveBenchmarkResult,
+        CycleLanguage,
+        SelectPremiumCrystalShape,
+        SelectPremiumCrystalOpticalMode,
+        SelectFactoryPresetCard,
+        ApplyExperimentalPresetCard,
+        SetAutoSaveSettings,
         ReservedAction,
         CancelExit,
         SaveAndExit,
@@ -53,5 +74,10 @@ namespace Kaleidoscope2.Menu
         {
             get { return !string.IsNullOrWhiteSpace(RecordingOutputFolder); }
         }
+    }
+
+    internal sealed class KaelisSettingsMenuOptions
+    {
+        public bool AutoSaveSettings { get; set; }
     }
 }

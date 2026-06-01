@@ -26,6 +26,8 @@ namespace Kaleidoscope2.DiamondFocus
         public static readonly int BlurredBackgroundTex = Shader.PropertyToID("_BlurredBackgroundTex");
         public static readonly int CrystalTexelSize = Shader.PropertyToID("_CrystalTexelSize");
         public static readonly int BackgroundBlurAmount = Shader.PropertyToID("_BackgroundBlurAmount");
+        public static readonly int ComfortSplitAmount = Shader.PropertyToID("_ComfortSplitAmount");
+        public static readonly int ComfortOrbitAngle = Shader.PropertyToID("_ComfortOrbitAngle");
         public static readonly int BlurDirection = Shader.PropertyToID("_BlurDirection");
         public static readonly int BlurRadius = Shader.PropertyToID("_BlurRadius");
         public static readonly int CrystalMaterialMode = Shader.PropertyToID("_CrystalMaterialMode");

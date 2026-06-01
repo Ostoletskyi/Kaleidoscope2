@@ -75,8 +75,13 @@ namespace Kaleidoscope2.DiamondFocus
         private int lastReportedCrystalLightRigCount = int.MinValue;
         private float lastCrystalLightRigReportTime = -10f;
         private float lastReportedPremiumCrystalScalePercent = float.MinValue;
+        private float lastReportedClassicCrystalScalePercent = float.MinValue;
         private float lastPremiumCrystalScaleReportTime = -10f;
+        private float lastClassicCrystalScaleReportTime = -10f;
         private float lastEffectiveCrystalScale;
+        private float smoothedClassicCrystalScalePercent = DiamondFocusSettings.ClassicCrystalScalePercentDefault;
+        private float classicCrystalScaleSmoothVelocity;
+        private bool classicCrystalScaleSmoothingInitialized;
         private Vector3 lastCrystalLocalPosition;
         private Bounds lastCrystalBounds;
         private bool hasLastCrystalBounds;
@@ -162,6 +167,8 @@ namespace Kaleidoscope2.DiamondFocus
                 || command.Type == KaleidoscopeCommandType.AdjustCrystalLightRigIntensity
                 || command.Type == KaleidoscopeCommandType.SetCrystalLightRigIntensity
                 || command.Type == KaleidoscopeCommandType.SetCrystalLightRigActiveLightCount
+                || command.Type == KaleidoscopeCommandType.AdjustClassicCrystalScalePercent
+                || command.Type == KaleidoscopeCommandType.SetClassicCrystalScalePercent
                 || command.Type == KaleidoscopeCommandType.AdjustPremiumCrystalScalePercent
                 || command.Type == KaleidoscopeCommandType.SetPremiumCrystalScalePercent
                 || command.Type == KaleidoscopeCommandType.TogglePremiumCrystalEffect
@@ -326,6 +333,16 @@ namespace Kaleidoscope2.DiamondFocus
                     ReportCrystalLightRig(settings);
                     break;
 
+                case KaleidoscopeCommandType.AdjustClassicCrystalScalePercent:
+                    settings.AdjustClassicCrystalScalePercent(command.FloatValue);
+                    ReportClassicCrystalScale(settings);
+                    break;
+
+                case KaleidoscopeCommandType.SetClassicCrystalScalePercent:
+                    settings.SetClassicCrystalScalePercent(command.FloatValue);
+                    ReportClassicCrystalScale(settings);
+                    break;
+
                 case KaleidoscopeCommandType.AdjustPremiumCrystalScalePercent:
                     settings.AdjustPremiumCrystalScalePercent(command.FloatValue);
                     ReportPremiumCrystalScale(settings);
@@ -457,6 +474,8 @@ namespace Kaleidoscope2.DiamondFocus
                 ? RenderBackgroundBlur(kaleidoscopeTexture, backgroundBlurAmount, activeBlurMaterial)
                 : kaleidoscopeTexture;
             opticsController.ConfigureCompositeMaterial(compositeMaterial, settings, kaleidoscopeTexture, backgroundTexture, crystalTexture, backgroundBlurAmount);
+            compositeMaterial.SetFloat(DiamondOpticalShaderIds.ComfortSplitAmount, runtimeState.CrystalSplitPresentation.Expansion);
+            compositeMaterial.SetFloat(DiamondOpticalShaderIds.ComfortOrbitAngle, runtimeState.CrystalSplitPresentation.OrbitAngleRadians);
             Graphics.Blit(kaleidoscopeTexture, outputTexture, compositeMaterial);
             return outputTexture;
         }
@@ -855,7 +874,8 @@ namespace Kaleidoscope2.DiamondFocus
                 renderedShape = settings.Shape;
             }
 
-            float desiredCoverage = CrystalSpatialDiagnostics.ClampRealMeshCoverage(settings.ScreenScale);
+            float smoothedClassicScaleMultiplier = ResolveSmoothedClassicCrystalScaleMultiplier(settings);
+            float desiredCoverage = ResolveClassicCrystalCoverage(settings.ScreenScale, smoothedClassicScaleMultiplier);
             float targetHalfHeight = Mathf.Max(0.05f, renderCamera.orthographicSize * desiredCoverage);
 
             Bounds meshBounds = mesh.bounds;
@@ -903,6 +923,43 @@ namespace Kaleidoscope2.DiamondFocus
             }
 
             return true;
+        }
+
+        internal static float ResolveClassicCrystalCoverage(float authoredScreenScale, float crystalScaleMultiplier)
+        {
+            float baseCoverage = Mathf.Clamp(authoredScreenScale, 0.1f, 1f);
+            return Mathf.Clamp(baseCoverage * Mathf.Clamp(crystalScaleMultiplier, 0.2f, 3f), 0.08f, 1.2f);
+        }
+
+        private float ResolveSmoothedClassicCrystalScaleMultiplier(DiamondFocusSettings settings)
+        {
+            float targetPercent = settings != null
+                ? settings.ClassicCrystalScalePercent
+                : DiamondFocusSettings.ClassicCrystalScalePercentDefault;
+            if (!classicCrystalScaleSmoothingInitialized)
+            {
+                smoothedClassicCrystalScalePercent = targetPercent;
+                classicCrystalScaleSmoothVelocity = 0f;
+                classicCrystalScaleSmoothingInitialized = true;
+                return smoothedClassicCrystalScalePercent / 100f;
+            }
+
+            float deltaTime = Application.isPlaying ? Time.unscaledDeltaTime : 0.016f;
+            smoothedClassicCrystalScalePercent = Mathf.SmoothDamp(
+                smoothedClassicCrystalScalePercent,
+                targetPercent,
+                ref classicCrystalScaleSmoothVelocity,
+                0.14f,
+                Mathf.Infinity,
+                Mathf.Max(0.0001f, deltaTime));
+
+            if (Mathf.Abs(smoothedClassicCrystalScalePercent - targetPercent) < 0.01f)
+            {
+                smoothedClassicCrystalScalePercent = targetPercent;
+                classicCrystalScaleSmoothVelocity = 0f;
+            }
+
+            return Mathf.Clamp(smoothedClassicCrystalScalePercent, DiamondFocusSettings.ClassicCrystalScalePercentMin, DiamondFocusSettings.ClassicCrystalScalePercentMax) / 100f;
         }
 
         private void SetRuntimeRendererVisible(bool visible)
@@ -1015,6 +1072,31 @@ namespace Kaleidoscope2.DiamondFocus
                 + value.ToString("0") + "%, range "
                 + DiamondFocusSettings.PremiumCrystalScalePercentMin.ToString("0") + "-"
                 + DiamondFocusSettings.PremiumCrystalScalePercentMax.ToString("0") + "%.", this);
+        }
+
+        private void ReportClassicCrystalScale(DiamondFocusSettings settings)
+        {
+            if (settings == null)
+            {
+                return;
+            }
+
+            float now = Time.unscaledTime;
+            float value = settings.ClassicCrystalScalePercent;
+            if (Mathf.Abs(value - lastReportedClassicCrystalScalePercent) < 0.05f && now - lastClassicCrystalScaleReportTime < 0.5f)
+            {
+                return;
+            }
+
+            lastReportedClassicCrystalScalePercent = value;
+            lastClassicCrystalScaleReportTime = now;
+            Debug.Log("[DiamondFocusModule] Classic2D crystal scale target "
+                + value.ToString("0")
+                + "%, smoothed actual "
+                + smoothedClassicCrystalScalePercent.ToString("0")
+                + "%, clamp "
+                + DiamondFocusSettings.ClassicCrystalScalePercentMin.ToString("0") + "-"
+                + DiamondFocusSettings.ClassicCrystalScalePercentMax.ToString("0") + "%.", this);
         }
 
         private void ReportPremiumCrystalEffects(DiamondFocusSettings settings)

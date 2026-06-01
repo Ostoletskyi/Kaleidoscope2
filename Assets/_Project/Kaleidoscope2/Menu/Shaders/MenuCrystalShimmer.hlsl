@@ -73,6 +73,9 @@ fixed4 KaelisMenuPrismReactionFragment(float2 uv, float time)
     float2 across = float2(-direction.y, direction.x);
     float spread = max(0.012, _PrismDirection.w);
     float separation = max(0.001, _PrismOptics.x);
+    float flareIntensity = saturate(_PrismFlare.z);
+    float flareGain = max(0.0, _PrismFlare.w);
+    float2 flareCenter = _PrismFlare.xy;
 
     float2 rectMin = _PrismCrystalRect.xy;
     float2 rectSize = max(_PrismCrystalRect.zw, float2(0.02, 0.02));
@@ -95,8 +98,25 @@ fixed4 KaelisMenuPrismReactionFragment(float2 uv, float time)
     fixed3 prismColor = lerp(spectral, secondary, 0.28);
     prismColor = lerp(prismColor, fixed3(0.76, 0.95, 1.0), bloom * 0.12);
 
+    float2 flareP = uv - flareCenter;
+    float flareDistance = length(flareP);
+    float flareLongitudinal = dot(flareP, direction);
+    float flareTransverse = dot(flareP, across);
+    float flareCore = pow(saturate(1.0 - flareDistance * 4.0), 2.15);
+    float flareStreak = (1.0 - smoothstep(0.004, 0.058, abs(flareTransverse)))
+        * (1.0 - smoothstep(0.08, 0.64, abs(flareLongitudinal)));
+    float flareCross = (1.0 - smoothstep(0.006, 0.046, abs(dot(flareP, float2(0.7071, 0.7071)))))
+        * (1.0 - smoothstep(0.05, 0.42, abs(dot(flareP, float2(0.7071, -0.7071)))));
+    float flareRing = 1.0 - smoothstep(0.018, 0.05, abs(flareDistance - 0.18));
+    float flareSpark = pow(saturate(sin(dot(uv, float2(41.0, 29.0)) + time * 1.7) * 0.5 + 0.5), 28.0)
+        * flareCore;
+    fixed3 flareColor = lerp(fixed3(0.78, 0.96, 1.0), KaelisMenuSpectral(hueCoordinate + 0.12), 0.42);
+    float flareShape = flareCore * 2.4 + flareStreak * 1.25 + flareCross * 0.72 + flareRing * 0.28 + flareSpark * 0.45;
+    fixed3 glare = flareColor * flareIntensity * flareGain * flareShape;
+
     float alpha = saturate(intensity * 1.26 * opticalPulse * crystalMask * saturate(taper * refractedFalloff + bloom * 0.32));
-    return fixed4(prismColor * (1.12 + bloom * 0.48), alpha);
+    alpha = saturate(alpha + flareIntensity * saturate(flareCore * 0.9 + flareStreak * 0.48 + flareRing * 0.16));
+    return fixed4(prismColor * (1.12 + bloom * 0.48) + glare, alpha);
 }
 
 #endif

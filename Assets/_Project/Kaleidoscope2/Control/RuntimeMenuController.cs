@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using Kaleidoscope2.Core;
+using Kaleidoscope2.Demo;
 using Kaleidoscope2.FileBrowser;
 using Kaleidoscope2.Menu;
 using Kaleidoscope2.Menu.FX;
@@ -57,6 +58,11 @@ namespace Kaleidoscope2.Control
         private GameObject menuRoot;
         private GameObject helpRoot;
         private GameObject browserRoot;
+        private GameObject visualSessionSetupRoot;
+        private Text visualSessionSetupTitle;
+        private Text visualSessionSetupDescription;
+        private Text visualSessionSetupSafety;
+        private TemporarySessionKind pendingVisualSession;
 
         private Text modeValueText;
         private Text crystalSimulationValueText;
@@ -74,6 +80,14 @@ namespace Kaleidoscope2.Control
         private Text hoseWallCurvatureValueText;
         private Text hoseChromaticAberrationValueText;
         private Text sevenDStrategyValueText;
+        private Text temporarySessionValueText;
+        private Text benchmarkResultValueText;
+        private Button meditationModeButton;
+        private Button splitComfortButton;
+        private Button replayDemoButton;
+        private Button benchmarkDemoButton;
+        private Button stopSessionButton;
+        private Button saveBenchmarkButton;
 
         private BrowserMode activeBrowserMode;
         private string browserCurrentPath;
@@ -256,6 +270,7 @@ namespace Kaleidoscope2.Control
             {
                 SetActiveIfDifferent(helpRoot, false);
                 SetActiveIfDifferent(browserRoot, false);
+                SetActiveIfDifferent(visualSessionSetupRoot, false);
             }
 
             if (updateState && director != null)
@@ -363,6 +378,8 @@ namespace Kaleidoscope2.Control
                 string value = !string.IsNullOrWhiteSpace(state.AudioFilePath) ? state.AudioFilePath : state.AudioFolderPath;
                 audioPathText.text = string.IsNullOrWhiteSpace(value) ? "Не выбрано" : ShortPath(value);
             }
+
+            SyncTemporarySessionUi();
         }
 
         private void EnsureCanvasRoot()
@@ -487,6 +504,15 @@ namespace Kaleidoscope2.Control
                 OpenBrowser(BrowserMode.AudioFolder);
             });
 
+            CreateRow(panel, "Comfort / Demo:", out temporarySessionValueText);
+            meditationModeButton = CreateButton(panel, "MeditationMode", "Meditation Mode Setup", ButtonColor, () => OpenVisualSessionSetup(TemporarySessionKind.Meditation));
+            splitComfortButton = CreateButton(panel, "CrystalSplitComfort", "Split Comfort On / Off", ButtonColor, ToggleSplitComfort);
+            replayDemoButton = CreateButton(panel, "ReplayDemo", "Replay Demo Setup", ButtonColor, () => OpenVisualSessionSetup(TemporarySessionKind.ReplayDemo));
+            benchmarkDemoButton = CreateButton(panel, "BenchmarkDemo", "Benchmark Demo Setup", ButtonColor, () => OpenVisualSessionSetup(TemporarySessionKind.BenchmarkDemo));
+            stopSessionButton = CreateButton(panel, "StopTemporarySession", "Stop Session (Esc / Middle Mouse)", MutedButtonColor, CancelTemporarySession);
+            CreateRow(panel, "Benchmark Result:", out benchmarkResultValueText);
+            saveBenchmarkButton = CreateButton(panel, "SaveBenchmarkResult", "Save Benchmark Result", MutedButtonColor, SaveBenchmarkResult);
+
             RectTransform modeRow = CreateRow(panel, "Режим:", out modeValueText);
             CreateButton(modeRow, "ToggleMode", "2D / 3D / 4D / 5D / 6D / 7D", ButtonColor, ToggleMode);
 
@@ -538,6 +564,124 @@ namespace Kaleidoscope2.Control
 
             BuildHelpUi();
             BuildBrowserUi();
+            BuildVisualSessionSetupUi();
+        }
+
+        private void ToggleSplitComfort()
+        {
+            SettingsRestoreService sessions = DemoRuntimeLookup.FindModule<SettingsRestoreService>(director);
+            if (sessions == null || !sessions.IsActive(TemporarySessionKind.Meditation))
+            {
+                return;
+            }
+
+            director.Dispatch(KaleidoscopeCommand.SetCrystalSplitComfortEnabled(!director.State.CrystalSplitPresentation.Enabled));
+            SyncTemporarySessionUi();
+        }
+
+        private void OpenVisualSessionSetup(TemporarySessionKind session)
+        {
+            if (visualSessionSetupRoot == null)
+            {
+                return;
+            }
+
+            pendingVisualSession = session;
+            SetActiveIfDifferent(helpRoot, false);
+            SetActiveIfDifferent(browserRoot, false);
+            if (visualSessionSetupTitle != null)
+            {
+                visualSessionSetupTitle.text = GetVisualSessionSetupTitle(session);
+            }
+
+            if (visualSessionSetupDescription != null)
+            {
+                visualSessionSetupDescription.text = GetVisualSessionSetupDescription(session);
+            }
+
+            if (visualSessionSetupSafety != null)
+            {
+                visualSessionSetupSafety.text = GetVisualSessionSetupSafety(session);
+            }
+
+            SetActiveIfDifferent(visualSessionSetupRoot, true);
+        }
+
+        private void StartSelectedVisualSession()
+        {
+            switch (pendingVisualSession)
+            {
+                case TemporarySessionKind.Meditation:
+                    director.Dispatch(KaleidoscopeCommand.SetMeditationModeEnabled(true));
+                    break;
+                case TemporarySessionKind.ReplayDemo:
+                    director.Dispatch(KaleidoscopeCommand.StartReplayDemo());
+                    break;
+                case TemporarySessionKind.BenchmarkDemo:
+                    director.Dispatch(KaleidoscopeCommand.StartBenchmarkDemo());
+                    break;
+                default:
+                    return;
+            }
+
+            SettingsRestoreService sessions = DemoRuntimeLookup.FindModule<SettingsRestoreService>(director);
+            if (sessions != null && sessions.IsActive(pendingVisualSession))
+            {
+                SetActiveIfDifferent(visualSessionSetupRoot, false);
+            }
+            else if (visualSessionSetupSafety != null)
+            {
+                visualSessionSetupSafety.text = GetVisualSessionStartFailure(pendingVisualSession, sessions);
+            }
+
+            SyncTemporarySessionUi();
+        }
+
+        private void CancelTemporarySession()
+        {
+            director.Dispatch(KaleidoscopeCommand.CancelTemporarySession());
+            SyncTemporarySessionUi();
+        }
+
+        private void SaveBenchmarkResult()
+        {
+            director.Dispatch(KaleidoscopeCommand.SaveBenchmarkResult());
+            SyncTemporarySessionUi();
+        }
+
+        private void SyncTemporarySessionUi()
+        {
+            if (director == null)
+            {
+                return;
+            }
+
+            SettingsRestoreService sessions = DemoRuntimeLookup.FindModule<SettingsRestoreService>(director);
+            BenchmarkController benchmark = DemoRuntimeLookup.FindModule<BenchmarkController>(director);
+            BenchmarkResultView results = DemoRuntimeLookup.FindModule<BenchmarkResultView>(director);
+            bool active = sessions != null && sessions.HasActiveSession;
+            bool meditation = sessions != null && sessions.IsActive(TemporarySessionKind.Meditation);
+
+            if (temporarySessionValueText != null)
+            {
+                temporarySessionValueText.text = active
+                    ? sessions.ActiveSession + (benchmark != null && benchmark.IsRunning ? " " + benchmark.RemainingSeconds.ToString("0") + "s / " + benchmark.CurrentFps.ToString("0.0") + " FPS" : string.Empty)
+                    : "Ready";
+            }
+
+            if (benchmarkResultValueText != null)
+            {
+                benchmarkResultValueText.text = results != null && results.HasResult
+                    ? "Avg " + results.Result.AverageFps.ToString("0.0") + " / Peak " + results.Result.PeakFps.ToString("0.0") + " / 1% " + results.Result.OnePercentLowFps.ToString("0.0")
+                    : "Not run";
+            }
+
+            if (meditationModeButton != null) meditationModeButton.interactable = !active;
+            if (replayDemoButton != null) replayDemoButton.interactable = !active;
+            if (benchmarkDemoButton != null) benchmarkDemoButton.interactable = !active;
+            if (splitComfortButton != null) splitComfortButton.interactable = meditation;
+            if (stopSessionButton != null) stopSessionButton.interactable = active;
+            if (saveBenchmarkButton != null) saveBenchmarkButton.interactable = !active && results != null && results.HasResult;
         }
 
         private void BuildHelpUi()
@@ -566,8 +710,13 @@ namespace Kaleidoscope2.Control
                 "Управление:\n" +
                 "Колесо мыши (клик) — открыть/закрыть меню\n" +
                 "F1 — открыть/закрыть справку по клавишам\n" +
+                "H — чистый вид: скрыть/показать необязательные подписи и HUD\n" +
                 "Вывод на второй монитор — переключатель в Settings\n" +
                 "Esc — вернуться в начальное меню KAELIS (визуальное состояние сохраняется)\n\n" +
+                "Meditation Mode — плавное движение 0.25–1.5 оборота/с, playlist и orbital split comfort\n" +
+                "Replay Demo — повторяет последние 500 смысловых визуальных команд\n" +
+                "Benchmark Demo — 60 секунд, показывает FPS и восстанавливает состояние\n" +
+                "Во временной сессии Esc или клик колеса — остановить и восстановить настройки\n\n" +
                 "0 / Num0 — мягкие линии стыка зеркал (вкл/выкл)\n" +
                 "Num* — плавная реанимация картинки за 10 секунд к обычному 2D-калейдоскопу\n" +
                 "Num5 (доп. клавиатура) — сброс движения и 4D-профиля\n" +
@@ -616,6 +765,93 @@ namespace Kaleidoscope2.Control
 
             CreateButton(panel, "HelpClose", "Назад", ButtonColor, () => SetActiveIfDifferent(helpRoot, false));
             helpRoot.SetActive(false);
+        }
+
+        private void BuildVisualSessionSetupUi()
+        {
+            visualSessionSetupRoot = new GameObject("VisualSessionSetupRoot", typeof(RectTransform));
+            RectTransform rootRect = (RectTransform)visualSessionSetupRoot.transform;
+            rootRect.SetParent(menuRoot.transform, false);
+            Stretch(rootRect);
+
+            Image scrim = visualSessionSetupRoot.AddComponent<Image>();
+            scrim.sprite = solidSprite;
+            scrim.color = ScrimColor;
+            scrim.raycastTarget = true;
+
+            RectTransform panel = CreatePanel(rootRect, "VisualSessionSetupPanel", new Vector2(640f, 460f));
+            VerticalLayoutGroup layout = panel.gameObject.AddComponent<VerticalLayoutGroup>();
+            layout.padding = new RectOffset(24, 24, 22, 22);
+            layout.spacing = 14f;
+            layout.childControlWidth = true;
+            layout.childControlHeight = true;
+            layout.childForceExpandWidth = true;
+            layout.childForceExpandHeight = false;
+
+            visualSessionSetupTitle = CreateText(panel, "VisualSessionSetupTitle", string.Empty,
+                23, FontStyle.Bold, TextColor, TextAnchor.MiddleLeft);
+            visualSessionSetupTitle.gameObject.AddComponent<LayoutElement>().preferredHeight = 54f;
+            visualSessionSetupDescription = CreateText(panel, "VisualSessionSetupDescription", string.Empty,
+                15, FontStyle.Normal, MutedTextColor, TextAnchor.UpperLeft);
+            visualSessionSetupDescription.gameObject.AddComponent<LayoutElement>().preferredHeight = 108f;
+
+            visualSessionSetupSafety = CreateText(panel, "VisualSessionSetupSafety", string.Empty,
+                14, FontStyle.Italic, Accent, TextAnchor.MiddleLeft);
+            visualSessionSetupSafety.gameObject.AddComponent<LayoutElement>().preferredHeight = 58f;
+
+            CreateButton(panel, "StartVisualSession", "START", ButtonColor, StartSelectedVisualSession);
+            CreateButton(panel, "CancelVisualSessionSetup", "Back", MutedButtonColor, () => SetActiveIfDifferent(visualSessionSetupRoot, false));
+            visualSessionSetupRoot.SetActive(false);
+        }
+
+        private string GetVisualSessionSetupTitle(TemporarySessionKind session)
+        {
+            switch (session)
+            {
+                case TemporarySessionKind.Meditation:
+                    return "MEDITATION MODE  |  COMFORT VISUAL SESSION";
+                case TemporarySessionKind.ReplayDemo:
+                    return "REPLAY DEMO  |  SEMANTIC PERFORMANCE PLAYBACK";
+                default:
+                    return "BENCHMARK DEMO  |  VISUAL PERFORMANCE MODE";
+            }
+        }
+
+        private string GetVisualSessionSetupDescription(TemporarySessionKind session)
+        {
+            switch (session)
+            {
+                case TemporarySessionKind.Meditation:
+                    return "Curated images and audio with breathing mirror motion, minute direction reversal, and soft split comfort. Visual state remains unchanged until START.";
+                case TemporarySessionKind.ReplayDemo:
+                    InputRecorder recorder = DemoRuntimeLookup.FindModule<InputRecorder>(director);
+                    int count = recorder != null ? recorder.Count : 0;
+                    return "Loops recorded semantic visual actions with curated images through normal routing. Recorded actions available: " + count + ". Visual state remains unchanged until START.";
+                default:
+                    return "A curated, silent 60-second visual showcase. Controls hide during playback while a compact HUD displays elapsed time, current FPS, average FPS, peak FPS, 1% low FPS, and active phase.";
+            }
+        }
+
+        private string GetVisualSessionSetupSafety(TemporarySessionKind session)
+        {
+            if (session == TemporarySessionKind.ReplayDemo)
+            {
+                return "START requires recorded visual actions. Escape or middle mouse stops and restores your prior state.";
+            }
+
+            return "Safe presentation only. Press Escape or middle mouse to stop and restore your previous state.";
+        }
+
+        private string GetVisualSessionStartFailure(TemporarySessionKind session, SettingsRestoreService sessions)
+        {
+            if (sessions != null && sessions.HasActiveSession)
+            {
+                return "Cannot start: " + sessions.ActiveSession + " is already active. Stop it first.";
+            }
+
+            return session == TemporarySessionKind.ReplayDemo
+                ? "Replay not started: record at least one semantic visual action first."
+                : "Session could not start. Your prior visual state remains unchanged.";
         }
 
         private void BuildBrowserUi()

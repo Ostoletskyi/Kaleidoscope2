@@ -65,6 +65,14 @@ namespace Kaleidoscope2.Menu
         public static readonly Rect PreviewUv = new Rect(0.0f, 0.0f, 1.0f, 1.0f);
         public static readonly Rect LogoUv = new Rect(0f, 0f, 1f, 1f);
 
+        public const float SectionHeaderHeight = 92f;
+        public const float SectionHeaderSafeGap = 88f;
+        public const float SectionSideInset = 34f;
+        public const float SectionBottomInset = 34f;
+        public static readonly Vector2 SectionViewportOffsetMin = new Vector2(SectionSideInset, SectionBottomInset);
+        public static readonly Vector2 SectionViewportOffsetMax = new Vector2(-SectionSideInset, -(SectionHeaderHeight + SectionHeaderSafeGap));
+        public static readonly RectOffset SectionContentPadding = new RectOffset(0, 0, 16, 0);
+
         public const float LogoBlockHeight = 276f;
         public const float LogoBlockTopInset = 22f;
         public static readonly Vector2 LogoFrameOffsetMin = new Vector2(28f, 10f);
@@ -85,6 +93,13 @@ namespace Kaleidoscope2.Menu
         public static readonly Color PanelBase = new Color(0.014f, 0.035f, 0.048f, 0.62f);
         public static readonly Color PanelSheen = new Color(0.16f, 0.34f, 0.38f, 0.23f);
         public static readonly Color PanelInnerGlow = new Color(0.12f, 0.56f, 0.70f, 0.075f);
+        public static readonly Color SectionPanelGlass = new Color(0.006f, 0.030f, 0.044f, 0.56f);
+        public static readonly Color SectionPanelHaze = new Color(0.10f, 0.48f, 0.62f, 0.055f);
+        public static readonly Color SectionPanelTopGlow = new Color(0.18f, 0.82f, 1f, 0.070f);
+        public static readonly Color SectionFrameOuter = new Color(0.76f, 0.98f, 1f, 0.30f);
+        public static readonly Color SectionFrameInner = new Color(0.20f, 0.82f, 0.92f, 0.18f);
+        public static readonly Color SectionCorner = new Color(1f, 0.76f, 0.36f, 0.24f);
+        public static readonly Color SectionHeaderDivider = new Color(0.58f, 0.94f, 1f, 0.22f);
         public static readonly Color IcyLine = new Color(0.80f, 0.97f, 1f, 0.48f);
         public static readonly Color CyanLine = new Color(0.20f, 0.82f, 0.92f, 0.34f);
         public static readonly Color Gold = new Color(1f, 0.68f, 0.22f, 1f);

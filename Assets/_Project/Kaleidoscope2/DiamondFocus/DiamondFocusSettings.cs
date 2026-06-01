@@ -116,6 +116,9 @@ namespace Kaleidoscope2.Core
         public const float PremiumCrystalScalePercentMin = 20f;
         public const float PremiumCrystalScalePercentMax = 300f;
         public const float PremiumCrystalScalePercentDefault = 100f;
+        public const float ClassicCrystalScalePercentMin = 20f;
+        public const float ClassicCrystalScalePercentMax = 300f;
+        public const float ClassicCrystalScalePercentDefault = 100f;
         public const float PremiumCrystalWheelScaleStepPercentMin = 1f;
         public const float PremiumCrystalWheelScaleStepPercentMax = 50f;
         public const float PremiumCrystalWheelScaleStepPercentDefault = 10f;
@@ -226,6 +229,7 @@ namespace Kaleidoscope2.Core
 
         [Header("Crystal Presentation")]
         [SerializeField, InspectorName("Crystal Simulation")] private CrystalRenderMode crystalSimulationMode = CrystalRenderMode.Billboard2D;
+        [SerializeField, Range(ClassicCrystalScalePercentMin, ClassicCrystalScalePercentMax)] private float classicCrystalScalePercent = ClassicCrystalScalePercentDefault;
         [SerializeField, Range(PremiumCrystalScalePercentMin, PremiumCrystalScalePercentMax)] private float premiumCrystalScalePercent = PremiumCrystalScalePercentDefault;
         [SerializeField] private bool premiumCrystalWheelScaleEnabled = true;
         [SerializeField, Range(PremiumCrystalWheelScaleStepPercentMin, PremiumCrystalWheelScaleStepPercentMax)] private float premiumCrystalWheelScaleStepPercent = PremiumCrystalWheelScaleStepPercentDefault;
@@ -376,6 +380,8 @@ namespace Kaleidoscope2.Core
         }
         public CrystalRenderMode CrystalSimulationMode { get { return crystalSimulationMode; } }
         public string CrystalSimulationModeLabel { get { return CrystalSharedSettings.GetRenderModeLabel(crystalSimulationMode); } }
+        public float ClassicCrystalScalePercent { get { return Mathf.Clamp(classicCrystalScalePercent, ClassicCrystalScalePercentMin, ClassicCrystalScalePercentMax); } }
+        public float ClassicCrystalScaleMultiplier { get { return ClassicCrystalScalePercent / 100f; } }
         public float PremiumCrystalScalePercent { get { return Mathf.Clamp(premiumCrystalScalePercent, PremiumCrystalScalePercentMin, PremiumCrystalScalePercentMax); } }
         public float PremiumCrystalScaleMultiplier { get { return PremiumCrystalScalePercent / 100f; } }
         public bool PremiumCrystalWheelScaleEnabled { get { return premiumCrystalWheelScaleEnabled; } }
@@ -448,6 +454,7 @@ namespace Kaleidoscope2.Core
                     + ", shape transition " + (IsPremiumCrystalSimulation
                         ? PremiumShapeTransitionActive ? "active " + PremiumShapeTransitionSmoothProgress.ToString("0.00") : "inactive"
                         : ShapeTransitionActive ? "active " + ShapeTransitionSmoothProgress.ToString("0.00") : "inactive")
+                    + ", classic crystal scale percent " + ClassicCrystalScalePercent.ToString("0")
                     + ", current crystal scale percent " + PremiumCrystalScalePercent.ToString("0")
                     + ", wheel scale " + (PremiumCrystalWheelScaleEnabled ? "enabled" : "disabled")
                     + ", wheel step " + PremiumCrystalWheelScaleStepPercent.ToString("0") + "%"
@@ -825,6 +832,16 @@ namespace Kaleidoscope2.Core
         public void AdjustPremiumCrystalScalePercent(float deltaPercent)
         {
             SetPremiumCrystalScalePercent(PremiumCrystalScalePercent + deltaPercent);
+        }
+
+        public void SetClassicCrystalScalePercent(float value)
+        {
+            classicCrystalScalePercent = Mathf.Clamp(value, ClassicCrystalScalePercentMin, ClassicCrystalScalePercentMax);
+        }
+
+        public void AdjustClassicCrystalScalePercent(float deltaPercent)
+        {
+            SetClassicCrystalScalePercent(ClassicCrystalScalePercent + deltaPercent);
         }
 
         public void SetPremiumCrystalWheelScaleEnabled(bool value)
@@ -1205,6 +1222,7 @@ namespace Kaleidoscope2.Core
             snapshot.GeneratedMaterialColor = generatedMaterialColor;
             snapshot.GeneratedMaterialSeed = generatedMaterialSeed;
             snapshot.DebugMode = debugMode;
+            snapshot.ClassicScalePercent = classicCrystalScalePercent;
             snapshot.PremiumScalePercent = premiumCrystalScalePercent;
             snapshot.PremiumBrightness = premiumOpticsBrightness;
             snapshot.PremiumContrast = premiumOpticsContrast;
@@ -1293,6 +1311,7 @@ namespace Kaleidoscope2.Core
             generatedMaterialColor = snapshot.GeneratedMaterialColor;
             generatedMaterialSeed = snapshot.GeneratedMaterialSeed;
             debugMode = snapshot.DebugMode;
+            classicCrystalScalePercent = Mathf.Clamp(snapshot.ClassicScalePercent, ClassicCrystalScalePercentMin, ClassicCrystalScalePercentMax);
             premiumCrystalScalePercent = snapshot.PremiumScalePercent;
             premiumOpticsBrightness = snapshot.PremiumBrightness;
             premiumOpticsContrast = snapshot.PremiumContrast;
@@ -1685,17 +1704,17 @@ namespace Kaleidoscope2.Core
                 case DiamondCrystalMaterialMode.Garnet:
                     return "Garnet";
                 case DiamondCrystalMaterialMode.FuturisticPlastic:
-                    return "Futuristic Plastic";
+                    return "Opal Prism Glass";
                 case DiamondCrystalMaterialMode.Mercury:
-                    return "Mercury";
+                    return "Liquid Mercury Mirror";
                 case DiamondCrystalMaterialMode.StainlessSteel:
-                    return "Stainless Steel";
+                    return "Brushed Steel Mirror";
                 case DiamondCrystalMaterialMode.Chrome:
-                    return "Chrome";
+                    return "Chrome Facet Mirror";
                 case DiamondCrystalMaterialMode.CastIron:
-                    return "Cast Iron";
+                    return "Blackened Iron Facets";
                 case DiamondCrystalMaterialMode.PolishedBrass:
-                    return "Polished Brass";
+                    return "Polished Brass Prism";
                 case DiamondCrystalMaterialMode.AbsoluteMirror:
                     return "Absolute Mirror + Prism";
                 case DiamondCrystalMaterialMode.LegacyGlow:

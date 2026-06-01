@@ -28,7 +28,7 @@ namespace Kaleidoscope2.Menu
                 case KaelisMenuInputHintKind.Language:
                     return "Enter / Click to change language";
                 case KaelisMenuInputHintKind.Reserved:
-                    return "Click to view reserved action";
+                    return "Unavailable until owner service exists";
                 default:
                     return "Enter / Click to select";
             }

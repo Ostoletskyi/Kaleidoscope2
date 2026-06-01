@@ -8,6 +8,7 @@ namespace Kaleidoscope2.Menu.FX
     public sealed class MenuAtmosphereFXController : MonoBehaviour
     {
         internal const string ShaderName = "Kaleidoscope2/Menu/AtmosphereOverlay";
+        private const float PreviewPrismIntensityScale = 1.45f;
 
         [Header("Master")]
         [SerializeField] private bool EnableAtmosphereFX = true;
@@ -31,9 +32,13 @@ namespace Kaleidoscope2.Menu.FX
         [SerializeField] private Vector2 CausticDrift = new Vector2(0.018f, 0.011f);
 
         [Header("Dispersion Dust")]
-        [SerializeField] private float DustDensity = 0.46f;
-        [SerializeField] private float DustSpeed = 0.55f;
-        [SerializeField] private float DustColorVariation = 0.62f;
+        [SerializeField] private float DustDensity = 0.56f;
+        [SerializeField] private float DustSpeed = 0.46f;
+        [SerializeField] private float DustColorVariation = 0.58f;
+
+        [Header("Defocused Lens Particles")]
+        [SerializeField] private float LensParticleDensity = 0.62f;
+        [SerializeField] private float LensParticleSpeed = 0.32f;
 
         [Header("Crystal Shimmer")]
         [SerializeField] private float CrystalShimmerIntensity = 0.64f;
@@ -46,11 +51,13 @@ namespace Kaleidoscope2.Menu.FX
         private RectTransform fxRoot;
         private MenuLightBandAnimator lightBandAnimator;
         private MenuDispersionDustController dustController;
+        private MenuDefocusedLensParticleController lensParticleController;
         private MenuCrystalShimmerController shimmerController;
         private PremiumMenuPrismReactionController prismReactionController;
         private PremiumMenuPrismReactionController previewPrismReactionController;
         private Material lightBandMaterial;
         private Material dustMaterial;
+        private Material lensParticleMaterial;
         private Material shimmerMaterial;
         private Material prismReactionMaterial;
         private Material previewPrismReactionMaterial;
@@ -122,6 +129,14 @@ namespace Kaleidoscope2.Menu.FX
                 dustController.AssignMaterial(dustMaterial);
             }
 
+            if (lensParticleController == null)
+            {
+                RectTransform lensParticleRect = CreateStretchedRect("DefocusedLensParticles", fxRoot);
+                lensParticleMaterial = CreateRuntimeMaterial("KAELIS_Menu_DefocusedLensParticles", 2f, true);
+                lensParticleController = lensParticleRect.gameObject.AddComponent<MenuDefocusedLensParticleController>();
+                lensParticleController.AssignMaterial(lensParticleMaterial);
+            }
+
             if (prismReactionController == null)
             {
                 PremiumMenuMotionController motion = canvasRoot.GetComponent<PremiumMenuMotionController>();
@@ -151,7 +166,7 @@ namespace Kaleidoscope2.Menu.FX
                 previewPrismReactionMaterial = CreateRuntimeMaterial("KAELIS_Menu_PreviewReactivePrism", 3f, true);
                 previewPrismReactionController = prismRect.gameObject.AddComponent<PremiumMenuPrismReactionController>();
                 previewPrismReactionController.AssignMaterial(previewPrismReactionMaterial);
-                previewPrismReactionController.MirrorFrom(prismReactionController, PrismReaction, 1.30f);
+                previewPrismReactionController.MirrorFrom(prismReactionController, PrismReaction, PreviewPrismIntensityScale);
             }
 
             if (shimmerController != null)
@@ -183,11 +198,13 @@ namespace Kaleidoscope2.Menu.FX
         {
             DestroyRuntimeMaterial(lightBandMaterial);
             DestroyRuntimeMaterial(dustMaterial);
+            DestroyRuntimeMaterial(lensParticleMaterial);
             DestroyRuntimeMaterial(shimmerMaterial);
             DestroyRuntimeMaterial(prismReactionMaterial);
             DestroyRuntimeMaterial(previewPrismReactionMaterial);
             lightBandMaterial = null;
             dustMaterial = null;
+            lensParticleMaterial = null;
             shimmerMaterial = null;
             prismReactionMaterial = null;
             previewPrismReactionMaterial = null;
@@ -212,6 +229,12 @@ namespace Kaleidoscope2.Menu.FX
                 dustController.Configure(DustDensity, DustSpeed, DustColorVariation);
             }
 
+            if (lensParticleController != null)
+            {
+                lensParticleController.gameObject.SetActive(active && LensParticleDensity > 0.001f);
+                lensParticleController.Configure(LensParticleDensity, LensParticleSpeed, DustColorVariation);
+            }
+
             if (shimmerController != null)
             {
                 shimmerController.gameObject.SetActive(active && CrystalShimmerIntensity > 0.001f);
@@ -227,7 +250,7 @@ namespace Kaleidoscope2.Menu.FX
             if (previewPrismReactionController != null)
             {
                 previewPrismReactionController.gameObject.SetActive(active && PrismReaction != null && PrismReaction.PrismIntensity > 0.001f);
-                previewPrismReactionController.MirrorFrom(prismReactionController, PrismReaction, 1.30f);
+                previewPrismReactionController.MirrorFrom(prismReactionController, PrismReaction, PreviewPrismIntensityScale);
             }
         }
 
@@ -274,6 +297,8 @@ namespace Kaleidoscope2.Menu.FX
             DustDensity = Mathf.Clamp01(DustDensity);
             DustSpeed = Mathf.Clamp(DustSpeed, 0f, 2f);
             DustColorVariation = Mathf.Clamp01(DustColorVariation);
+            LensParticleDensity = Mathf.Clamp01(LensParticleDensity);
+            LensParticleSpeed = Mathf.Clamp(LensParticleSpeed, 0f, 1.5f);
             CrystalShimmerIntensity = Mathf.Clamp(CrystalShimmerIntensity, 0f, 2f);
             SparkleIntensity = Mathf.Clamp(SparkleIntensity, 0f, 2f);
             SparkleSpeed = Mathf.Clamp(SparkleSpeed, 0.01f, 2.5f);
@@ -336,6 +361,7 @@ namespace Kaleidoscope2.Menu.FX
         public static readonly int ShimmerTintB = Shader.PropertyToID("_ShimmerTintB");
         public static readonly int PrismCrystalRect = Shader.PropertyToID("_PrismCrystalRect");
         public static readonly int PrismReaction = Shader.PropertyToID("_PrismReaction");
+        public static readonly int PrismFlare = Shader.PropertyToID("_PrismFlare");
         public static readonly int PrismDirection = Shader.PropertyToID("_PrismDirection");
         public static readonly int PrismOptics = Shader.PropertyToID("_PrismOptics");
         public static readonly int SrcBlend = Shader.PropertyToID("_SrcBlend");

@@ -7,8 +7,8 @@ namespace Kaleidoscope2.Menu.FX
     [DisallowMultipleComponent]
     public sealed class PremiumMenuMotionController : MonoBehaviour
     {
-        private const int PremiumStripeCount = 6;
-        private const float StripeLengthMultiplier = 2.65f;
+        private const int PremiumStripeCount = 8;
+        private const float StripeLengthMultiplier = 2.95f;
         private const int GradientResolution = 64;
         internal const float MinimumVisibleBeamWidth = 0.105f;
         internal const float MaximumVisibleBeamWidth = 0.245f;
@@ -253,7 +253,7 @@ namespace Kaleidoscope2.Menu.FX
     {
         [SerializeField] private Vector2 direction = new Vector2(0.72f, -0.69f);
         [SerializeField, Range(PremiumMenuMotionController.MinimumVisibleBeamWidth, PremiumMenuMotionController.MaximumVisibleBeamWidth)] private float width = 0.14f;
-        [SerializeField, Range(0.001f, 0.08f)] private float speed = 0.008f;
+        [SerializeField, Range(0.001f, 0.08f)] private float speed = 0.011f;
         [SerializeField, Range(0f, 0.2f)] private float opacity = 0.07f;
         [SerializeField, Range(-90f, 110f)] private float angle = 22f;
         [SerializeField, Range(0.35f, 0.65f)] private float softness = 0.54f;
@@ -292,12 +292,14 @@ namespace Kaleidoscope2.Menu.FX
         {
             return new[]
             {
-                new PremiumMenuStripeSettings(new Vector2(0.375f, -0.927f), 0.140f, 0.0060f, 0.122f, 22f, 0.50f, 0.02f, 0.08f, new Color(0.62f, 0.96f, 1f, 1f)),
-                new PremiumMenuStripeSettings(new Vector2(-0.309f, -0.951f), 0.130f, 0.0057f, 0.108f, -18f, 0.52f, -0.18f, 0.24f, new Color(0.74f, 0.93f, 1f, 1f)),
-                new PremiumMenuStripeSettings(new Vector2(0.574f, -0.819f), 0.110f, 0.0064f, 0.142f, 35f, 0.45f, 0.25f, 0.40f, new Color(0.80f, 0.97f, 1f, 1f)),
-                new PremiumMenuStripeSettings(new Vector2(0.990f, -0.139f), 0.215f, 0.0052f, 0.084f, 82f, 0.61f, -0.30f, 0.55f, new Color(0.55f, 0.88f, 1f, 1f)),
-                new PremiumMenuStripeSettings(new Vector2(0.122f, -0.993f), 0.180f, 0.0048f, 0.094f, 7f, 0.58f, 0.02f, 0.70f, new Color(1f, 0.84f, 0.52f, 1f)),
-                new PremiumMenuStripeSettings(new Vector2(-0.530f, -0.848f), 0.115f, 0.0061f, 0.132f, -32f, 0.43f, 0.28f, 0.86f, new Color(0.72f, 1f, 0.94f, 1f))
+                new PremiumMenuStripeSettings(new Vector2(0.375f, -0.927f), 0.230f, 0.0105f, 0.150f, 20f, 0.58f, -0.06f, 0.03f, new Color(0.62f, 0.96f, 1f, 1f)),
+                new PremiumMenuStripeSettings(new Vector2(-0.309f, -0.951f), 0.150f, 0.0120f, 0.135f, -18f, 0.53f, -0.24f, 0.16f, new Color(0.74f, 0.93f, 1f, 1f)),
+                new PremiumMenuStripeSettings(new Vector2(0.574f, -0.819f), 0.115f, 0.0135f, 0.165f, 35f, 0.45f, 0.22f, 0.28f, new Color(0.82f, 0.98f, 1f, 1f)),
+                new PremiumMenuStripeSettings(new Vector2(0.990f, -0.139f), 0.245f, 0.0096f, 0.120f, 80f, 0.62f, -0.34f, 0.40f, new Color(0.55f, 0.88f, 1f, 1f)),
+                new PremiumMenuStripeSettings(new Vector2(0.122f, -0.993f), 0.190f, 0.0114f, 0.128f, 7f, 0.59f, 0.04f, 0.52f, new Color(1f, 0.84f, 0.52f, 1f)),
+                new PremiumMenuStripeSettings(new Vector2(-0.530f, -0.848f), 0.120f, 0.0140f, 0.155f, -32f, 0.44f, 0.30f, 0.64f, new Color(0.72f, 1f, 0.94f, 1f)),
+                new PremiumMenuStripeSettings(new Vector2(0.705f, -0.709f), 0.170f, 0.0108f, 0.132f, 48f, 0.55f, -0.12f, 0.76f, new Color(0.90f, 0.98f, 1f, 1f)),
+                new PremiumMenuStripeSettings(new Vector2(-0.150f, -0.989f), 0.108f, 0.0152f, 0.145f, -44f, 0.43f, 0.18f, 0.88f, new Color(1f, 0.92f, 0.68f, 1f))
             };
         }
     }

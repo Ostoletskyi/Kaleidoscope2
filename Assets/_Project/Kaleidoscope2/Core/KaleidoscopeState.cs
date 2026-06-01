@@ -80,6 +80,7 @@ namespace Kaleidoscope2.Core
         [SerializeField] private string audioFolderPath = string.Empty;
         [SerializeField] private bool controlMenuVisible;
         [SerializeField] private bool hotkeysHelpVisible;
+        [SerializeField] private bool cleanViewEnabled;
         [SerializeField] private bool secondDisplayOutputEnabled;
         [SerializeField] private bool mouseWheelVisualScaleEnabled = true;
         [SerializeField, Range(MouseWheelVisualScaleStepPercentMin, MouseWheelVisualScaleStepPercentMax)] private float mouseWheelVisualScaleStepPercent = MouseWheelVisualScaleStepPercentDefault;
@@ -89,6 +90,7 @@ namespace Kaleidoscope2.Core
         [SerializeField] private KaleidoscopeQualityLevel qualityLevel = KaleidoscopeQualityLevel.Preview;
         [SerializeField] private ImageReanimationState imageReanimation = new ImageReanimationState();
         [SerializeField] private DiagnosticsState diagnostics = new DiagnosticsState();
+        [SerializeField] private CrystalSplitPresentationState crystalSplitPresentation = new CrystalSplitPresentationState();
 
         public KaleidoscopeSourceMode ActiveSourceMode
         {
@@ -200,6 +202,11 @@ namespace Kaleidoscope2.Core
             get { return hotkeysHelpVisible; }
         }
 
+        public bool CleanViewEnabled
+        {
+            get { return cleanViewEnabled; }
+        }
+
         public bool SecondDisplayOutputEnabled
         {
             get { return secondDisplayOutputEnabled; }
@@ -219,11 +226,11 @@ namespace Kaleidoscope2.Core
         {
             get
             {
-                float classicScalePercent = mirrorSettings != null ? mirrorSettings.Zoom * 100f : 100f;
+                float classicScalePercent = diamondFocusSettings != null ? diamondFocusSettings.ClassicCrystalScalePercent : DiamondFocusSettings.ClassicCrystalScalePercentDefault;
                 float premiumScalePercent = diamondFocusSettings != null ? diamondFocusSettings.PremiumCrystalScalePercent : DiamondFocusSettings.PremiumCrystalScalePercentDefault;
                 return "wheel visual scale " + (MouseWheelVisualScaleEnabled ? "enabled" : "disabled")
                     + ", step " + MouseWheelVisualScaleStepPercent.ToString("0") + "%"
-                    + ", Classic2D scale " + classicScalePercent.ToString("0") + "%"
+                    + ", Classic2D crystal scale " + classicScalePercent.ToString("0") + "%"
                     + ", Premium3D scale " + premiumScalePercent.ToString("0") + "%";
             }
         }
@@ -271,6 +278,19 @@ namespace Kaleidoscope2.Core
         public DiagnosticsState Diagnostics
         {
             get { return diagnostics; }
+        }
+
+        public CrystalSplitPresentationState CrystalSplitPresentation
+        {
+            get
+            {
+                if (crystalSplitPresentation == null)
+                {
+                    crystalSplitPresentation = new CrystalSplitPresentationState();
+                }
+
+                return crystalSplitPresentation;
+            }
         }
 
         public bool ImageReanimationActive
@@ -363,6 +383,11 @@ namespace Kaleidoscope2.Core
             if (imageReanimation == null)
             {
                 imageReanimation = new ImageReanimationState();
+            }
+
+            if (crystalSplitPresentation == null)
+            {
+                crystalSplitPresentation = new CrystalSplitPresentationState();
             }
         }
 
@@ -471,6 +496,16 @@ namespace Kaleidoscope2.Core
             SetHotkeysHelpVisible(!hotkeysHelpVisible);
         }
 
+        public void SetCleanViewEnabled(bool enabled)
+        {
+            cleanViewEnabled = enabled;
+        }
+
+        public void ToggleCleanView()
+        {
+            cleanViewEnabled = !cleanViewEnabled;
+        }
+
         public void SetSecondDisplayOutputEnabled(bool enabled)
         {
             secondDisplayOutputEnabled = enabled;
@@ -569,6 +604,57 @@ namespace Kaleidoscope2.Core
             {
                 imageReanimation.Tick(this, deltaTime);
             }
+        }
+    }
+
+    public enum CrystalFormationMode
+    {
+        None = 0,
+        SixCopyOrbitFormation = 1
+    }
+
+    [Serializable]
+    public sealed class CrystalSplitPresentationState
+    {
+        [SerializeField] private bool enabled;
+        [SerializeField] private CrystalFormationMode formationMode = CrystalFormationMode.None;
+        [SerializeField, Range(0f, 1f)] private float expansion;
+        [SerializeField] private float cycleSeconds;
+        [SerializeField] private float orbitAngleRadians;
+
+        public bool Enabled { get { return enabled; } }
+        public CrystalFormationMode FormationMode { get { return enabled ? formationMode : CrystalFormationMode.None; } }
+        public float Expansion { get { return enabled ? Mathf.Clamp01(expansion) : 0f; } }
+        public float CycleSeconds { get { return cycleSeconds; } }
+        public float OrbitAngleRadians { get { return enabled ? orbitAngleRadians : 0f; } }
+
+        public void SetEnabled(bool value)
+        {
+            SetEnabled(value, value ? CrystalFormationMode.SixCopyOrbitFormation : CrystalFormationMode.None);
+        }
+
+        public void SetEnabled(bool value, CrystalFormationMode mode)
+        {
+            enabled = value;
+            formationMode = enabled ? mode : CrystalFormationMode.None;
+            if (!enabled)
+            {
+                expansion = 0f;
+                cycleSeconds = 0f;
+                orbitAngleRadians = 0f;
+            }
+        }
+
+        public void SetCycle(float elapsedSeconds, float resolvedExpansion)
+        {
+            SetCycle(elapsedSeconds, resolvedExpansion, 0f);
+        }
+
+        public void SetCycle(float elapsedSeconds, float resolvedExpansion, float resolvedOrbitAngleRadians)
+        {
+            cycleSeconds = Mathf.Max(0f, elapsedSeconds);
+            expansion = enabled ? Mathf.Clamp01(resolvedExpansion) : 0f;
+            orbitAngleRadians = enabled ? resolvedOrbitAngleRadians : 0f;
         }
     }
 

@@ -301,14 +301,14 @@ namespace Kaleidoscope2.DiamondFocus.RealMesh.CrystalStage3D
                     smoothness = 0.92f;
                     break;
                 case CrystalMaterialMode.FuturisticPlastic:
-                    tint = new Color(0.75f, 0.9f, 1f, 1f);
-                    metallic = 0f;
-                    smoothness = 0.84f;
+                    tint = new Color(0.86f, 0.94f, 1f, 1f);
+                    metallic = 0.02f;
+                    smoothness = 0.93f;
                     break;
                 case CrystalMaterialMode.Metal:
-                    tint = new Color(0.9f, 0.88f, 0.82f, 1f);
-                    metallic = 0.48f;
-                    smoothness = 0.86f;
+                    tint = new Color(0.92f, 0.91f, 0.86f, 1f);
+                    metallic = 0.82f;
+                    smoothness = 0.92f;
                     break;
                 default:
                     tint = new Color(0.86f, 0.98f, 1f, 1f);

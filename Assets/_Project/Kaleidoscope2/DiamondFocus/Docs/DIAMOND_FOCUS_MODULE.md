@@ -83,8 +83,9 @@ When Diamond Focus is off, numpad controls return to the rest of the project. Wh
 1. Absolute Mirror + Prism.
 2. High-Purity Diamond.
 3. Emerald, Topaz, Ruby, Sapphire, Amethyst, Aquamarine, and Garnet.
-4. Futuristic Plastic.
-5. Mercury, Stainless Steel, Chrome, Cast Iron, and Polished Brass.
+4. Opal Prism Glass.
+5. Liquid Mercury Mirror, Brushed Steel Mirror, Chrome Facet Mirror,
+   Blackened Iron Facets, and Polished Brass Prism.
 
 ## Cinematic Crystal Optics
 

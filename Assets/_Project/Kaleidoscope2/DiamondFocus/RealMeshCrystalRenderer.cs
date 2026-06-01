@@ -31,6 +31,8 @@ namespace Kaleidoscope2.DiamondFocus
         private bool visible;
         private bool geometryValidationMaterialEnabled;
         private CrystalStage3DDebugMode stageDebugMode = CrystalStage3DDebugMode.FinalPremiumComposite;
+        private float comfortExpansion;
+        private float comfortOrbitAngleRadians;
 
         public RealMeshCrystalRenderer(Transform ownerTransform, Shader shader, int crystalLayer)
         {
@@ -230,6 +232,12 @@ namespace Kaleidoscope2.DiamondFocus
             stageDebugMode = value;
         }
 
+        public void SetComfortPresentation(CrystalSplitPresentationState presentation)
+        {
+            comfortExpansion = presentation != null ? presentation.Expansion : 0f;
+            comfortOrbitAngleRadians = presentation != null ? presentation.OrbitAngleRadians : 0f;
+        }
+
         public void Render()
         {
             if (sourceTexture == null)
@@ -257,7 +265,9 @@ namespace Kaleidoscope2.DiamondFocus
                 intensity,
                 visible,
                 geometryValidationMaterialEnabled,
-                resolvedDebugMode))
+                resolvedDebugMode,
+                comfortExpansion,
+                comfortOrbitAngleRadians))
             {
                 ReleaseOutput();
                 ApplyFallbackRuntimeVisibility(false);

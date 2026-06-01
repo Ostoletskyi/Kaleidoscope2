@@ -1,4 +1,5 @@
 using Kaleidoscope2.Core;
+using Kaleidoscope2.Demo;
 using Kaleidoscope2.DiamondFocus;
 using Kaleidoscope2.Tunnel;
 using System;
@@ -20,15 +21,16 @@ namespace Kaleidoscope2.InputSystem
         [SerializeField] private KeyCode toggleMenuKey = KeyCode.Mouse2;
         [SerializeField] private KeyCode closeMenuKey = KeyCode.Escape;
         [SerializeField] private KeyCode toggleHotkeysHelpKey = KeyCode.F1;
+        [SerializeField] private KeyCode toggleCleanViewKey = KeyCode.H;
         [SerializeField] private KeyCode toggleGuidesKey = KeyCode.Keypad0;
         [SerializeField] private KeyCode toggleGuidesAlternateKey = KeyCode.Alpha0;
         [SerializeField] private KeyCode reanimateImageKey = KeyCode.KeypadMultiply;
 
         [Header("Mirror Control")]
         // Legacy: older scene iterations serialized this. Kept for backward compatibility.
-#pragma warning disable 649
+#pragma warning disable 414, 649
         [SerializeField] private float unitsStepPerPress = 25f;
-#pragma warning restore 649
+#pragma warning restore 414, 649
         [SerializeField] private float unitsStepPerSecond = 220f;
         [SerializeField] private float zoomStepPerSecond = 1.4f;
         [SerializeField] private KeyCode zoomInKey = KeyCode.UpArrow;
@@ -128,8 +130,8 @@ namespace Kaleidoscope2.InputSystem
         private bool premiumCrystalFunctionKeysActive;
         private bool premiumCrystalFunctionKeyConsumed;
         private float premiumCrystalScalePercent = DiamondFocusSettings.PremiumCrystalScalePercentDefault;
-        private bool classicVisualWheelConsumed;
-        private float classicVisualScalePercent = 100f;
+        private bool classicCrystalWheelConsumed;
+        private float classicCrystalScalePercent = DiamondFocusSettings.ClassicCrystalScalePercentDefault;
         private string mouseWheelVisualScaleTarget = "none";
 
         [Header("4D Hose Profile (Russian layout г/н and щ/з)")]
@@ -189,6 +191,20 @@ namespace Kaleidoscope2.InputSystem
             }
 
             EnsureMotionKeyProfiles();
+
+            if (UnityEngine.Input.GetKeyDown(toggleCleanViewKey))
+            {
+                director.Dispatch(KaleidoscopeCommand.ToggleCleanView());
+            }
+
+            SettingsRestoreService temporarySessions = DemoRuntimeLookup.FindModule<SettingsRestoreService>(director);
+            if (temporarySessions != null
+                && temporarySessions.HasActiveSession
+                && (UnityEngine.Input.GetKeyDown(toggleMenuKey) || UnityEngine.Input.GetKeyDown(closeMenuKey)))
+            {
+                director.Dispatch(KaleidoscopeCommand.CancelTemporarySession());
+                return;
+            }
 
             if (UnityEngine.Input.GetKeyDown(toggleMenuKey))
             {
@@ -318,18 +334,24 @@ namespace Kaleidoscope2.InputSystem
                 director.Dispatch(KaleidoscopeCommand.ToggleVisualMotionImageInertia(KaleidoscopeVisualMode.Classic));
             }
 
-            bool diamondControlsActive = director.State.DiamondFocusSettings != null
+            DiamondFocusSettings diamondSettingsForInput = director.State.DiamondFocusSettings;
+            bool diamondControlsActive = diamondSettingsForInput != null
                 && IsDiamondFocusModuleRegistered()
-                && director.State.DiamondFocusSettings.Enabled;
+                && diamondSettingsForInput.Enabled;
+            bool classicWheelRouteActive = IsClassicCrystalWheelActive(diamondSettingsForInput, visualMode);
+
+            if (classicWheelRouteActive)
+            {
+                DispatchClassicCrystalWheelScale(visualMode, diamondSettingsForInput);
+            }
 
             if (diamondControlsActive)
             {
-                DispatchDiamondControls(deltaTime);
+                DispatchDiamondControls(deltaTime, !classicWheelRouteActive);
             }
-            else
+            else if (!classicWheelRouteActive)
             {
-                DispatchClassicVisualWheelScale(visualMode, mirror);
-                zoom = mirror.Zoom;
+                DispatchClassicCrystalWheelScale(visualMode, diamondSettingsForInput);
                 premiumCrystalVisibleForWheel = false;
                 premiumCrystalMouseWheelConsumed = false;
             }
@@ -668,10 +690,12 @@ namespace Kaleidoscope2.InputSystem
                 premiumCrystalFunctionKeyConsumed = false;
             }
 
-            classicVisualScalePercent = mirror.Zoom * 100f;
+            classicCrystalScalePercent = diamondSettings != null
+                ? diamondSettings.ClassicCrystalScalePercent
+                : DiamondFocusSettings.ClassicCrystalScalePercentDefault;
             string sharedWheelStatus = director.State.MouseWheelVisualScaleStatus;
             string debugMode = diamondSettings != null ? diamondSettings.DebugModeLabel : "none";
-            return CreateStatus("Zoom " + mirror.Zoom.ToString("0.00") + ", Rotation " + mirror.RotationSpeed.ToString("0") + ", 3D bend " + bend.ToString("0.00") + ", 4D hose " + hoseBend.ToString("0.00") + ", G " + opening.ToString("0") + ", Shch " + curvature.ToString("0") + ", 4D CA " + (chromaticAberration ? "on" : "off") + ", 5D flight " + flightSpeed.ToString("0") + ", mode flight " + modeFlightSpeed.ToString("0") + ", 2D inertia " + (classicInertia ? "on" : "off") + ", 7D " + sevenDStrategy + ", Display 2 " + secondDisplay + ", Diamond debug " + debugMode + ", Premium3D crystal visible " + (premiumCrystalVisibleForWheel ? "true" : "false") + ", wheel target " + mouseWheelVisualScaleTarget + ", Premium3D mouse wheel consumed " + (premiumCrystalMouseWheelConsumed ? "true" : "false") + ", Classic2D mouse wheel consumed " + (classicVisualWheelConsumed ? "true" : "false") + ", function keys active " + (premiumCrystalFunctionKeysActive ? "true" : "false") + ", function key consumed " + (premiumCrystalFunctionKeyConsumed ? "true" : "false") + ", current crystal scale percent " + premiumCrystalScalePercent.ToString("0") + ", Classic2D visual scale percent " + classicVisualScalePercent.ToString("0") + ", " + sharedWheelStatus + ".");
+            return CreateStatus("Zoom " + mirror.Zoom.ToString("0.00") + ", Rotation " + mirror.RotationSpeed.ToString("0") + ", 3D bend " + bend.ToString("0.00") + ", 4D hose " + hoseBend.ToString("0.00") + ", G " + opening.ToString("0") + ", Shch " + curvature.ToString("0") + ", 4D CA " + (chromaticAberration ? "on" : "off") + ", 5D flight " + flightSpeed.ToString("0") + ", mode flight " + modeFlightSpeed.ToString("0") + ", 2D inertia " + (classicInertia ? "on" : "off") + ", 7D " + sevenDStrategy + ", Display 2 " + secondDisplay + ", Diamond debug " + debugMode + ", Premium3D crystal visible " + (premiumCrystalVisibleForWheel ? "true" : "false") + ", wheel target " + mouseWheelVisualScaleTarget + ", Premium3D mouse wheel consumed " + (premiumCrystalMouseWheelConsumed ? "true" : "false") + ", Classic2D crystal mouse wheel consumed " + (classicCrystalWheelConsumed ? "true" : "false") + ", function keys active " + (premiumCrystalFunctionKeysActive ? "true" : "false") + ", function key consumed " + (premiumCrystalFunctionKeyConsumed ? "true" : "false") + ", current Premium3D crystal scale percent " + premiumCrystalScalePercent.ToString("0") + ", Classic2D crystal scale percent " + classicCrystalScalePercent.ToString("0") + ", " + sharedWheelStatus + ".");
         }
 
         private void CycleVisualMode()
@@ -764,7 +788,7 @@ namespace Kaleidoscope2.InputSystem
             director.Dispatch(KaleidoscopeCommand.ResetVisualMotion(KaleidoscopeVisualMode.SevenD));
         }
 
-        private void DispatchDiamondControls(float deltaTime)
+        private void DispatchDiamondControls(float deltaTime, bool dispatchPremiumWheelScale)
         {
             ResolveDiamondOptionalKeys();
 
@@ -797,7 +821,15 @@ namespace Kaleidoscope2.InputSystem
                 DiamondInputRouter.DispatchDirection(director, direction);
             }
 
-            DispatchPremiumCrystalWheelScale(settings);
+            if (dispatchPremiumWheelScale)
+            {
+                DispatchPremiumCrystalWheelScale(settings);
+            }
+            else
+            {
+                premiumCrystalVisibleForWheel = false;
+                premiumCrystalMouseWheelConsumed = false;
+            }
 
             float speedDelta = 0f;
             float step = Mathf.Max(0f, diamondSpeedStepPerSecond) * Mathf.Max(0f, deltaTime);
@@ -886,7 +918,7 @@ namespace Kaleidoscope2.InputSystem
         private void DispatchPremiumCrystalWheelScale(DiamondFocusSettings settings)
         {
             premiumCrystalMouseWheelConsumed = false;
-            classicVisualWheelConsumed = false;
+            classicCrystalWheelConsumed = false;
             mouseWheelVisualScaleTarget = "Premium3D";
             premiumCrystalVisibleForWheel = IsPremiumCrystalWheelActive(settings);
             premiumCrystalScalePercent = settings != null
@@ -927,17 +959,19 @@ namespace Kaleidoscope2.InputSystem
             }
         }
 
-        private void DispatchClassicVisualWheelScale(KaleidoscopeVisualMode visualMode, MirrorSettings mirror)
+        private void DispatchClassicCrystalWheelScale(KaleidoscopeVisualMode visualMode, DiamondFocusSettings settings)
         {
-            classicVisualWheelConsumed = false;
-            mouseWheelVisualScaleTarget = visualMode == KaleidoscopeVisualMode.Classic ? "Classic2D" : "none";
-            if (director == null || director.State == null || mirror == null || visualMode != KaleidoscopeVisualMode.Classic)
+            classicCrystalWheelConsumed = false;
+            bool classicCrystalWheelActive = IsClassicCrystalWheelActive(settings, visualMode);
+            mouseWheelVisualScaleTarget = classicCrystalWheelActive ? "Classic2D" : "none";
+            classicCrystalScalePercent = settings != null
+                ? settings.ClassicCrystalScalePercent
+                : DiamondFocusSettings.ClassicCrystalScalePercentDefault;
+            if (director == null || director.State == null || !classicCrystalWheelActive)
             {
-                classicVisualScalePercent = mirror != null ? mirror.Zoom * 100f : 100f;
                 return;
             }
 
-            classicVisualScalePercent = mirror.Zoom * 100f;
             if (!director.State.MouseWheelVisualScaleEnabled)
             {
                 return;
@@ -949,16 +983,18 @@ namespace Kaleidoscope2.InputSystem
                 return;
             }
 
-            float zoomDelta = wheelDelta * director.State.MouseWheelVisualScaleStepPercent * 0.01f;
-            float nextZoom = Mathf.Clamp(mirror.Zoom + zoomDelta, 0.2f, 3f);
-            if (Mathf.Approximately(nextZoom, mirror.Zoom))
+            float scaleDelta = wheelDelta * director.State.MouseWheelVisualScaleStepPercent;
+            if (Mathf.Abs(scaleDelta) <= 0.0001f)
             {
                 return;
             }
 
-            director.Dispatch(KaleidoscopeCommand.SetMirrorZoom(nextZoom));
-            classicVisualScalePercent = nextZoom * 100f;
-            classicVisualWheelConsumed = true;
+            director.Dispatch(KaleidoscopeCommand.AdjustClassicCrystalScalePercent(scaleDelta));
+            DiamondFocusSettings updatedSettings = director.State != null ? director.State.DiamondFocusSettings : null;
+            classicCrystalScalePercent = updatedSettings != null
+                ? updatedSettings.ClassicCrystalScalePercent
+                : settings.ClassicCrystalScalePercent;
+            classicCrystalWheelConsumed = true;
         }
 
         private void DispatchPremiumCrystalFunctionKeyToggles(DiamondFocusSettings settings)
@@ -1080,6 +1116,14 @@ namespace Kaleidoscope2.InputSystem
         private bool IsPremiumCrystalWheelActive(DiamondFocusSettings settings)
         {
             return IsPremiumCrystalInputActive(settings);
+        }
+
+        private bool IsClassicCrystalWheelActive(DiamondFocusSettings settings, KaleidoscopeVisualMode visualMode)
+        {
+            return settings != null
+                && settings.Enabled
+                && settings.CrystalSimulationMode != CrystalRenderMode.RealMesh3D
+                && IsDiamondFocusModuleRegistered();
         }
 
         private bool IsPremiumCrystalFunctionKeysActive(DiamondFocusSettings settings)

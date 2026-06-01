@@ -1,4 +1,6 @@
 using System;
+using Kaleidoscope2.Demo;
+using Kaleidoscope2.Settings;
 using UnityEngine;
 
 namespace Kaleidoscope2.Core
@@ -24,7 +26,19 @@ namespace Kaleidoscope2.Core
         DiamondFocus = 16,
         DisplayOutput = 17,
         CrystalLightRig = 18,
-        CrystalPresentation = 19
+        CrystalPresentation = 19,
+        SettingsRestore = 20,
+        ComfortSafety = 21,
+        MeditationMode = 22,
+        CrystalSplitComfort = 23,
+        InputRecorder = 24,
+        DemoReplay = 25,
+        Benchmark = 26,
+        BenchmarkResult = 27,
+        DemoPanel = 28,
+        VisualSessionUi = 29,
+        CleanView = 30,
+        SettingsPersistence = 31
     }
 
     [Serializable]
@@ -98,6 +112,8 @@ namespace Kaleidoscope2.Core
                 RegisterLegacyModuleBehaviours();
             }
 
+            RegisterInternalOrchestrationModules();
+
             if (activateModulesOnBootstrap)
             {
                 director.ActivateAllModules();
@@ -145,6 +161,53 @@ namespace Kaleidoscope2.Core
                     true,
                     "Bootstrap.ModuleBehaviours[" + index + "]");
             }
+        }
+
+        private void RegisterInternalOrchestrationModules()
+        {
+            SettingsRestoreService restore = EnsureInternalModule<SettingsRestoreService>();
+            ComfortSafetyManager comfort = EnsureInternalModule<ComfortSafetyManager>();
+            CrystalSplitComfortController split = EnsureInternalModule<CrystalSplitComfortController>();
+            InputRecorder recorder = EnsureInternalModule<InputRecorder>();
+            BenchmarkResultView results = EnsureInternalModule<BenchmarkResultView>();
+            VisualSessionUiController sessionUi = EnsureInternalModule<VisualSessionUiController>();
+            CleanViewController cleanView = EnsureInternalModule<CleanViewController>();
+            SettingsPersistenceService settings = EnsureInternalModule<SettingsPersistenceService>();
+            MeditationModeController meditation = EnsureInternalModule<MeditationModeController>();
+            DemoReplayController replay = EnsureInternalModule<DemoReplayController>();
+            BenchmarkController benchmark = EnsureInternalModule<BenchmarkController>();
+            DemoPanel panel = EnsureInternalModule<DemoPanel>();
+
+            restore.Configure(director);
+            comfort.Configure(director);
+            split.Configure(director, restore);
+            recorder.Configure(director);
+            sessionUi.Configure(director, results);
+            cleanView.Configure(director);
+            settings.Configure(director);
+            meditation.Configure(director, restore, sessionUi);
+            replay.Configure(director, restore, recorder, sessionUi);
+            benchmark.Configure(director, restore, results, sessionUi);
+            panel.Configure(restore, benchmark, results);
+
+            director.RegisterModule(restore);
+            director.RegisterModule(comfort);
+            director.RegisterModule(split);
+            director.RegisterModule(recorder);
+            director.RegisterModule(results);
+            director.RegisterModule(sessionUi);
+            director.RegisterModule(cleanView);
+            director.RegisterModule(settings);
+            director.RegisterModule(meditation);
+            director.RegisterModule(replay);
+            director.RegisterModule(benchmark);
+            director.RegisterModule(panel);
+        }
+
+        private T EnsureInternalModule<T>() where T : Component
+        {
+            T module = GetComponent<T>();
+            return module != null ? module : gameObject.AddComponent<T>();
         }
 
         private void RegisterModuleBehaviour(

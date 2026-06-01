@@ -19,7 +19,6 @@ namespace Kaleidoscope2.Menu.FX
             public float Lifetime;
             public float Phase;
             public float SpeedScale;
-            public bool Bokeh;
         }
 
         private DustParticle[] particles = new DustParticle[0];
@@ -129,12 +128,12 @@ namespace Kaleidoscope2.Menu.FX
                 float normalizedAge = Mathf.Clamp01(particle.Age / Mathf.Max(0.001f, particle.Lifetime));
                 float fadeIn = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(normalizedAge * 5f));
                 float fadeOut = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01((1f - normalizedAge) * 3.2f));
-                float alpha = fadeIn * fadeOut * (0.78f + Mathf.Sin(time * (particle.Bokeh ? 0.19f : 0.34f) + particle.Phase) * 0.08f);
+                float alpha = fadeIn * fadeOut * (0.72f + Mathf.Sin(time * 0.34f + particle.Phase) * 0.08f);
 
                 Color color = particle.Color;
                 color.a *= Mathf.Clamp01(alpha);
 
-                float halfSize = particle.Size * (0.76f + Mathf.Sin(time * (particle.Bokeh ? 0.12f : 0.21f) + particle.Phase) * 0.08f);
+                float halfSize = particle.Size * (0.76f + Mathf.Sin(time * 0.21f + particle.Phase) * 0.08f);
                 int vertexIndex = vh.currentVertCount;
 
                 Vector3 min = new Vector3(particle.Position.x - halfSize, particle.Position.y - halfSize, 0f);
@@ -170,7 +169,7 @@ namespace Kaleidoscope2.Menu.FX
             for (int index = 0; index < particles.Length; index++)
             {
                 DustParticle particle = particles[index];
-                particle.Color = CreateParticleColor(particle.Bokeh);
+                particle.Color = CreateParticleColor();
                 particles[index] = particle;
             }
         }
@@ -179,12 +178,11 @@ namespace Kaleidoscope2.Menu.FX
         {
             EnsureRandom();
 
-            particle.Bokeh = Next01() < 0.115f;
-            particle.Size = particle.Bokeh ? NextRange(13f, 36f) : NextRange(1.4f, 5.4f);
-            particle.Lifetime = particle.Bokeh ? NextRange(20f, 44f) : NextRange(9f, 24f);
+            particle.Size = NextRange(1.2f, 4.4f);
+            particle.Lifetime = NextRange(10f, 26f);
             particle.Age = distributeAcrossRect ? NextRange(0f, particle.Lifetime) : 0f;
             particle.Phase = NextRange(0f, Mathf.PI * 2f);
-            particle.SpeedScale = particle.Bokeh ? NextRange(0.18f, 0.38f) : NextRange(0.72f, 1f);
+            particle.SpeedScale = NextRange(0.66f, 1f);
 
             float x = NextRange(rect.xMin, rect.xMax);
             float y = distributeAcrossRect
@@ -195,17 +193,17 @@ namespace Kaleidoscope2.Menu.FX
 
             Vector2 drift = new Vector2(NextRange(-0.42f, 0.46f), NextRange(0.58f, 1.0f));
             particle.Drift = drift.normalized;
-            particle.Color = CreateParticleColor(particle.Bokeh);
+            particle.Color = CreateParticleColor();
         }
 
-        private Color CreateParticleColor(bool bokeh)
+        private Color CreateParticleColor()
         {
             Color cyan = new Color(0.55f, 0.96f, 1f, 1f);
             Color gold = new Color(1f, 0.74f, 0.33f, 1f);
             Color rose = new Color(1f, 0.48f, 0.72f, 1f);
             Color color = Color.Lerp(cyan, gold, Next01() * 0.85f);
             color = Color.Lerp(color, rose, Next01() * 0.22f * colorVariation);
-            color.a = (bokeh ? NextRange(0.012f, 0.040f) : NextRange(0.10f, 0.28f)) * Mathf.Lerp(0.65f, 1.15f, colorVariation);
+            color.a = NextRange(0.055f, 0.17f) * Mathf.Lerp(0.65f, 1.05f, colorVariation);
             return color;
         }
 

@@ -46,17 +46,17 @@ namespace Kaleidoscope2.DiamondFocus
                 case DiamondCrystalMaterialMode.Garnet:
                     return Gem(mode, "Garnet", new Color(0.56f, 0.02f, 0.08f, 1f), 1.81f, 0.039f, 0.5f, 0.68f);
                 case DiamondCrystalMaterialMode.FuturisticPlastic:
-                    return Profile(mode, "Futuristic Plastic", CrystalSurfaceFamily.Plastic, new Color(0.58f, 0.86f, 1f, 1f), 0.34f, 0f, 0.18f, 0.44f, 0.026f, 0.32f, 1.05f, 0.05f, 0.65f, 0.62f);
+                    return Profile(mode, "Opal Prism Glass", CrystalSurfaceFamily.Gemstone, new Color(0.86f, 0.94f, 1f, 1f), 0.24f, 0f, 0.1f, 0.72f, 0.042f, 0.62f, 1.47f, 0.06f, 0.82f, 0.72f);
                 case DiamondCrystalMaterialMode.Mercury:
-                    return Metal(mode, "Mercury", new Color(0.82f, 0.88f, 0.94f, 1f), 0.01f, 0.99f, 0.04f, 0.42f);
+                    return Metal(mode, "Liquid Mercury Mirror", new Color(0.88f, 0.96f, 1f, 1f), 0.08f, 1f, 0.02f, 0.48f);
                 case DiamondCrystalMaterialMode.StainlessSteel:
-                    return Metal(mode, "Stainless Steel", new Color(0.82f, 0.84f, 0.82f, 1f), 0.07f, 0.9f, 0.2f, 0.25f);
+                    return Metal(mode, "Brushed Steel Mirror", new Color(0.72f, 0.76f, 0.78f, 1f), 0.14f, 0.94f, 0.18f, 0.28f);
                 case DiamondCrystalMaterialMode.Chrome:
-                    return Metal(mode, "Chrome", new Color(0.9f, 0.94f, 1f, 1f), 0.03f, 1f, 0.05f, 0.36f);
+                    return Metal(mode, "Chrome Facet Mirror", new Color(0.94f, 0.98f, 1f, 1f), 0.06f, 1f, 0.035f, 0.46f);
                 case DiamondCrystalMaterialMode.CastIron:
-                    return Metal(mode, "Cast Iron", new Color(0.32f, 0.32f, 0.31f, 1f), 0.12f, 0.92f, 0.52f, 0.1f);
+                    return Metal(mode, "Blackened Iron Facets", new Color(0.2f, 0.21f, 0.21f, 1f), 0.2f, 0.88f, 0.44f, 0.12f);
                 case DiamondCrystalMaterialMode.PolishedBrass:
-                    return Metal(mode, "Polished Brass", new Color(1f, 0.72f, 0.28f, 1f), 0.18f, 0.96f, 0.1f, 0.28f);
+                    return Metal(mode, "Polished Brass Prism", new Color(1f, 0.74f, 0.28f, 1f), 0.26f, 0.96f, 0.08f, 0.36f);
                 default:
                     return Profile(DiamondCrystalMaterialMode.Diamond, "High-Purity Diamond", CrystalSurfaceFamily.Diamond, new Color(0.9f, 0.98f, 1f, 1f), 0.06f, 0f, 0.01f, 0.78f, 0.052f, 0.78f, 1.35f, 0.01f, 0.96f, 0.05f);
             }

@@ -194,6 +194,7 @@ namespace Kaleidoscope2.DiamondFocus
                 realMeshRenderer.SetStageDebugMode(sharedSettings.PremiumDebugOpticalDiagnosticsEnabled
                     ? CrystalStage3DDebugMode.ReflectionEnvironmentOnly
                     : realMeshStageDebugMode);
+                realMeshRenderer.SetComfortPresentation(runtimeState.CrystalSplitPresentation);
             }
 
             DeactivateAllRendererRoots();

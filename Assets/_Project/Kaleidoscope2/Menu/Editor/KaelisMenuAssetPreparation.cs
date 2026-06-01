@@ -16,6 +16,11 @@ namespace Kaleidoscope2.Menu.Editor
         private const string BackgroundPath = "Assets/_Project/Kaleidoscope2/Menu/UI/Backgrounds/Background.png";
         private const string LogoPath = "Assets/_Project/Kaleidoscope2/Menu/UI/Logos/Logo.png";
         private const string LogoResourcePath = LogoResourcesRoot + "/Logo.png";
+        private const string LocalizedUiGlyphSeed =
+            "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789" +
+            "АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдеёжзийклмнопрстуфхцчшщъыьэюя" +
+            "ҐЄІЇґєіїÄÖÜäöüẞß" +
+            "©®™“”‘’«»—–-…/\\|:;,.!?()[]{}+*=_%<>@#&$\"' ";
 
         private const int OutputWidth = 768;
         private const int OutputHeight = 120;
@@ -58,12 +63,13 @@ namespace Kaleidoscope2.Menu.Editor
 
             CopyButtonAsset("button_demo_selected.png", "button_demo_active.png");
 
-            CreateFontAsset("Kaelis_Cinzel_Regular", "Assets/_Project/Kaleidoscope2/Menu/UI/Fonts/Cinzel/static/Cinzel-Regular.ttf");
-            CreateFontAsset("Kaelis_Cinzel_Medium", "Assets/_Project/Kaleidoscope2/Menu/UI/Fonts/Cinzel/static/Cinzel-Medium.ttf");
-            CreateFontAsset("Kaelis_Cinzel_SemiBold", "Assets/_Project/Kaleidoscope2/Menu/UI/Fonts/Cinzel/static/Cinzel-SemiBold.ttf");
-            CreateFontAsset("Kaelis_Inter_18pt_Regular", "Assets/_Project/Kaleidoscope2/Menu/UI/Fonts/Inter/static/Inter_18pt-Regular.ttf");
-            CreateFontAsset("Kaelis_Inter_18pt_Medium", "Assets/_Project/Kaleidoscope2/Menu/UI/Fonts/Inter/static/Inter_18pt-Medium.ttf");
-            CreateFontAsset("Kaelis_Inter_18pt_SemiBold", "Assets/_Project/Kaleidoscope2/Menu/UI/Fonts/Inter/static/Inter_18pt-SemiBold.ttf");
+            CreateFontAsset("Kaelis_Cinzel_Regular", "Assets/_Project/Kaleidoscope2/Menu/UI/Fonts/Cinzel/static/Cinzel-Regular.ttf", false);
+            CreateFontAsset("Kaelis_Cinzel_Medium", "Assets/_Project/Kaleidoscope2/Menu/UI/Fonts/Cinzel/static/Cinzel-Medium.ttf", false);
+            CreateFontAsset("Kaelis_Cinzel_SemiBold", "Assets/_Project/Kaleidoscope2/Menu/UI/Fonts/Cinzel/static/Cinzel-SemiBold.ttf", false);
+            CreateFontAsset("Kaelis_Inter_18pt_Regular", "Assets/_Project/Kaleidoscope2/Menu/UI/Fonts/Inter/static/Inter_18pt-Regular.ttf", true);
+            CreateFontAsset("Kaelis_Inter_18pt_Medium", "Assets/_Project/Kaleidoscope2/Menu/UI/Fonts/Inter/static/Inter_18pt-Medium.ttf", true);
+            CreateFontAsset("Kaelis_Inter_18pt_SemiBold", "Assets/_Project/Kaleidoscope2/Menu/UI/Fonts/Inter/static/Inter_18pt-SemiBold.ttf", true);
+            ConfigureFontFallbacks();
 
             Object.DestroyImmediate(sheet);
             AssetDatabase.SaveAssets();
@@ -322,7 +328,7 @@ namespace Kaleidoscope2.Menu.Editor
             importer.SaveAndReimport();
         }
 
-        private static void CreateFontAsset(string assetName, string fontPath)
+        private static void CreateFontAsset(string assetName, string fontPath, bool prepareLocalizedGlyphs)
         {
             Font sourceFont = AssetDatabase.LoadAssetAtPath<Font>(fontPath);
             Require(sourceFont != null, "Font missing: " + fontPath);
@@ -332,6 +338,11 @@ namespace Kaleidoscope2.Menu.Editor
             if (oldAsset != null)
             {
                 oldAsset.atlasPopulationMode = AtlasPopulationMode.Dynamic;
+                if (prepareLocalizedGlyphs)
+                {
+                    PrepareFontGlyphs(oldAsset, assetName);
+                }
+
                 EditorUtility.SetDirty(oldAsset);
                 return;
             }
@@ -340,6 +351,11 @@ namespace Kaleidoscope2.Menu.Editor
             Require(fontAsset != null, "Could not create TMP font asset from: " + fontPath);
             fontAsset.name = assetName;
             fontAsset.atlasPopulationMode = AtlasPopulationMode.Dynamic;
+            if (prepareLocalizedGlyphs)
+            {
+                PrepareFontGlyphs(fontAsset, assetName);
+            }
+
             AssetDatabase.CreateAsset(fontAsset, assetPath);
 
             if (fontAsset.atlasTextures != null)
@@ -372,6 +388,50 @@ namespace Kaleidoscope2.Menu.Editor
             if (!condition)
             {
                 throw new System.InvalidOperationException("[KAELIS Menu Assets] " + message);
+            }
+        }
+
+        private static void ConfigureFontFallbacks()
+        {
+            TMP_FontAsset interRegular = LoadMenuFont("Kaelis_Inter_18pt_Regular");
+            TMP_FontAsset interMedium = LoadMenuFont("Kaelis_Inter_18pt_Medium");
+            TMP_FontAsset interSemiBold = LoadMenuFont("Kaelis_Inter_18pt_SemiBold");
+            AddFallback(LoadMenuFont("Kaelis_Cinzel_Regular"), interRegular);
+            AddFallback(LoadMenuFont("Kaelis_Cinzel_Medium"), interMedium);
+            AddFallback(LoadMenuFont("Kaelis_Cinzel_SemiBold"), interSemiBold != null ? interSemiBold : interRegular);
+            AddFallback(interMedium, interRegular);
+            AddFallback(interSemiBold, interRegular);
+        }
+
+        private static TMP_FontAsset LoadMenuFont(string assetName)
+        {
+            return AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(MenuFontsRoot + "/" + assetName + ".asset");
+        }
+
+        private static void AddFallback(TMP_FontAsset font, TMP_FontAsset fallback)
+        {
+            if (font == null || fallback == null || font == fallback)
+            {
+                return;
+            }
+
+            if (font.fallbackFontAssetTable == null)
+            {
+                font.fallbackFontAssetTable = new List<TMP_FontAsset>();
+            }
+
+            if (!font.fallbackFontAssetTable.Contains(fallback))
+            {
+                font.fallbackFontAssetTable.Add(fallback);
+                EditorUtility.SetDirty(font);
+            }
+        }
+
+        private static void PrepareFontGlyphs(TMP_FontAsset font, string label)
+        {
+            if (!font.TryAddCharacters(LocalizedUiGlyphSeed, out string missingCharacters) || !string.IsNullOrEmpty(missingCharacters))
+            {
+                Debug.LogWarning("[KAELIS Menu Assets] TMP font " + label + " is missing localized UI glyphs: " + missingCharacters);
             }
         }
     }

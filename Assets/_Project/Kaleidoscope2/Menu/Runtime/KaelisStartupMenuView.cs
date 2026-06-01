@@ -22,12 +22,14 @@ namespace Kaleidoscope2.Menu
         public CanvasGroup CanvasGroup { get; private set; }
         public KaelisMenuButton EnterButton { get; private set; }
         public KaelisMenuButton DemoButton { get; private set; }
+        public KaelisMenuButton MeditationButton { get; private set; }
         public KaelisMenuButton ModesButton { get; private set; }
         public KaelisMenuButton OpticsButton { get; private set; }
         public KaelisMenuButton PresetsButton { get; private set; }
         public KaelisMenuButton SettingsButton { get; private set; }
+        public KaelisMenuButton AboutButton { get; private set; }
         public KaelisMenuButton ExitButton { get; private set; }
-        public Toggle DemoToggle { get { return DemoButton != null ? DemoButton.Toggle : null; } }
+        public Toggle DemoToggle { get { return null; } }
         public RawImage PreviewRawImage { get; private set; }
         public TMP_Text TitleText { get; private set; }
         public TMP_Text StatusText { get; private set; }
@@ -187,11 +189,13 @@ namespace Kaleidoscope2.Menu
             layout.childForceExpandHeight = false;
 
             EnterButton = KaelisMenuButton.CreateButton(buttonStack, "EnterExperienceButton", "ENTER EXPERIENCE", KaelisMenuButtonTone.Primary, KaelisMenuIconKind.Diamond, assets, KaelisMenuStyle.PrimaryButtonHeight);
-            DemoButton = KaelisMenuButton.CreateToggle(buttonStack, "DemoModeToggle", "DEMO MODE", KaelisMenuButtonTone.Demo, KaelisMenuIconKind.Monitor, assets, KaelisMenuStyle.StandardButtonHeight);
+            MeditationButton = KaelisMenuButton.CreateButton(buttonStack, "MeditationModeButton", "MEDITATION MODE", KaelisMenuButtonTone.Demo, KaelisMenuIconKind.Diamond, assets, KaelisMenuStyle.StandardButtonHeight);
+            DemoButton = KaelisMenuButton.CreateButton(buttonStack, "DemoModeButton", "DEMO", KaelisMenuButtonTone.Demo, KaelisMenuIconKind.Monitor, assets, KaelisMenuStyle.StandardButtonHeight);
             ModesButton = KaelisMenuButton.CreateButton(buttonStack, "ModesButton", "MODES", KaelisMenuButtonTone.Secondary, KaelisMenuIconKind.Layers, assets, KaelisMenuStyle.StandardButtonHeight);
             OpticsButton = KaelisMenuButton.CreateButton(buttonStack, "OpticsButton", "OPTICS", KaelisMenuButtonTone.Secondary, KaelisMenuIconKind.Optics, assets, KaelisMenuStyle.StandardButtonHeight);
             PresetsButton = KaelisMenuButton.CreateButton(buttonStack, "PresetsButton", "PRESETS", KaelisMenuButtonTone.Secondary, KaelisMenuIconKind.Star, assets, KaelisMenuStyle.StandardButtonHeight);
             SettingsButton = KaelisMenuButton.CreateButton(buttonStack, "SettingsButton", "SETTINGS", KaelisMenuButtonTone.Secondary, KaelisMenuIconKind.Settings, assets, KaelisMenuStyle.StandardButtonHeight);
+            AboutButton = KaelisMenuButton.CreateButton(buttonStack, "AboutButton", "ABOUT", KaelisMenuButtonTone.Secondary, KaelisMenuIconKind.Diamond, assets, KaelisMenuStyle.StandardButtonHeight);
             ExitButton = KaelisMenuButton.CreateButton(buttonStack, "ExitButton", "EXIT", KaelisMenuButtonTone.Exit, KaelisMenuIconKind.Exit, assets, KaelisMenuStyle.StandardButtonHeight);
             ConfigureMainButtonTooltips();
         }
@@ -210,12 +214,17 @@ namespace Kaleidoscope2.Menu
 
             if (DemoButton != null)
             {
-                DemoButton.ConfigureTooltip(Tooltip, "DEMO MODE", "Reserved for a dedicated demo playback task. Current click stores only the UI state.", "OFF / ON", "Reserved", KaelisMenuInputHintProvider.Get(KaelisMenuInputHintKind.Toggle));
+                DemoButton.ConfigureTooltip(Tooltip, "DEMO", "Open setup previews for semantic Replay Demo and the safe 60-second Benchmark Demo.", "Preview / START / Save results", "Real binding", KaelisMenuInputHintProvider.Get(KaelisMenuInputHintKind.Action));
+            }
+
+            if (MeditationButton != null)
+            {
+                MeditationButton.ConfigureTooltip(Tooltip, "MEDITATION MODE", "Open the setup preview for a restorable comfort session with smooth 0.25-1.5 rotations/sec breathing motion, curated playlist, and orbital split comfort.", "Press START to begin; H cleans view; Esc or middle mouse exits", "Real binding", KaelisMenuInputHintProvider.Get(KaelisMenuInputHintKind.Action));
             }
 
             if (ModesButton != null)
             {
-                ModesButton.ConfigureTooltip(Tooltip, "MODES", "Open visual route selection cards.", "Classic / Tunnel / Flight / Reserved", "Section", KaelisMenuInputHintProvider.Get(KaelisMenuInputHintKind.Action));
+                ModesButton.ConfigureTooltip(Tooltip, "MODES", "Open visual route selection cards.", "Classic / Premium / Tunnel / Flight", "Section", KaelisMenuInputHintProvider.Get(KaelisMenuInputHintKind.Action));
             }
 
             if (OpticsButton != null)
@@ -225,12 +234,17 @@ namespace Kaleidoscope2.Menu
 
             if (PresetsButton != null)
             {
-                PresetsButton.ConfigureTooltip(Tooltip, "PRESETS", "Open factory look cards and reserved user preset actions.", "Factory profiles", "Section", KaelisMenuInputHintProvider.Get(KaelisMenuInputHintKind.Action));
+                PresetsButton.ConfigureTooltip(Tooltip, "PRESETS", "Open factory look cards and user preset actions. Editing actions become available after Preset Persistence service is implemented.", "Factory profiles", "Section", KaelisMenuInputHintProvider.Get(KaelisMenuInputHintKind.Action));
             }
 
             if (SettingsButton != null)
             {
                 SettingsButton.ConfigureTooltip(Tooltip, "SETTINGS", "Open application, audio, controls, system, and diagnostics settings.", "System controls", "Section", KaelisMenuInputHintProvider.Get(KaelisMenuInputHintKind.Action));
+            }
+
+            if (AboutButton != null)
+            {
+                AboutButton.ConfigureTooltip(Tooltip, "ABOUT", "Open KAELIS author, music, creation story, credits, and license information.", "UI only; no visual state changes", "Real binding", KaelisMenuInputHintProvider.Get(KaelisMenuInputHintKind.Action));
             }
 
             if (ExitButton != null)
@@ -246,72 +260,30 @@ namespace Kaleidoscope2.Menu
             panel.anchorMax = new Vector2(1f, 1f);
             panel.offsetMin = KaelisMenuStyle.PreviewPanelOffsetMin;
             panel.offsetMax = KaelisMenuStyle.PreviewPanelOffsetMax;
-            BuildGlassPanel(panel, false);
-
-            RectTransform header = KaelisMenuUiPrimitives.CreateRect("PreviewHeader", panel);
-            header.anchorMin = new Vector2(0f, 1f);
-            header.anchorMax = new Vector2(1f, 1f);
-            header.pivot = new Vector2(0.5f, 1f);
-            header.sizeDelta = new Vector2(0f, 72f);
-            header.anchoredPosition = Vector2.zero;
-
-            TMP_Text headerText = KaelisMenuUiPrimitives.CreateText(header, "LivePreviewLabel", "LIVE PREVIEW", 17f, KaelisMenuStyle.TextPrimary, TextAlignmentOptions.Left, assets.GetFont(KaelisMenuFontRole.Button));
-            headerText.characterSpacing = 8f;
-            RectTransform headerTextRect = (RectTransform)headerText.transform;
-            headerTextRect.offsetMin = new Vector2(70f, 0f);
-            headerTextRect.offsetMax = new Vector2(-70f, 0f);
-            AddAccentDiamond(header, "PreviewHeaderAccent", new Vector2(0f, 1f), new Vector2(45f, -33f), 11f, new Color(1f, 0.74f, 0.32f, 0.20f), new Color(1f, 0.76f, 0.36f, 0.72f));
 
             RectTransform display = KaelisMenuUiPrimitives.CreateRect("PreviewDisplayFrame", panel);
             KaelisMenuUiPrimitives.Stretch(display);
-            display.offsetMin = new Vector2(38f, 38f);
-            display.offsetMax = new Vector2(-38f, -80f);
+            display.offsetMin = Vector2.zero;
+            display.offsetMax = Vector2.zero;
 
             if (assets.PreviewTexture != null)
             {
-                PreviewRawImage = KaelisMenuUiPrimitives.AddRawImage(display, assets.PreviewTexture, new Color(1f, 1f, 1f, 0.58f), false);
+                PreviewRawImage = KaelisMenuUiPrimitives.AddRawImage(display, assets.PreviewTexture, new Color(1f, 1f, 1f, 0.82f), false);
                 PreviewRawImage.name = "PreviewRawImage";
                 PreviewRawImage.uvRect = KaelisMenuStyle.PreviewUv;
             }
             else
             {
-                KaelisMenuUiPrimitives.AddImage(display, assets.SolidSprite, new Color(0.02f, 0.08f, 0.11f, 0.86f), false);
                 PreviewRawImage = display.gameObject.AddComponent<RawImage>();
                 PreviewRawImage.name = "PreviewRawImage";
                 PreviewRawImage.color = new Color(0f, 0f, 0f, 0f);
                 PreviewRawImage.raycastTarget = false;
             }
 
-            RectTransform previewDepth = KaelisMenuUiPrimitives.CreateRect("PreviewDepthOverlay", display);
-            KaelisMenuUiPrimitives.Stretch(previewDepth);
-            KaelisMenuUiPrimitives.AddImage(previewDepth, assets.SolidSprite, new Color(0f, 0.018f, 0.030f, 0.10f), false);
-            KaelisMenuUiPrimitives.AddAmbientBand(display, "PreviewTopCyanBloom", new Vector2(0f, 0.70f), new Vector2(1f, 1f), new Color(0.15f, 0.80f, 1f, 0.08f), assets.SolidSprite);
             if (atmosphereFX != null)
             {
                 atmosphereFX.BindCrystalShimmerTarget(display);
             }
-
-            KaelisMenuUiPrimitives.AddInsetFrame(display, new Color(0.22f, 0.92f, 1f, 0.34f), 0f, 1.15f, assets.SolidSprite);
-            KaelisMenuUiPrimitives.AddCornerCuts(display, new Color(1f, 0.78f, 0.42f, 0.34f), 38f, 1.35f, assets.SolidSprite);
-
-            RectTransform caption = KaelisMenuUiPrimitives.CreateRect("PreviewCaption", display);
-            caption.anchorMin = new Vector2(0f, 0f);
-            caption.anchorMax = new Vector2(1f, 0f);
-            caption.pivot = new Vector2(0.5f, 0f);
-            caption.sizeDelta = new Vector2(0f, 118f);
-            caption.anchoredPosition = new Vector2(0f, 34f);
-
-            TMP_Text captionTitle = KaelisMenuUiPrimitives.CreateText(caption, "PreviewPanelTitle", "PREVIEW PANEL", 27f, new Color(1f, 0.77f, 0.40f, 0.96f), TextAlignmentOptions.Center, assets.GetFont(KaelisMenuFontRole.PreviewLabel));
-            captionTitle.characterSpacing = 14f;
-            RectTransform captionTitleRect = (RectTransform)captionTitle.transform;
-            captionTitleRect.offsetMin = new Vector2(0f, 56f);
-            captionTitleRect.offsetMax = new Vector2(0f, 112f);
-
-            TMP_Text captionSub = KaelisMenuUiPrimitives.CreateText(caption, "PreviewPanelSubtitle", "RAW IMAGE SURFACE", 13f, new Color(0.78f, 0.84f, 0.86f, 0.78f), TextAlignmentOptions.Center, assets.GetFont(KaelisMenuFontRole.Status));
-            captionSub.characterSpacing = 9f;
-            RectTransform captionSubRect = (RectTransform)captionSub.transform;
-            captionSubRect.offsetMin = new Vector2(0f, 20f);
-            captionSubRect.offsetMax = new Vector2(0f, 60f);
 
             SectionController = new KaelisMenuSectionController(display, assets, Tooltip);
         }

@@ -41,7 +41,7 @@ namespace Kaleidoscope2.Diagnostics
                 return;
             }
 
-            if (director != null && !director.State.Diagnostics.HudVisible)
+            if (director != null && (!director.State.Diagnostics.HudVisible || director.State.CleanViewEnabled))
             {
                 return;
             }

@@ -302,6 +302,7 @@ namespace Kaleidoscope2.Core
 
         private void ApplyMenuOptics(DiamondFocusSettings diamondSettings, CrystalLightRigSettings lightRigSettings)
         {
+            bool premiumPresentation = diamondSettings.IsPremiumCrystalSimulation;
             float brightness01 = Mathf.InverseLerp(0.10f, 3f, diamondSettings.PremiumOpticsBrightness);
             float contrast = diamondSettings.PremiumOpticsContrast;
             float bloom01 = Mathf.Clamp01(diamondSettings.PremiumOpticsBloomGlow / 5f);
@@ -320,10 +321,15 @@ namespace Kaleidoscope2.Core
             float coefficient01 = Mathf.InverseLerp(0f, 10f, diamondSettings.RefractionCoefficient);
 
             float baseIntensity = Mathf.Clamp(lightRigSettings.LightIntensity, diamondSettings.ActiveCrystalBrightnessMin, diamondSettings.ActiveCrystalBrightnessMax);
-            intensity = Mathf.Clamp(
-                baseIntensity * Mathf.Lerp(0.55f, 2.35f, brightness01) + bloom01 * 3f + caustics01 * 1.4f,
-                0f,
-                20f);
+            intensity = premiumPresentation
+                ? Mathf.Clamp(
+                    baseIntensity * Mathf.Lerp(0.30f, 1.12f, brightness01) + bloom01 * 0.75f + caustics01 * 0.35f,
+                    0f,
+                    20f)
+                : Mathf.Clamp(
+                    baseIntensity * Mathf.Lerp(0.55f, 2.35f, brightness01) + bloom01 * 3f + caustics01 * 1.4f,
+                    0f,
+                    20f);
 
             transparency = direct01;
             refractionStrength = Mathf.Clamp(
@@ -338,11 +344,15 @@ namespace Kaleidoscope2.Core
             thicknessRefraction = Mathf.Clamp(thicknessRefraction * Mathf.Lerp(0.28f, 3.1f, refraction01) * Mathf.Lerp(0.65f, 1.95f, depth01), 0f, 3f);
             reflectionStrength = Mathf.Clamp(reflectionStrength * Mathf.Lerp(0.05f, 1.45f, reflection01), 0f, 1.5f);
             internalReflection = Mathf.Clamp(internalReflection * Mathf.Lerp(0f, 2.5f, internal01) + caustics01 * 0.25f, 0f, 3f);
-            internalBrightness = Mathf.Clamp(diamondSettings.InternalBrightness * Mathf.Lerp(0.55f, 1.8f, internal01) + bloom01 * 1.4f + caustics01 * 0.4f, 0f, 3f);
+            internalBrightness = premiumPresentation
+                ? Mathf.Clamp(diamondSettings.InternalBrightness * Mathf.Lerp(0.35f, 0.94f, internal01) + bloom01 * 0.24f + caustics01 * 0.12f, 0f, 3f)
+                : Mathf.Clamp(diamondSettings.InternalBrightness * Mathf.Lerp(0.55f, 1.8f, internal01) + bloom01 * 1.4f + caustics01 * 0.4f, 0f, 3f);
             backgroundDistortionStrength = Mathf.Clamp(backgroundDistortionStrength * Mathf.Lerp(0f, 2.6f, background01), 0f, 3f);
             spectralDispersion = Mathf.Clamp(spectralDispersion * Mathf.Lerp(0f, 3.2f, dispersion01) * Mathf.Lerp(0.7f, 1.85f, spectral01), 0f, 3f);
             physicalDispersion = Mathf.Clamp(physicalDispersion + dispersion01 * 0.11f + chroma01 * 0.045f, 0f, 0.18f);
-            facetFire = Mathf.Clamp(facetFire * Mathf.Lerp(0.15f, 2.5f, highlight01) + rainbow01 + caustics01 * 0.5f, 0f, 3f);
+            facetFire = premiumPresentation
+                ? Mathf.Clamp(facetFire * Mathf.Lerp(0.10f, 1.18f, highlight01) + rainbow01 * 0.34f + caustics01 * 0.18f, 0f, 3f)
+                : Mathf.Clamp(facetFire * Mathf.Lerp(0.15f, 2.5f, highlight01) + rainbow01 + caustics01 * 0.5f, 0f, 3f);
             depthAbsorption = Mathf.Clamp01(depthAbsorption * Mathf.Lerp(0.4f, 1.55f, depth01));
             absorptionStrength = Mathf.Clamp(absorptionStrength * Mathf.Lerp(0.7f, 1.45f, depth01), 0f, 3f);
             fresnelStrength = Mathf.Clamp(fresnelStrength * Mathf.Lerp(0.75f, 1.45f, reflection01), 0f, 3f);
@@ -359,7 +369,9 @@ namespace Kaleidoscope2.Core
             chromaticAberrationScale = Mathf.Lerp(0f, 3f, chroma01);
             spectralSplitScale = Mathf.Lerp(0.2f, 4f, spectral01);
             crystalDepthScale = Mathf.Lerp(0.45f, 2.2f, depth01);
-            specularStrength = Mathf.Clamp01(0.25f + reflection01 * 0.55f + highlight01 * 0.3f);
+            specularStrength = premiumPresentation
+                ? Mathf.Clamp01(0.16f + reflection01 * 0.37f + highlight01 * 0.16f)
+                : Mathf.Clamp01(0.25f + reflection01 * 0.55f + highlight01 * 0.3f);
             absoluteMirrorStrength = diamondSettings.MaterialMode == DiamondCrystalMaterialMode.AbsoluteMirror ? 1f : 0f;
 
             if (!premiumRefractionDistortionEnabled)
@@ -438,14 +450,22 @@ namespace Kaleidoscope2.Core
                     SetPremiumMaterial("Mirror Diamond", new Color(0.92f, 0.97f, 1f, 1f), new Color(0.72f, 0.86f, 1f, 1f), new Color(1f, 0.92f, 0.58f, 1f), 0.08f, 0.58f, 0.9f, 0.82f, 1.44f, 1.3f, 1.28f, 0.2f, 0.96f, refractiveIndexValue: 2.417f, physicalDispersionValue: 0.044f, absorptionStrengthValue: 0.18f, fresnelStrengthValue: 1.5f, backgroundDistortionValue: 1.16f, saturationBoostValue: 1.04f, contrastBoostValue: 1.22f);
                     break;
                 case DiamondCrystalMaterialMode.FuturisticPlastic:
-                    SetPremiumMaterial("Opal Glass", new Color(0.86f, 0.94f, 1f, 1f), new Color(0.96f, 0.82f, 1f, 1f), new Color(1f, 0.74f, 0.36f, 1f), 0.28f, 0.76f, 0.9f, 0.98f, 0.94f, 1.34f, 1.28f, 0.28f, 0.74f, refractiveIndexValue: 1.45f, physicalDispersionValue: 0.03f, absorptionStrengthValue: 0.3f, fresnelStrengthValue: 0.92f, backgroundDistortionValue: 1.16f, saturationBoostValue: 1.12f, contrastBoostValue: 0.94f, opalIridescenceValue: 0.86f);
+                    SetPremiumMaterial("Opal Prism Glass", new Color(0.86f, 0.94f, 1f, 1f), new Color(0.96f, 0.82f, 1f, 1f), new Color(1f, 0.74f, 0.36f, 1f), 0.28f, 0.76f, 0.9f, 0.98f, 0.94f, 1.34f, 1.28f, 0.28f, 0.74f, refractiveIndexValue: 1.45f, physicalDispersionValue: 0.03f, absorptionStrengthValue: 0.3f, fresnelStrengthValue: 0.92f, backgroundDistortionValue: 1.16f, saturationBoostValue: 1.12f, contrastBoostValue: 0.94f, opalIridescenceValue: 0.86f);
                     break;
                 case DiamondCrystalMaterialMode.Mercury:
+                    SetPremiumMaterial("Liquid Mercury Mirror", new Color(0.9f, 0.96f, 1f, 1f), new Color(0.46f, 0.54f, 0.62f, 1f), new Color(0.74f, 0.92f, 1f, 1f), 0.12f, 0.72f, 0.82f, 0.74f, 1.28f, 0.36f, 0.72f, 0.18f, 0.9f, refractiveIndexValue: 1.72f, physicalDispersionValue: 0.018f, absorptionStrengthValue: 0.22f, fresnelStrengthValue: 1.42f, backgroundDistortionValue: 0.9f, saturationBoostValue: 0.96f, contrastBoostValue: 1.24f);
+                    break;
                 case DiamondCrystalMaterialMode.StainlessSteel:
+                    SetPremiumMaterial("Brushed Steel Mirror", new Color(0.72f, 0.76f, 0.78f, 1f), new Color(0.32f, 0.34f, 0.36f, 1f), new Color(0.88f, 0.92f, 0.86f, 1f), 0.2f, 0.82f, 0.62f, 0.62f, 1.08f, 0.22f, 0.48f, 0.28f, 0.76f, refractiveIndexValue: 1.66f, physicalDispersionValue: 0.012f, absorptionStrengthValue: 0.36f, fresnelStrengthValue: 1.24f, backgroundDistortionValue: 0.68f, saturationBoostValue: 0.88f, contrastBoostValue: 1.18f);
+                    break;
                 case DiamondCrystalMaterialMode.Chrome:
+                    SetPremiumMaterial("Chrome Facet Mirror", new Color(0.94f, 0.98f, 1f, 1f), new Color(0.54f, 0.6f, 0.68f, 1f), new Color(0.98f, 0.95f, 0.76f, 1f), 0.08f, 0.64f, 0.74f, 0.68f, 1.42f, 0.3f, 0.64f, 0.16f, 0.92f, refractiveIndexValue: 1.7f, physicalDispersionValue: 0.016f, absorptionStrengthValue: 0.18f, fresnelStrengthValue: 1.48f, backgroundDistortionValue: 0.82f, saturationBoostValue: 0.94f, contrastBoostValue: 1.3f);
+                    break;
                 case DiamondCrystalMaterialMode.CastIron:
+                    SetPremiumMaterial("Blackened Iron Facets", new Color(0.2f, 0.22f, 0.22f, 1f), new Color(0.06f, 0.07f, 0.075f, 1f), new Color(0.72f, 0.58f, 0.4f, 1f), 0.34f, 1.06f, 0.54f, 0.76f, 0.78f, 0.12f, 0.28f, 0.52f, 0.62f, refractiveIndexValue: 1.58f, physicalDispersionValue: 0.006f, absorptionStrengthValue: 0.74f, fresnelStrengthValue: 1.02f, backgroundDistortionValue: 0.46f, saturationBoostValue: 0.76f, contrastBoostValue: 1.4f);
+                    break;
                 case DiamondCrystalMaterialMode.PolishedBrass:
-                    SetPremiumMaterial(DiamondFocusSettings.GetMaterialModeLabel(mode), new Color(0.86f, 0.88f, 0.9f, 1f), new Color(0.46f, 0.48f, 0.5f, 1f), new Color(0.9f, 0.86f, 0.74f, 1f), 0.22f, 0.58f, 0.32f, 0.44f, 0.88f, 0.18f, 0.34f, 0.24f, 0.42f, refractiveIndexValue: 1.62f, physicalDispersionValue: 0.01f, absorptionStrengthValue: 0.34f, fresnelStrengthValue: 0.9f, backgroundDistortionValue: 0.72f, saturationBoostValue: 0.82f, contrastBoostValue: 1.06f);
+                    SetPremiumMaterial("Polished Brass Prism", new Color(1f, 0.76f, 0.3f, 1f), new Color(0.54f, 0.28f, 0.07f, 1f), new Color(1f, 0.9f, 0.46f, 1f), 0.28f, 0.86f, 0.68f, 0.68f, 1.18f, 0.28f, 0.58f, 0.3f, 0.78f, refractiveIndexValue: 1.68f, physicalDispersionValue: 0.014f, absorptionStrengthValue: 0.38f, fresnelStrengthValue: 1.22f, backgroundDistortionValue: 0.64f, saturationBoostValue: 1.06f, contrastBoostValue: 1.22f);
                     break;
                 default:
                     SetPremiumMaterial("Diamond", new Color(0.94f, 0.99f, 1f, 1f), new Color(0.7f, 0.9f, 1f, 1f), new Color(1f, 0.88f, 0.34f, 1f), 0.12f, 0.86f, 1.28f, 1.22f, 1.42f, 1.36f, 1.34f, 0.22f, 0.98f, refractiveIndexValue: 2.417f, physicalDispersionValue: 0.044f, absorptionStrengthValue: 0.22f, fresnelStrengthValue: 1.55f, backgroundDistortionValue: 1.26f, saturationBoostValue: 1.06f, contrastBoostValue: 1.26f);

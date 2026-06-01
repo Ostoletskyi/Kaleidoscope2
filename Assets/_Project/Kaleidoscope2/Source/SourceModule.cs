@@ -1,9 +1,21 @@
 using Kaleidoscope2.Core;
+using Kaleidoscope2.Demo;
 using Kaleidoscope2.ImageSource;
+using System;
+using System.IO;
 using UnityEngine;
 
 namespace Kaleidoscope2.Source
 {
+    [Serializable]
+    public struct SourceRuntimeSnapshot
+    {
+        public bool UsingDemoContent;
+        public string DemoProfileId;
+        public int CurrentImageIndex;
+        public float ElapsedInCurrentImage;
+    }
+
     [DisallowMultipleComponent]
     public sealed class SourceModule : KaleidoscopeModuleBase, IKaleidoscopeSourceProvider
     {
@@ -17,6 +29,9 @@ namespace Kaleidoscope2.Source
 
         private Texture2D fallbackTexture;
         private readonly ImageSlideshowController slideshow = new ImageSlideshowController();
+        private bool usingDemoContent;
+        private bool usingDemoContentFallback;
+        private string activeDemoProfileId = string.Empty;
 
         public override string ModuleId
         {
@@ -42,6 +57,8 @@ namespace Kaleidoscope2.Source
         {
             get { return GetActiveTexture(); }
         }
+
+        public bool UsingDemoContentFallback { get { return usingDemoContentFallback; } }
 
         protected override void OnInitialized()
         {
@@ -72,6 +89,7 @@ namespace Kaleidoscope2.Source
             return command.Type == KaleidoscopeCommandType.SetSourceMode
                 || command.Type == KaleidoscopeCommandType.SetImageFilePath
                 || command.Type == KaleidoscopeCommandType.SetImageFolderPath
+                || command.Type == KaleidoscopeCommandType.SetDemoImageContent
                 || command.Type == KaleidoscopeCommandType.TriggerSourceNextImage;
         }
 
@@ -94,6 +112,10 @@ namespace Kaleidoscope2.Source
                     TryLoadImageFolder(command.StringValue);
                     break;
 
+                case KaleidoscopeCommandType.SetDemoImageContent:
+                    TryLoadDemoImages(command.StringValue);
+                    break;
+
                 case KaleidoscopeCommandType.SetSourceMode:
                     // If the user switches away from ImageTexture, we keep the loaded texture cached,
                     // but fall back to the procedural texture until ImageTexture is selected again.
@@ -110,11 +132,41 @@ namespace Kaleidoscope2.Source
             Texture active = GetActiveTexture();
             string textureStatus = active != null ? active.width + "x" + active.height + " texture" : "No texture";
             string sourceDetail = CurrentSourceMode == KaleidoscopeSourceMode.ImageTexture
-                ? slideshow.Mode + ", image " + (slideshow.CurrentImageIndex + 1) + "/" + slideshow.ImagePaths.Count
+                ? slideshow.Mode + ", image " + (slideshow.CurrentImageIndex + 1) + "/" + slideshow.ImageCount
                 : "procedural";
 
             return CreateStatus("Source: " + CurrentSourceMode + " (" + sourceDetail + "), " + textureStatus
-                + ", next switch in " + slideshow.NextSwitchIn.ToString("0.0") + "s, slideshow active: " + slideshow.IsActive + ".");
+                + ", next switch in " + slideshow.NextSwitchIn.ToString("0.0") + "s, slideshow active: " + slideshow.IsActive
+                + (usingDemoContent ? ", curated demo content" + (usingDemoContentFallback ? " fallback" : string.Empty) : string.Empty) + ".");
+        }
+
+        public SourceRuntimeSnapshot CaptureRuntimeSnapshot()
+        {
+            return new SourceRuntimeSnapshot
+            {
+                UsingDemoContent = usingDemoContent,
+                DemoProfileId = activeDemoProfileId,
+                CurrentImageIndex = slideshow.CurrentImageIndex,
+                ElapsedInCurrentImage = slideshow.ElapsedInCurrentImage
+            };
+        }
+
+        public void RestoreRuntimeSnapshot(SourceRuntimeSnapshot snapshot)
+        {
+            if (snapshot.UsingDemoContent)
+            {
+                TryLoadDemoImages(snapshot.DemoProfileId);
+            }
+            else
+            {
+                usingDemoContent = false;
+                usingDemoContentFallback = false;
+                activeDemoProfileId = string.Empty;
+                slideshow.StopSlideshow();
+                TrySyncFromState();
+            }
+
+            slideshow.RestorePosition(snapshot.CurrentImageIndex, snapshot.ElapsedInCurrentImage);
         }
 
         private Texture GetActiveTexture()
@@ -189,6 +241,9 @@ namespace Kaleidoscope2.Source
 
         private void TryLoadImageFile(string filePath)
         {
+            usingDemoContent = false;
+            usingDemoContentFallback = false;
+            activeDemoProfileId = string.Empty;
             if (string.IsNullOrWhiteSpace(filePath))
             {
                 ReportWarning("Image file path was empty.");
@@ -204,6 +259,9 @@ namespace Kaleidoscope2.Source
 
         private void TryLoadImageFolder(string folderPath)
         {
+            usingDemoContent = false;
+            usingDemoContentFallback = false;
+            activeDemoProfileId = string.Empty;
             if (string.IsNullOrWhiteSpace(folderPath))
             {
                 ReportWarning("Image folder path was empty.");
@@ -215,6 +273,35 @@ namespace Kaleidoscope2.Source
             {
                 ReportWarning("Failed to start image slideshow: " + slideshow.LastMessage);
             }
+        }
+
+        private void TryLoadDemoImages(string profileId)
+        {
+            usingDemoContent = true;
+            usingDemoContentFallback = false;
+            activeDemoProfileId = string.IsNullOrWhiteSpace(profileId) ? DemoContentCatalog.MeditationProfileId : profileId;
+
+            DemoContentCatalog catalog = DemoContentCatalog.LoadDefault();
+            if (catalog != null && catalog.HasImages())
+            {
+                slideshow.SetImageAssets(catalog.DemoImages);
+                return;
+            }
+
+            string packagedFolder = Path.Combine(Application.streamingAssetsPath, "Kaleidoscope2", "DemoContent", "Images");
+            if (Directory.Exists(packagedFolder))
+            {
+                slideshow.SetImageFolder(packagedFolder);
+                if (slideshow.IsActive)
+                {
+                    usingDemoContentFallback = true;
+                    return;
+                }
+            }
+
+            usingDemoContentFallback = true;
+            slideshow.StopSlideshow();
+            ReportWarning("Curated demo images unavailable; using procedural source fallback.");
         }
 
         private static void DestroyTexture(ref Texture2D texture)

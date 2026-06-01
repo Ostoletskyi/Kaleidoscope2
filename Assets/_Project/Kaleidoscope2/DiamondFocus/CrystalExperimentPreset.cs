@@ -443,6 +443,7 @@ namespace Kaleidoscope2.Core
         public Color GeneratedMaterialColor;
         public int GeneratedMaterialSeed;
         public DiamondCrystalDebugMode DebugMode;
+        public float ClassicScalePercent;
         public float PremiumScalePercent;
         public float PremiumBrightness;
         public float PremiumContrast;

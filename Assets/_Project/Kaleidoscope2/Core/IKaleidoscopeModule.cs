@@ -31,6 +31,11 @@ namespace Kaleidoscope2.Core
         Texture Process(Texture sourceTexture, KaleidoscopeState runtimeState);
     }
 
+    public interface IKaleidoscopeCommandConstraint
+    {
+        KaleidoscopeCommand ResolveCommand(KaleidoscopeCommand command, KaleidoscopeCommandOrigin origin);
+    }
+
     [Serializable]
     public struct KaleidoscopeModuleStatus
     {

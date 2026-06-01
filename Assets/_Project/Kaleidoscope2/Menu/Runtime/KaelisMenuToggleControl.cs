@@ -29,7 +29,17 @@ namespace Kaleidoscope2.Menu
             return Create(parent, assets, tooltip, title, description, defaultValue, reserved ? KaelisMenuBindingStatus.Reserved : KaelisMenuBindingStatus.RealBinding);
         }
 
+        internal static KaelisMenuToggleControl Create(RectTransform parent, KaelisMenuAssets assets, KaelisMenuTooltip tooltip, string title, string description, bool defaultValue, bool reserved, string unavailableReason)
+        {
+            return Create(parent, assets, tooltip, title, description, defaultValue, reserved ? KaelisMenuBindingStatus.Reserved : KaelisMenuBindingStatus.RealBinding, unavailableReason);
+        }
+
         internal static KaelisMenuToggleControl Create(RectTransform parent, KaelisMenuAssets assets, KaelisMenuTooltip tooltip, string title, string description, bool defaultValue, KaelisMenuBindingStatus status)
+        {
+            return Create(parent, assets, tooltip, title, description, defaultValue, status, null);
+        }
+
+        internal static KaelisMenuToggleControl Create(RectTransform parent, KaelisMenuAssets assets, KaelisMenuTooltip tooltip, string title, string description, bool defaultValue, KaelisMenuBindingStatus status, string unavailableReason)
         {
             RectTransform root = KaelisMenuUiPrimitives.CreateRect(ToObjectName(title) + "Toggle", parent);
             KaelisMenuUiPrimitives.AddLayout(root.gameObject, -1f, 62f);
@@ -38,8 +48,11 @@ namespace Kaleidoscope2.Menu
 
             KaelisMenuToggleControl control = root.gameObject.AddComponent<KaelisMenuToggleControl>();
             control.row = root.gameObject.AddComponent<KaelisMenuInteractiveRow>();
-            string statusText = GetStatusLabel(status);
-            control.row.Configure(surface, highlightGroup, flashGroup, tooltip, title, description + "\nStatus: " + statusText, "OFF / ON", defaultValue ? "ON" : "OFF", "Click to toggle");
+            string statusText = GetStatusLabel(status, unavailableReason);
+            string statusLine = status == KaelisMenuBindingStatus.Reserved && !string.IsNullOrWhiteSpace(unavailableReason)
+                ? unavailableReason
+                : "Status: " + statusText;
+            control.row.Configure(surface, highlightGroup, flashGroup, tooltip, title, description + "\n" + statusLine, "OFF / ON", defaultValue ? "ON" : "OFF", "Click to toggle");
 
             control.button = root.gameObject.AddComponent<Button>();
             control.button.transition = Selectable.Transition.None;
@@ -185,14 +198,14 @@ namespace Kaleidoscope2.Menu
             return writeIndex > 0 ? new string(characters, 0, writeIndex) : "Toggle";
         }
 
-        private static string GetStatusLabel(KaelisMenuBindingStatus status)
+        private static string GetStatusLabel(KaelisMenuBindingStatus status, string unavailableReason = null)
         {
             switch (status)
             {
                 case KaelisMenuBindingStatus.PartialBinding:
                     return "PARTIAL";
                 case KaelisMenuBindingStatus.Reserved:
-                    return "RESERVED";
+                    return string.IsNullOrWhiteSpace(unavailableReason) ? "RESERVED" : "SERVICE MISSING";
                 default:
                     return "REAL";
             }

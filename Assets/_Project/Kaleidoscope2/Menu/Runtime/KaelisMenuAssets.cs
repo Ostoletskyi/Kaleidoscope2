@@ -103,7 +103,7 @@ namespace Kaleidoscope2.Menu
             KaelisMenuAssets assets = new KaelisMenuAssets();
             assets.FallbackConceptTexture = fallback;
             assets.BackgroundTexture = background != null ? background : fallback;
-            assets.PreviewTexture = preview != null ? preview : (fallback != null ? fallback : background);
+            assets.PreviewTexture = SelectPreviewTexture(background, preview, fallback);
             assets.LogoTexture = Resources.Load<Texture2D>("Logos/Logo");
             assets.LogoAspect = assets.LogoTexture != null && assets.LogoTexture.height > 0
                 ? (float)assets.LogoTexture.width / assets.LogoTexture.height
@@ -115,6 +115,21 @@ namespace Kaleidoscope2.Menu
             return assets;
         }
 
+        private static Texture SelectPreviewTexture(Texture background, Texture preview, Texture fallback)
+        {
+            if (preview != null && !ReferenceEquals(preview, background))
+            {
+                return preview;
+            }
+
+            if (fallback != null && !ReferenceEquals(fallback, background))
+            {
+                return fallback;
+            }
+
+            return null;
+        }
+
         public TMP_FontAsset GetFont(KaelisMenuFontRole role)
         {
             switch (role)
@@ -124,11 +139,13 @@ namespace Kaleidoscope2.Menu
                 case KaelisMenuFontRole.Subtitle:
                     return CinzelRegular != null ? CinzelRegular : CinzelMedium;
                 case KaelisMenuFontRole.Button:
-                    return CinzelSemiBold != null ? CinzelSemiBold : CinzelMedium;
+                    return InterSemiBold != null ? InterSemiBold : (InterMedium != null ? InterMedium : CinzelSemiBold);
+                case KaelisMenuFontRole.PreviewLabel:
+                    return InterSemiBold != null ? InterSemiBold : (InterMedium != null ? InterMedium : CinzelMedium);
                 case KaelisMenuFontRole.Status:
                     return InterMedium != null ? InterMedium : InterRegular;
                 default:
-                    return CinzelMedium != null ? CinzelMedium : CinzelRegular;
+                    return InterMedium != null ? InterMedium : InterRegular;
             }
         }
 
@@ -182,6 +199,38 @@ namespace Kaleidoscope2.Menu
             InterRegular = Resources.Load<TMP_FontAsset>("MenuFonts/Kaelis_Inter_18pt_Regular");
             InterMedium = Resources.Load<TMP_FontAsset>("MenuFonts/Kaelis_Inter_18pt_Medium");
             InterSemiBold = Resources.Load<TMP_FontAsset>("MenuFonts/Kaelis_Inter_18pt_SemiBold");
+            ConfigureFontFallbacks();
+        }
+
+        private void ConfigureFontFallbacks()
+        {
+            AddFallback(CinzelRegular, InterRegular);
+            AddFallback(CinzelRegular, InterMedium);
+            AddFallback(CinzelMedium, InterRegular);
+            AddFallback(CinzelMedium, InterMedium);
+            AddFallback(CinzelSemiBold, InterRegular);
+            AddFallback(CinzelSemiBold, InterSemiBold);
+            AddFallback(InterRegular, InterMedium);
+            AddFallback(InterMedium, InterRegular);
+            AddFallback(InterSemiBold, InterRegular);
+        }
+
+        private static void AddFallback(TMP_FontAsset font, TMP_FontAsset fallback)
+        {
+            if (font == null || fallback == null || font == fallback)
+            {
+                return;
+            }
+
+            if (font.fallbackFontAssetTable == null)
+            {
+                font.fallbackFontAssetTable = new List<TMP_FontAsset>();
+            }
+
+            if (!font.fallbackFontAssetTable.Contains(fallback))
+            {
+                font.fallbackFontAssetTable.Add(fallback);
+            }
         }
 
         private void LoadButtons()
@@ -308,9 +357,14 @@ namespace Kaleidoscope2.Menu
 
         private void ReportValidation()
         {
-            if (BackgroundTexture == null || PreviewTexture == null)
+            if (BackgroundTexture == null)
             {
-                Debug.LogWarning("[KAELIS Menu Assets] Background/preview texture references are not assigned. The menu will use procedural glass fallbacks.");
+                Debug.LogWarning("[KAELIS Menu Assets] Background texture reference is not assigned. The menu will use procedural glass fallbacks.");
+            }
+
+            if (PreviewTexture == null)
+            {
+                Debug.Log("[KAELIS Menu Assets] Preview texture is not assigned or duplicates the background; the showcase area will remain transparent over the living background.");
             }
 
             if (GetFont(KaelisMenuFontRole.Logo) == null || GetFont(KaelisMenuFontRole.Button) == null)

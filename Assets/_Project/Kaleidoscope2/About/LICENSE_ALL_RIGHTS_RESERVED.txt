@@ -1,0 +1,12 @@
+KAELIS SOFTWARE LICENSE
+
+Copyright (c) 2026 Oleksii Ostoletskyi
+All rights reserved.
+
+This software, including its source code, visual systems, user interface, original design concepts, text content, application structure, and bundled creative materials, is the property of Oleksii Ostoletskyi, unless otherwise stated in third-party notices.
+
+No part of this software may be copied, modified, redistributed, sold, sublicensed, published, or used commercially without prior written permission from the copyright holder.
+
+The original music and sound design included with KAELIS are credited to Lex Nox Lab, the artistic pseudonym of Oleksii Ostoletskyi, unless otherwise stated.
+
+This file is intended as a simple proprietary "All Rights Reserved" notice for the KAELIS project. For public release, commercial distribution, app store publication, or third-party licensing, the author should consider professional legal review.

@@ -32,12 +32,22 @@ namespace Kaleidoscope2.Menu
 
         internal static KaelisMenuSliderControl Create(RectTransform parent, KaelisMenuAssets assets, KaelisMenuTooltip tooltip, string title, string description, float min, float max, float defaultValue, string suffix, bool reserved)
         {
-            return Create(parent, assets, tooltip, title, description, min, max, defaultValue, suffix, reserved, null);
+            return Create(parent, assets, tooltip, title, description, min, max, defaultValue, suffix, reserved ? KaelisMenuBindingStatus.Reserved : KaelisMenuBindingStatus.RealBinding, null, null);
+        }
+
+        internal static KaelisMenuSliderControl Create(RectTransform parent, KaelisMenuAssets assets, KaelisMenuTooltip tooltip, string title, string description, float min, float max, float defaultValue, string suffix, bool reserved, string unavailableReason)
+        {
+            return Create(parent, assets, tooltip, title, description, min, max, defaultValue, suffix, reserved ? KaelisMenuBindingStatus.Reserved : KaelisMenuBindingStatus.RealBinding, null, unavailableReason);
         }
 
         internal static KaelisMenuSliderControl Create(RectTransform parent, KaelisMenuAssets assets, KaelisMenuTooltip tooltip, string title, string description, float min, float max, float defaultValue, string suffix, bool reserved, string[] options)
         {
             return Create(parent, assets, tooltip, title, description, min, max, defaultValue, suffix, reserved ? KaelisMenuBindingStatus.Reserved : KaelisMenuBindingStatus.RealBinding, options);
+        }
+
+        internal static KaelisMenuSliderControl Create(RectTransform parent, KaelisMenuAssets assets, KaelisMenuTooltip tooltip, string title, string description, float min, float max, float defaultValue, string suffix, bool reserved, string[] options, string unavailableReason)
+        {
+            return Create(parent, assets, tooltip, title, description, min, max, defaultValue, suffix, reserved ? KaelisMenuBindingStatus.Reserved : KaelisMenuBindingStatus.RealBinding, options, unavailableReason);
         }
 
         internal static KaelisMenuSliderControl Create(RectTransform parent, KaelisMenuAssets assets, KaelisMenuTooltip tooltip, string title, string description, float min, float max, float defaultValue, string suffix, KaelisMenuBindingStatus status)
@@ -46,6 +56,11 @@ namespace Kaleidoscope2.Menu
         }
 
         internal static KaelisMenuSliderControl Create(RectTransform parent, KaelisMenuAssets assets, KaelisMenuTooltip tooltip, string title, string description, float min, float max, float defaultValue, string suffix, KaelisMenuBindingStatus status, string[] options)
+        {
+            return Create(parent, assets, tooltip, title, description, min, max, defaultValue, suffix, status, options, null);
+        }
+
+        internal static KaelisMenuSliderControl Create(RectTransform parent, KaelisMenuAssets assets, KaelisMenuTooltip tooltip, string title, string description, float min, float max, float defaultValue, string suffix, KaelisMenuBindingStatus status, string[] options, string unavailableReason)
         {
             RectTransform root = KaelisMenuUiPrimitives.CreateRect(ToObjectName(title) + "Slider", parent);
             KaelisMenuUiPrimitives.AddLayout(root.gameObject, -1f, 76f);
@@ -58,9 +73,12 @@ namespace Kaleidoscope2.Menu
             control.options = options;
 
             string rangeText = options != null ? string.Join(" / ", options) : Format(min, suffix) + " - " + Format(max, suffix);
-            string statusText = GetStatusLabel(status);
+            string statusText = GetStatusLabel(status, unavailableReason);
+            string statusLine = status == KaelisMenuBindingStatus.Reserved && !string.IsNullOrWhiteSpace(unavailableReason)
+                ? unavailableReason
+                : "Status: " + statusText;
             control.row = root.gameObject.AddComponent<KaelisMenuInteractiveRow>();
-            control.row.Configure(surface, highlightGroup, flashGroup, tooltip, title, description + "\nStatus: " + statusText, rangeText, control.FormatValue(defaultValue), KaelisMenuInputHintProvider.Get(KaelisMenuInputHintKind.Slider));
+            control.row.Configure(surface, highlightGroup, flashGroup, tooltip, title, description + "\n" + statusLine, rangeText, control.FormatValue(defaultValue), KaelisMenuInputHintProvider.Get(KaelisMenuInputHintKind.Slider));
 
             TMP_Text label = KaelisMenuUiPrimitives.CreateText(root, "Label", title.ToUpperInvariant(), 14.5f, KaelisMenuStyle.TextPrimary, TextAlignmentOptions.Left, assets.GetFont(KaelisMenuFontRole.Button));
             label.characterSpacing = 3f;
@@ -174,14 +192,14 @@ namespace Kaleidoscope2.Menu
             return value.ToString(suffix == "%" ? "0" : "0.00") + suffix;
         }
 
-        private static string GetStatusLabel(KaelisMenuBindingStatus status)
+        private static string GetStatusLabel(KaelisMenuBindingStatus status, string unavailableReason = null)
         {
             switch (status)
             {
                 case KaelisMenuBindingStatus.PartialBinding:
                     return "PARTIAL";
                 case KaelisMenuBindingStatus.Reserved:
-                    return "RESERVED";
+                    return string.IsNullOrWhiteSpace(unavailableReason) ? "RESERVED" : "SERVICE MISSING";
                 default:
                     return "REAL";
             }

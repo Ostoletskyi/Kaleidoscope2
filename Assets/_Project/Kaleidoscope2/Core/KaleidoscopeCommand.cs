@@ -103,7 +103,48 @@ namespace Kaleidoscope2.Core
         CycleSelectedCrystalRuntimeControl = 95,
         CycleCrystalGeometryForward = 96,
         CycleCrystalGeometryBackward = 97,
-        ReturnToInitialMenu = 98
+        ReturnToInitialMenu = 98,
+        SetMeditationModeEnabled = 99,
+        SetCrystalSplitComfortEnabled = 100,
+        StartReplayDemo = 101,
+        StartBenchmarkDemo = 102,
+        CancelTemporarySession = 103,
+        SaveBenchmarkResult = 104,
+        SetDemoImageContent = 105,
+        SetDemoAudioContent = 106,
+        SetAudioPlaybackEnabled = 107,
+        SetComfortSafetyEnabled = 108,
+        SetComfortRotationTarget = 109,
+        SetCleanViewEnabled = 110,
+        ToggleCleanView = 111,
+        SetSettingsAutoSaveEnabled = 112,
+        SaveSettings = 113,
+        ResetSettings = 114,
+        AdjustClassicCrystalScalePercent = 115,
+        SetClassicCrystalScalePercent = 116
+    }
+
+    public enum KaleidoscopeCommandOrigin
+    {
+        User = 0,
+        Meditation = 1,
+        Replay = 2,
+        Benchmark = 3,
+        Restore = 4
+    }
+
+    public struct KaleidoscopeCommandDispatchEvent
+    {
+        public KaleidoscopeCommandDispatchEvent(KaleidoscopeCommand command, KaleidoscopeCommandOrigin origin, float timestamp)
+        {
+            Command = command;
+            Origin = origin;
+            Timestamp = timestamp;
+        }
+
+        public KaleidoscopeCommand Command { get; private set; }
+        public KaleidoscopeCommandOrigin Origin { get; private set; }
+        public float Timestamp { get; private set; }
     }
 
     [Serializable]
@@ -297,6 +338,61 @@ namespace Kaleidoscope2.Core
         public static KaleidoscopeCommand ReturnToInitialMenu()
         {
             return new KaleidoscopeCommand(KaleidoscopeCommandType.ReturnToInitialMenu);
+        }
+
+        public static KaleidoscopeCommand SetMeditationModeEnabled(bool enabled)
+        {
+            return new KaleidoscopeCommand(KaleidoscopeCommandType.SetMeditationModeEnabled) { boolValue = enabled };
+        }
+
+        public static KaleidoscopeCommand SetCrystalSplitComfortEnabled(bool enabled)
+        {
+            return new KaleidoscopeCommand(KaleidoscopeCommandType.SetCrystalSplitComfortEnabled) { boolValue = enabled };
+        }
+
+        public static KaleidoscopeCommand StartReplayDemo()
+        {
+            return new KaleidoscopeCommand(KaleidoscopeCommandType.StartReplayDemo);
+        }
+
+        public static KaleidoscopeCommand StartBenchmarkDemo()
+        {
+            return new KaleidoscopeCommand(KaleidoscopeCommandType.StartBenchmarkDemo);
+        }
+
+        public static KaleidoscopeCommand CancelTemporarySession()
+        {
+            return new KaleidoscopeCommand(KaleidoscopeCommandType.CancelTemporarySession);
+        }
+
+        public static KaleidoscopeCommand SaveBenchmarkResult()
+        {
+            return new KaleidoscopeCommand(KaleidoscopeCommandType.SaveBenchmarkResult);
+        }
+
+        public static KaleidoscopeCommand SetDemoImageContent(string profileId)
+        {
+            return new KaleidoscopeCommand(KaleidoscopeCommandType.SetDemoImageContent) { stringValue = profileId };
+        }
+
+        public static KaleidoscopeCommand SetDemoAudioContent(string trackId)
+        {
+            return new KaleidoscopeCommand(KaleidoscopeCommandType.SetDemoAudioContent) { stringValue = trackId };
+        }
+
+        public static KaleidoscopeCommand SetAudioPlaybackEnabled(bool enabled)
+        {
+            return new KaleidoscopeCommand(KaleidoscopeCommandType.SetAudioPlaybackEnabled) { boolValue = enabled };
+        }
+
+        public static KaleidoscopeCommand SetComfortSafetyEnabled(bool enabled)
+        {
+            return new KaleidoscopeCommand(KaleidoscopeCommandType.SetComfortSafetyEnabled) { boolValue = enabled };
+        }
+
+        public static KaleidoscopeCommand SetComfortRotationTarget(float speedUnits)
+        {
+            return new KaleidoscopeCommand(KaleidoscopeCommandType.SetComfortRotationTarget) { floatValue = speedUnits };
         }
 
         public static KaleidoscopeCommand SetImageFilePath(string path)
@@ -756,6 +852,22 @@ namespace Kaleidoscope2.Core
             };
         }
 
+        public static KaleidoscopeCommand AdjustClassicCrystalScalePercent(float deltaPercent)
+        {
+            return new KaleidoscopeCommand(KaleidoscopeCommandType.AdjustClassicCrystalScalePercent)
+            {
+                floatValue = deltaPercent
+            };
+        }
+
+        public static KaleidoscopeCommand SetClassicCrystalScalePercent(float percent)
+        {
+            return new KaleidoscopeCommand(KaleidoscopeCommandType.SetClassicCrystalScalePercent)
+            {
+                floatValue = percent
+            };
+        }
+
         public static KaleidoscopeCommand TogglePremiumCrystalEffect(PremiumCrystalEffectToggle effect)
         {
             return new KaleidoscopeCommand(KaleidoscopeCommandType.TogglePremiumCrystalEffect)
@@ -884,6 +996,37 @@ namespace Kaleidoscope2.Core
             {
                 boolValue = visible
             };
+        }
+
+        public static KaleidoscopeCommand SetCleanViewEnabled(bool enabled)
+        {
+            return new KaleidoscopeCommand(KaleidoscopeCommandType.SetCleanViewEnabled)
+            {
+                boolValue = enabled
+            };
+        }
+
+        public static KaleidoscopeCommand ToggleCleanView()
+        {
+            return new KaleidoscopeCommand(KaleidoscopeCommandType.ToggleCleanView);
+        }
+
+        public static KaleidoscopeCommand SetSettingsAutoSaveEnabled(bool enabled)
+        {
+            return new KaleidoscopeCommand(KaleidoscopeCommandType.SetSettingsAutoSaveEnabled)
+            {
+                boolValue = enabled
+            };
+        }
+
+        public static KaleidoscopeCommand SaveSettings()
+        {
+            return new KaleidoscopeCommand(KaleidoscopeCommandType.SaveSettings);
+        }
+
+        public static KaleidoscopeCommand ResetSettings()
+        {
+            return new KaleidoscopeCommand(KaleidoscopeCommandType.ResetSettings);
         }
 
         public static KaleidoscopeCommand ToggleSecondDisplayOutput()

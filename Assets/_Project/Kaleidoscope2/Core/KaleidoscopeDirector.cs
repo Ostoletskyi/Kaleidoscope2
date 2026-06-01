@@ -18,6 +18,7 @@ namespace Kaleidoscope2.Core
         private Texture finalOutputTexture;
 
         public event Action<KaleidoscopeCommand> CommandDispatched;
+        public event Action<KaleidoscopeCommandDispatchEvent> SemanticCommandDispatched;
 
         public KaleidoscopeState State
         {
@@ -133,11 +134,22 @@ namespace Kaleidoscope2.Core
 
         public void Dispatch(KaleidoscopeCommand command)
         {
+            Dispatch(command, KaleidoscopeCommandOrigin.User);
+        }
+
+        public void Dispatch(KaleidoscopeCommand command, KaleidoscopeCommandOrigin origin)
+        {
             EnsureState();
 
             if (command == null)
             {
                 state.ReportWarning("[Director] Ignored null command.");
+                return;
+            }
+
+            command = ResolveCommandConstraints(command, origin);
+            if (command == null)
+            {
                 return;
             }
 
@@ -155,6 +167,12 @@ namespace Kaleidoscope2.Core
             if (handler != null)
             {
                 handler(command);
+            }
+
+            Action<KaleidoscopeCommandDispatchEvent> semanticHandler = SemanticCommandDispatched;
+            if (semanticHandler != null)
+            {
+                semanticHandler(new KaleidoscopeCommandDispatchEvent(command, origin, Time.unscaledTime));
             }
         }
 
@@ -388,6 +406,14 @@ namespace Kaleidoscope2.Core
                     state.SetHotkeysHelpVisible(command.BoolValue);
                     return true;
 
+                case KaleidoscopeCommandType.SetCleanViewEnabled:
+                    state.SetCleanViewEnabled(command.BoolValue);
+                    return true;
+
+                case KaleidoscopeCommandType.ToggleCleanView:
+                    state.ToggleCleanView();
+                    return true;
+
                 case KaleidoscopeCommandType.ToggleSecondDisplayOutput:
                     state.ToggleSecondDisplayOutput();
                     return true;
@@ -454,6 +480,36 @@ namespace Kaleidoscope2.Core
             }
 
             return handled;
+        }
+
+        private KaleidoscopeCommand ResolveCommandConstraints(KaleidoscopeCommand command, KaleidoscopeCommandOrigin origin)
+        {
+            KaleidoscopeCommand resolved = command;
+            for (int index = 0; index < modules.Count; index++)
+            {
+                IKaleidoscopeCommandConstraint constraint = modules[index] as IKaleidoscopeCommandConstraint;
+                if (constraint == null)
+                {
+                    continue;
+                }
+
+                try
+                {
+                    resolved = constraint.ResolveCommand(resolved, origin);
+                    if (resolved == null)
+                    {
+                        return null;
+                    }
+                }
+                catch (Exception exception)
+                {
+                    string message = "[Director] Command constraint failure in " + modules[index].ModuleId + ": " + exception.Message;
+                    state.ReportError(message);
+                    Debug.LogException(exception, this);
+                }
+            }
+
+            return resolved;
         }
 
         private void RefreshModuleStatuses()

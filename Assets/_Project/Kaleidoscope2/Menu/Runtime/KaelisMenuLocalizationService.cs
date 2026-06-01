@@ -202,19 +202,21 @@ namespace Kaleidoscope2.Menu
 
         private static void BuildRussian()
         {
-            AddCommon(Russian, "Ввод / клик", "Ввод / клик для выбора", "Ввод / пробел / клик для переключения", "Ввод / клик для смены языка", "Клик, чтобы посмотреть зарезервированное действие");
+            AddCommon(Russian, "Ввод / клик", "Ввод / клик для выбора", "Ввод / пробел / клик для переключения", "Ввод / клик для смены языка", "Недоступно до появления сервиса-владельца");
             Add(Russian, "ENTER EXPERIENCE", "НАЧАТЬ СЕАНС");
             Add(Russian, "DEMO MODE", "ДЕМО РЕЖИМ");
+            Add(Russian, "MEDITATION MODE", "РЕЖИМ МЕДИТАЦИИ");
+            Add(Russian, "DEMO", "ДЕМО");
             Add(Russian, "MODES", "РЕЖИМЫ");
             Add(Russian, "OPTICS", "ОПТИКА");
             Add(Russian, "PRESETS", "ПРЕСЕТЫ");
             Add(Russian, "SETTINGS", "НАСТРОЙКИ");
+            Add(Russian, "ABOUT", "О ПРОГРАММЕ");
             Add(Russian, "EXIT", "ВЫХОД");
             Add(Russian, "LIVE PREVIEW", "ЖИВОЙ ПРОСМОТР");
             Add(Russian, "PREVIEW PANEL", "ПАНЕЛЬ ПРОСМОТРА");
             Add(Russian, "RAW IMAGE SURFACE", "ПОВЕРХНОСТЬ ИЗОБРАЖЕНИЯ");
             Add(Russian, "SYSTEM READY     DEMO OFF", "СИСТЕМА ГОТОВА     ДЕМО ВЫКЛ");
-            Add(Russian, "SYSTEM READY     DEMO RESERVED", "СИСТЕМА ГОТОВА     ДЕМО ЗАРЕЗЕРВИРОВАНО");
             Add(Russian, "SYSTEM READY", "СИСТЕМА ГОТОВА");
             AddContent(Russian, "ВЫБЕРИТЕ КОНТЕНТ СЕАНСА", "Выберите источники изображений и аудио для этого сеанса.", "ИСТОЧНИК ИЗОБРАЖЕНИЙ", "ИСТОЧНИК МУЗЫКИ", "ВЫБРАТЬ ПАПКУ ИЗОБРАЖЕНИЙ", "ВЫБРАТЬ ПАПКУ МУЗЫКИ", "ОЧИСТИТЬ", "НАЗАД", "СТАРТ СЕАНСА", "Папка изображений не выбрана", "Папка музыки не выбрана", "Папка изображений обязательна. Папка музыки необязательна.");
             AddSections(Russian);
@@ -223,19 +225,21 @@ namespace Kaleidoscope2.Menu
 
         private static void BuildGerman()
         {
-            AddCommon(German, "Enter / Klick", "Enter / Klick zum Auswählen", "Enter / Leertaste / Klick zum Umschalten", "Enter / Klick zum Sprachwechsel", "Klicken, um reservierte Aktion anzusehen");
+            AddCommon(German, "Enter / Klick", "Enter / Klick zum Auswählen", "Enter / Leertaste / Klick zum Umschalten", "Enter / Klick zum Sprachwechsel", "Nicht verfügbar, bis der zuständige Dienst existiert");
             Add(German, "ENTER EXPERIENCE", "ERLEBNIS STARTEN");
             Add(German, "DEMO MODE", "DEMO-MODUS");
+            Add(German, "MEDITATION MODE", "MEDITATION");
+            Add(German, "DEMO", "DEMO");
             Add(German, "MODES", "MODI");
             Add(German, "OPTICS", "OPTIK");
             Add(German, "PRESETS", "PRESETS");
             Add(German, "SETTINGS", "EINSTELLUNGEN");
+            Add(German, "ABOUT", "ÜBER DAS PROGRAMM");
             Add(German, "EXIT", "BEENDEN");
             Add(German, "LIVE PREVIEW", "LIVE-VORSCHAU");
             Add(German, "PREVIEW PANEL", "VORSCHAU");
             Add(German, "RAW IMAGE SURFACE", "BILDFLÄCHE");
             Add(German, "SYSTEM READY     DEMO OFF", "SYSTEM BEREIT     DEMO AUS");
-            Add(German, "SYSTEM READY     DEMO RESERVED", "SYSTEM BEREIT     DEMO RESERVIERT");
             Add(German, "SYSTEM READY", "SYSTEM BEREIT");
             AddContent(German, "ERLEBNISINHALT WÄHLEN", "Wähle Bild- und Audioquellen für diese Sitzung.", "BILDQUELLE", "MUSIKQUELLE", "BILDORDNER WÄHLEN", "MUSIKORDNER WÄHLEN", "LÖSCHEN", "ZURÜCK", "ERLEBNIS STARTEN", "Kein Bildordner gewählt", "Kein Musikordner gewählt", "Ein Bildordner ist erforderlich. Musik ist optional.");
             AddSections(German);
@@ -244,19 +248,21 @@ namespace Kaleidoscope2.Menu
 
         private static void BuildUkrainian()
         {
-            AddCommon(Ukrainian, "Enter / клік", "Enter / клік для вибору", "Enter / пробіл / клік для перемикання", "Enter / клік для зміни мови", "Клік, щоб переглянути зарезервовану дію");
+            AddCommon(Ukrainian, "Enter / клік", "Enter / клік для вибору", "Enter / пробіл / клік для перемикання", "Enter / клік для зміни мови", "Недоступно до появи сервісу-власника");
             Add(Ukrainian, "ENTER EXPERIENCE", "ПОЧАТИ СЕАНС");
             Add(Ukrainian, "DEMO MODE", "ДЕМО РЕЖИМ");
+            Add(Ukrainian, "MEDITATION MODE", "РЕЖИМ МЕДИТАЦІЇ");
+            Add(Ukrainian, "DEMO", "ДЕМО");
             Add(Ukrainian, "MODES", "РЕЖИМИ");
             Add(Ukrainian, "OPTICS", "ОПТИКА");
             Add(Ukrainian, "PRESETS", "ПРЕСЕТИ");
             Add(Ukrainian, "SETTINGS", "НАЛАШТУВАННЯ");
+            Add(Ukrainian, "ABOUT", "ПРО ПРОГРАМУ");
             Add(Ukrainian, "EXIT", "ВИХІД");
             Add(Ukrainian, "LIVE PREVIEW", "ЖИВИЙ ПЕРЕГЛЯД");
             Add(Ukrainian, "PREVIEW PANEL", "ПАНЕЛЬ ПЕРЕГЛЯДУ");
             Add(Ukrainian, "RAW IMAGE SURFACE", "ПОВЕРХНЯ ЗОБРАЖЕННЯ");
             Add(Ukrainian, "SYSTEM READY     DEMO OFF", "СИСТЕМА ГОТОВА     ДЕМО ВИМК");
-            Add(Ukrainian, "SYSTEM READY     DEMO RESERVED", "СИСТЕМА ГОТОВА     ДЕМО ЗАРЕЗЕРВОВАНО");
             Add(Ukrainian, "SYSTEM READY", "СИСТЕМА ГОТОВА");
             AddContent(Ukrainian, "ВИБЕРІТЬ КОНТЕНТ СЕАНСУ", "Оберіть джерела зображень і аудіо для цієї сесії.", "ДЖЕРЕЛО ЗОБРАЖЕНЬ", "ДЖЕРЕЛО МУЗИКИ", "ОБРАТИ ПАПКУ ЗОБРАЖЕНЬ", "ОБРАТИ ПАПКУ МУЗИКИ", "ОЧИСТИТИ", "НАЗАД", "ПОЧАТИ СЕАНС", "Папку зображень не вибрано", "Папку музики не вибрано", "Папка зображень обов'язкова. Музика необов'язкова.");
             AddSections(Ukrainian);
@@ -270,7 +276,7 @@ namespace Kaleidoscope2.Menu
             Add(table, "Enter / Space / Click to toggle", toggle);
             Add(table, "Click to toggle", table == German ? "Klicken zum Umschalten" : (table == Russian ? "Клик для переключения" : "Клік для перемикання"));
             Add(table, "Enter / Click to change language", language);
-            Add(table, "Click to view reserved action", reserved);
+            Add(table, "Unavailable until owner service exists", reserved);
             Add(table, "Drag to adjust", table == German ? "Ziehen zum Anpassen" : (table == Russian ? "Перетащите для настройки" : "Перетягніть для налаштування"));
             Add(table, "Left / Right = small step\nShift + Left / Right = large step\nHome / End = min / max\nR = reset current control",
                 table == German
@@ -290,19 +296,25 @@ namespace Kaleidoscope2.Menu
             Add(table, "OFF", table == German ? "AUS" : (table == Russian ? "ВЫКЛ" : "ВИМК"));
             Add(table, "Menu action.", table == German ? "Menüaktion." : (table == Russian ? "Действие меню." : "Дія меню."));
             Add(table, "Open the content selection flow for image and audio sources.", table == German ? "Öffnet die Inhaltsauswahl für Bild- und Audioquellen." : (table == Russian ? "Открывает выбор источников изображений и аудио." : "Відкриває вибір джерел зображень і аудіо."));
-            Add(table, "Reserved for a dedicated demo playback task. Current click stores only the UI state.", table == German ? "Reserviert für eine eigene Demo-Aufgabe. Der Klick speichert nur den UI-Zustand." : (table == Russian ? "Зарезервировано для отдельной задачи демо. Клик сохраняет только состояние UI." : "Зарезервовано для окремого демо-завдання. Клік зберігає лише стан UI."));
             Add(table, "Open visual route selection cards.", table == German ? "Öffnet Karten zur Auswahl visueller Routen." : (table == Russian ? "Открывает карточки выбора визуальных маршрутов." : "Відкриває картки вибору візуальних маршрутів."));
             Add(table, "Open expressive crystal optics controls.", table == German ? "Öffnet expressive Kristalloptiksteuerung." : (table == Russian ? "Открывает выразительные настройки кристальной оптики." : "Відкриває виразні налаштування кристальної оптики."));
-            Add(table, "Open factory look cards and reserved user preset actions.", table == German ? "Öffnet Factory-Looks und reservierte Benutzerpreset-Aktionen." : (table == Russian ? "Открывает фабричные образы и зарезервированные действия пресетов." : "Відкриває фабричні образи й зарезервовані дії пресетів."));
+            Add(table, "Open factory look cards and user preset actions. Editing actions become available after Preset Persistence service is implemented.", table == German ? "Öffnet Factory-Looks und Benutzerpreset-Aktionen. Bearbeitung wird verfügbar, sobald der Preset-Persistenzdienst implementiert ist." : (table == Russian ? "Открывает фабричные образы и действия пользовательских пресетов. Редактирование станет доступно после реализации сервиса сохранения пресетов." : "Відкриває фабричні образи й дії користувацьких пресетів. Редагування стане доступним після реалізації сервісу збереження пресетів."));
             Add(table, "Open application, audio, controls, system, and diagnostics settings.", table == German ? "Öffnet Einstellungen für App, Audio, Steuerung, System und Diagnose." : (table == Russian ? "Открывает настройки приложения, аудио, управления, системы и диагностики." : "Відкриває налаштування застосунку, аудіо, керування, системи й діагностики."));
             Add(table, "Open the exit confirmation panel. First click never quits immediately.", table == German ? "Öffnet die Beenden-Bestätigung. Der erste Klick beendet nie sofort." : (table == Russian ? "Открывает подтверждение выхода. Первый клик никогда не выходит сразу." : "Відкриває підтвердження виходу. Перший клік ніколи не завершує одразу."));
+            Add(table, "Open setup previews for semantic Replay Demo and the safe 60-second Benchmark Demo.", table == German ? "Öffnet Setup-Vorschauen für Replay Demo und den sicheren 60-Sekunden-Benchmark." : (table == Russian ? "Открывает подготовительные панели Replay Demo и безопасного 60-секундного Benchmark Demo." : "Відкриває підготовчі панелі Replay Demo та безпечного 60-секундного Benchmark Demo."));
+            Add(table, "Preview / START / Save results", table == German ? "Vorschau / START / Ergebnisse speichern" : (table == Russian ? "Предпросмотр / START / сохранить результаты" : "Попередній перегляд / START / зберегти результати"));
+            Add(table, "Open the setup preview for a restorable comfort session with smooth 0.25-1.5 rotations/sec breathing motion, curated playlist, and orbital split comfort.", table == German ? "Öffnet die Setup-Vorschau für eine wiederherstellbare Komfortsitzung mit ruhiger Bewegung, kuratierter Playlist und orbitaler Kristallteilung." : (table == Russian ? "Открывает подготовку восстанавливаемого комфортного сеанса с мягким движением 0.25-1.5 об/с, кураторским плейлистом и орбитальным разделением кристалла." : "Відкриває підготовку відновлюваного комфортного сеансу з м'яким рухом 0.25-1.5 об/с, кураторським плейлистом і орбітальним поділом кристала."));
+            Add(table, "Press START to begin; H cleans view; Esc or middle mouse exits", table == German ? "START beginnt; H blendet UI aus; Esc oder mittlere Maustaste beendet" : (table == Russian ? "START запускает; H очищает экран; Esc или средняя кнопка мыши выходит" : "START запускає; H очищає екран; Esc або середня кнопка миші виходить"));
+            Add(table, "Open KAELIS author, music, creation story, credits, and license information.", table == German ? "Öffnet Autor, Musik, Entstehung, Credits und Lizenz von KAELIS." : (table == Russian ? "Открывает автора KAELIS, музыку, историю создания, кредиты и лицензию." : "Відкриває автора KAELIS, музику, історію створення, кредити й ліцензію."));
+            Add(table, "UI only; no visual state changes", table == German ? "Nur UI; keine Änderung des visuellen Zustands" : (table == Russian ? "Только UI; визуальное состояние не меняется" : "Лише UI; візуальний стан не змінюється"));
+            Add(table, "Real binding", table == German ? "Echte Bindung" : (table == Russian ? "Реальная привязка" : "Реальна прив'язка"));
             Add(table, "Images required; music optional", table == German ? "Bilder erforderlich; Musik optional" : (table == Russian ? "Изображения обязательны; музыка необязательна" : "Зображення обов'язкові; музика необов'язкова"));
             Add(table, "Ready", table == German ? "Bereit" : (table == Russian ? "Готово" : "Готово"));
             Add(table, "Reserved", table == German ? "Reserviert" : (table == Russian ? "Зарезервировано" : "Зарезервовано"));
             Add(table, "Section", table == German ? "Bereich" : (table == Russian ? "Раздел" : "Розділ"));
             Add(table, "Safe", table == German ? "Sicher" : (table == Russian ? "Безопасно" : "Безпечно"));
             Add(table, "Confirm required", table == German ? "Bestätigung erforderlich" : (table == Russian ? "Нужно подтверждение" : "Потрібне підтвердження"));
-            Add(table, "Classic / Tunnel / Flight / Reserved", table == German ? "Classic / Tunnel / Flug / reserviert" : (table == Russian ? "Классика / туннель / полёт / резерв" : "Класика / тунель / політ / резерв"));
+            Add(table, "Classic / Premium / Tunnel / Flight", table == German ? "Classic / Premium / Tunnel / Flug" : (table == Russian ? "Классика / Premium / туннель / полёт" : "Класика / Premium / тунель / політ"));
             Add(table, "Extended creative ranges", table == German ? "Erweiterte Kreativbereiche" : (table == Russian ? "Расширенные творческие диапазоны" : "Розширені творчі діапазони"));
             Add(table, "Factory profiles", table == German ? "Factory-Profile" : (table == Russian ? "Фабричные профили" : "Фабричні профілі"));
             Add(table, "System controls", table == German ? "Systemsteuerung" : (table == Russian ? "Системные настройки" : "Системні налаштування"));
@@ -310,6 +322,34 @@ namespace Kaleidoscope2.Menu
             Add(table, "Status: REAL", table == German ? "Status: AKTIV" : (table == Russian ? "Статус: РЕАЛЬНО" : "Статус: РЕАЛЬНО"));
             Add(table, "Status: SAFE COMMAND", table == German ? "Status: SICHERER BEFEHL" : (table == Russian ? "Статус: БЕЗОПАСНАЯ КОМАНДА" : "Статус: БЕЗПЕЧНА КОМАНДА"));
             Add(table, "Status: COMING SOON", table == German ? "Status: KOMMT BALD" : (table == Russian ? "Статус: СКОРО" : "Статус: НЕЗАБАРОМ"));
+            Add(table, "SERVICE MISSING", table == German ? "DIENST FEHLT" : (table == Russian ? "НЕТ СЕРВИСА" : "НЕМАЄ СЕРВІСУ"));
+            Add(table, "Available after Display Settings service is implemented.", table == German ? "Verfügbar, sobald der Anzeigeeinstellungsdienst implementiert ist." : (table == Russian ? "Доступно после реализации сервиса настроек дисплея." : "Доступно після реалізації сервісу налаштувань дисплея."));
+            Add(table, "Available after Performance Settings service is implemented.", table == German ? "Verfügbar, sobald der Leistungseinstellungsdienst implementiert ist." : (table == Russian ? "Доступно после реализации сервиса производительности." : "Доступно після реалізації сервісу продуктивності."));
+            Add(table, "Available after Menu UI Scale service is implemented.", table == German ? "Verfügbar, sobald der Menüskalierungsdienst implementiert ist." : (table == Russian ? "Доступно после реализации сервиса масштаба меню." : "Доступно після реалізації сервісу масштабу меню."));
+            Add(table, "Available after Audio Settings service is implemented.", table == German ? "Verfügbar, sobald der Audioeinstellungsdienst implementiert ist." : (table == Russian ? "Доступно после реализации сервиса аудионастроек." : "Доступно після реалізації сервісу аудіоналаштувань."));
+            Add(table, "Available after Menu Audio Settings service is implemented.", table == German ? "Verfügbar, sobald der Menüaudiodienst implementiert ist." : (table == Russian ? "Доступно после реализации сервиса звука меню." : "Доступно після реалізації сервісу звуку меню."));
+            Add(table, "Available after Session Audio service is implemented.", table == German ? "Verfügbar, sobald der Sitzungsaudiodienst implementiert ist." : (table == Russian ? "Доступно после реализации сервиса аудио сеансов." : "Доступно після реалізації сервісу аудіо сесій."));
+            Add(table, "Available after Input Settings service is implemented.", table == German ? "Verfügbar, sobald der Eingabeeinstellungsdienst implementiert ist." : (table == Russian ? "Доступно после реализации сервиса настроек ввода." : "Доступно після реалізації сервісу налаштувань вводу."));
+            Add(table, "Available after Binding Settings service is implemented.", table == German ? "Verfügbar, sobald der Tastenzuweisungsdienst implementiert ist." : (table == Russian ? "Доступно после реализации сервиса привязок." : "Доступно після реалізації сервісу прив'язок."));
+            Add(table, "Available after Startup Preferences service is implemented.", table == German ? "Verfügbar, sobald der Startpräferenzdienst implementiert ist." : (table == Russian ? "Доступно после реализации сервиса настроек запуска." : "Доступно після реалізації сервісу налаштувань запуску."));
+            Add(table, "Available after Settings Persistence service is implemented.", table == German ? "Verfügbar, sobald der Persistenzdienst für Einstellungen implementiert ist." : (table == Russian ? "Доступно после реализации сервиса сохранения настроек." : "Доступно після реалізації сервісу збереження налаштувань."));
+            Add(table, "Settings persistence service available. Individual settings will be connected in later stages.", table == German ? "Einstellungsspeicherung ist verfügbar. Einzelne Einstellungen werden in späteren Phasen verbunden." : (table == Russian ? "Сервис сохранения настроек доступен. Отдельные настройки будут подключены на следующих этапах." : "Сервіс збереження налаштувань доступний. Окремі налаштування буде підключено на наступних етапах."));
+            Add(table, "Available after Platform Shell service is implemented.", table == German ? "Verfügbar, sobald der Plattform-Shell-Dienst implementiert ist." : (table == Russian ? "Доступно после реализации сервиса оболочки платформы." : "Доступно після реалізації сервісу оболонки платформи."));
+            Add(table, "Available after Diagnostics HUD service is implemented.", table == German ? "Verfügbar, sobald der Diagnose-HUD-Dienst implementiert ist." : (table == Russian ? "Доступно после реализации сервиса диагностического HUD." : "Доступно після реалізації сервісу діагностичного HUD."));
+            Add(table, "Available after Preset Persistence service is implemented.", table == German ? "Verfügbar, sobald der Preset-Persistenzdienst implementiert ist." : (table == Russian ? "Доступно после реализации сервиса сохранения пресетов." : "Доступно після реалізації сервісу збереження пресетів."));
+            Add(table, "Available after Showcase Recording service is implemented.", table == German ? "Verfügbar, sobald der Showcase-Aufnahmedienst implementiert ist." : (table == Russian ? "Доступно после реализации сервиса записи Showcase." : "Доступно після реалізації сервісу запису Showcase."));
+            Add(table, "Available after Premium Light Rig shadow service is implemented.", table == German ? "Verfügbar, sobald der Schatten-Dienst des Premium-Licht-Rigs implementiert ist." : (table == Russian ? "Доступно после реализации сервиса теней Premium Light Rig." : "Доступно після реалізації сервісу тіней Premium Light Rig."));
+            Add(table, "Recording hotkey unavailable until Showcase Recording service is implemented.", table == German ? "Aufnahme-Hotkey nicht verfügbar, bis der Showcase-Aufnahmedienst implementiert ist." : (table == Russian ? "Горячая клавиша записи недоступна до реализации сервиса записи Showcase." : "Гаряча клавіша запису недоступна до реалізації сервісу запису Showcase."));
+            Add(table, "Recording: Showcase Recording service missing", table == German ? "Aufnahme: Showcase-Aufnahmedienst fehlt" : (table == Russian ? "Запись: нет сервиса записи Showcase" : "Запис: немає сервісу запису Showcase"));
+            Add(table, "SHOWCASE RECORDING SERVICE MISSING", table == German ? "SHOWCASE-AUFNAHMEDIENST FEHLT" : (table == Russian ? "НЕТ СЕРВИСА ЗАПИСИ SHOWCASE" : "НЕМАЄ СЕРВІСУ ЗАПИСУ SHOWCASE"));
+            Add(table, "SESSION STARTED - SHOWCASE RECORDING SERVICE MISSING", table == German ? "SITZUNG GESTARTET - SHOWCASE-AUFNAHMEDIENST FEHLT" : (table == Russian ? "СЕАНС ЗАПУЩЕН - НЕТ СЕРВИСА ЗАПИСИ SHOWCASE" : "СЕАНС ЗАПУЩЕНО - НЕМАЄ СЕРВІСУ ЗАПИСУ SHOWCASE"));
+            Add(table, "SETTINGS PERSISTENCE SERVICE MISSING - EXITING WITHOUT SAVE", table == German ? "EINSTELLUNGS-PERSISTENZDIENST FEHLT - BEENDEN OHNE SPEICHERN" : (table == Russian ? "НЕТ СЕРВИСА СОХРАНЕНИЯ НАСТРОЕК - ВЫХОД БЕЗ СОХРАНЕНИЯ" : "НЕМАЄ СЕРВІСУ ЗБЕРЕЖЕННЯ НАЛАШТУВАНЬ - ВИХІД БЕЗ ЗБЕРЕЖЕННЯ"));
+            Add(table, "SAVE-AND-EXIT CONFIRMATION NOT CONNECTED - EXITING WITHOUT SAVE", table == German ? "SPEICHERN-UND-BEENDEN-BESTÄTIGUNG NICHT VERBUNDEN - BEENDEN OHNE SPEICHERN" : (table == Russian ? "ПОДТВЕРЖДЕНИЕ СОХРАНЕНИЯ И ВЫХОДА НЕ ПОДКЛЮЧЕНО - ВЫХОД БЕЗ СОХРАНЕНИЯ" : "ПІДТВЕРДЖЕННЯ ЗБЕРЕЖЕННЯ І ВИХОДУ НЕ ПІДКЛЮЧЕНО - ВИХІД БЕЗ ЗБЕРЕЖЕННЯ"));
+            Add(table, "AUTO SAVE SETTINGS ON", table == German ? "EINSTELLUNGEN AUTOMATISCH SPEICHERN EIN" : (table == Russian ? "АВТОСОХРАНЕНИЕ НАСТРОЕК ВКЛ" : "АВТОЗБЕРЕЖЕННЯ НАЛАШТУВАНЬ УВІМК"));
+            Add(table, "AUTO SAVE SETTINGS OFF", table == German ? "EINSTELLUNGEN AUTOMATISCH SPEICHERN AUS" : (table == Russian ? "АВТОСОХРАНЕНИЕ НАСТРОЕК ВЫКЛ" : "АВТОЗБЕРЕЖЕННЯ НАЛАШТУВАНЬ ВИМК"));
+            Add(table, "Command available.", table == German ? "Befehl verfügbar." : (table == Russian ? "Команда доступна." : "Команда доступна."));
+            Add(table, "Complete a benchmark before saving results.", table == German ? "Schließe zuerst einen Benchmark ab, bevor Ergebnisse gespeichert werden." : (table == Russian ? "Сначала завершите Benchmark, чтобы сохранить результат." : "Спочатку завершіть Benchmark, щоб зберегти результат."));
+            Add(table, "Benchmark result ready to save.", table == German ? "Benchmark-Ergebnis kann gespeichert werden." : (table == Russian ? "Результат Benchmark готов к сохранению." : "Результат Benchmark готовий до збереження."));
             Add(table, "Ctrl + Shift + R = Start / Stop recording", table == German ? "Ctrl + Shift + R = Aufnahme starten / stoppen" : (table == Russian ? "Ctrl + Shift + R = старт / стоп записи" : "Ctrl + Shift + R = старт / стоп запису"));
             Add(table, "SECOND DISPLAY READY", table == German ? "ZWEITES DISPLAY BEREIT" : (table == Russian ? "ВТОРОЙ ДИСПЛЕЙ ГОТОВ" : "ДРУГИЙ ДИСПЛЕЙ ГОТОВИЙ"));
             Add(table, "NO SECOND DISPLAY DETECTED", table == German ? "KEIN ZWEITES DISPLAY ERKANNT" : (table == Russian ? "ВТОРОЙ ДИСПЛЕЙ НЕ ОБНАРУЖЕН" : "ДРУГИЙ ДИСПЛЕЙ НЕ ЗНАЙДЕНО"));
@@ -319,8 +359,6 @@ namespace Kaleidoscope2.Menu
             Add(table, "SECOND DISPLAY COMMAND UNAVAILABLE", table == German ? "DISPLAY-BEFEHL NICHT VERFÜGBAR" : (table == Russian ? "КОМАНДА ДИСПЛЕЯ НЕДОСТУПНА" : "КОМАНДА ДИСПЛЕЯ НЕДОСТУПНА"));
             Add(table, "RECORDING OFF", table == German ? "AUFNAHME AUS" : (table == Russian ? "ЗАПИСЬ ВЫКЛЮЧЕНА" : "ЗАПИС ВИМКНЕНО"));
             Add(table, "RECORDING READY", table == German ? "AUFNAHME BEREIT" : (table == Russian ? "ЗАПИСЬ ГОТОВА" : "ЗАПИС ГОТОВИЙ"));
-            Add(table, "RECORDING RESERVED", table == German ? "AUFNAHME RESERVIERT" : (table == Russian ? "ЗАПИСЬ ЗАРЕЗЕРВИРОВАНА" : "ЗАПИС ЗАРЕЗЕРВОВАНО"));
-            Add(table, "RECORDING HOTKEY RESERVED", table == German ? "AUFNAHME-HOTKEY RESERVIERT" : (table == Russian ? "ГОРЯЧАЯ КЛАВИША ЗАПИСИ ЗАРЕЗЕРВИРОВАНА" : "ГАРЯЧУ КЛАВІШУ ЗАПИСУ ЗАРЕЗЕРВОВАНО"));
             Add(table, "RECORDING STARTED", table == German ? "AUFNAHME GESTARTET" : (table == Russian ? "ЗАПИСЬ НАЧАТА" : "ЗАПИС РОЗПОЧАТО"));
             Add(table, "RECORDING STOPPED", table == German ? "AUFNAHME GESTOPPT" : (table == Russian ? "ЗАПИСЬ ОСТАНОВЛЕНА" : "ЗАПИС ЗУПИНЕНО"));
             Add(table, "OUTPUT FOLDER MISSING", table == German ? "AUSGABEORDNER FEHLT" : (table == Russian ? "НЕТ ПАПКИ ВЫВОДА" : "НЕМАЄ ПАПКИ ВИВОДУ"));
@@ -329,7 +367,6 @@ namespace Kaleidoscope2.Menu
             Add(table, "RECORDING OUTPUT FOLDER CLEARED", table == German ? "AUFNAHMEORDNER GELÖSCHT" : (table == Russian ? "ПАПКА ЗАПИСИ ОЧИЩЕНА" : "ПАПКУ ЗАПИСУ ОЧИЩЕНО"));
             Add(table, "SESSION STARTED - OUTPUT FOLDER MISSING", table == German ? "SITZUNG GESTARTET - AUSGABEORDNER FEHLT" : (table == Russian ? "СЕАНС ЗАПУЩЕН - НЕТ ПАПКИ ВЫВОДА" : "СЕАНС ЗАПУЩЕНО - НЕМАЄ ПАПКИ ВИВОДУ"));
             Add(table, "SESSION STARTED - RECORDING READY", table == German ? "SITZUNG GESTARTET - AUFNAHME BEREIT" : (table == Russian ? "СЕАНС ЗАПУЩЕН - ЗАПИСЬ ГОТОВА" : "СЕАНС ЗАПУЩЕНО - ЗАПИС ГОТОВИЙ"));
-            Add(table, "SESSION STARTED - RECORDING RESERVED", table == German ? "SITZUNG GESTARTET - AUFNAHME RESERVIERT" : (table == Russian ? "СЕАНС ЗАПУЩЕН - ЗАПИСЬ ЗАРЕЗЕРВИРОВАНА" : "СЕАНС ЗАПУЩЕНО - ЗАПИС ЗАРЕЗЕРВОВАНО"));
         }
 
         private static void AddContent(Dictionary<string, string> table, string title, string subtitle, string imageSource, string musicSource, string selectImage, string selectMusic, string clear, string back, string start, string noImage, string noMusic, string required)
@@ -379,6 +416,11 @@ namespace Kaleidoscope2.Menu
             Add(table, "Expressive crystal optics controls", de ? "Ausdrucksstarke Kristalloptik" : (ru ? "Выразительные настройки кристальной оптики" : "Виразні налаштування кристальної оптики"));
             Add(table, "Factory looks and user slots", de ? "Factory-Looks und Benutzerplätze" : (ru ? "Фабричные образы и пользовательские слоты" : "Фабричні образи та користувацькі слоти"));
             Add(table, "Application and system controls", de ? "Anwendungs- und Systemsteuerung" : (ru ? "Настройки приложения и системы" : "Налаштування застосунку й системи"));
+            Add(table, "Credits, author, music, and license", de ? "Autor, Musik und Lizenz" : (ru ? "Автор, музыка и лицензия" : "Автор, музика та ліцензія"));
+            Add(table, "Restorable comfort and transparent demonstrations", de ? "Wiederherstellbarer Komfort und transparente Demos" : (ru ? "Восстанавливаемый комфорт и прозрачные демонстрации" : "Відновлюваний комфорт і прозорі демонстрації"));
+            Add(table, "Comfort Visual Session", de ? "Komfort-Visualsitzung" : (ru ? "Комфортный визуальный сеанс" : "Комфортний візуальний сеанс"));
+            Add(table, "Semantic Performance Playback", de ? "Semantische Performance-Wiedergabe" : (ru ? "Семантическое воспроизведение выступления" : "Семантичне відтворення виступу"));
+            Add(table, "Visual Performance Mode", de ? "Visueller Performance-Modus" : (ru ? "Режим визуальной производительности" : "Режим візуальної продуктивності"));
             Add(table, "MODES SECTION", de ? "MODI-BEREICH" : (ru ? "РАЗДЕЛ РЕЖИМОВ" : "РОЗДІЛ РЕЖИМІВ"));
             Add(table, "OPTICS SECTION", de ? "OPTIK-BEREICH" : (ru ? "РАЗДЕЛ ОПТИКИ" : "РОЗДІЛ ОПТИКИ"));
             Add(table, "PRESETS SECTION", de ? "PRESET-BEREICH" : (ru ? "РАЗДЕЛ ПРЕСЕТОВ" : "РОЗДІЛ ПРЕСЕТІВ"));
@@ -387,6 +429,7 @@ namespace Kaleidoscope2.Menu
             Add(table, "SECTION CLOSED", de ? "BEREICH GESCHLOSSEN" : (ru ? "РАЗДЕЛ ЗАКРЫТ" : "РОЗДІЛ ЗАКРИТО"));
             Add(table, "EXIT CANCELLED", de ? "BEENDEN ABGEBROCHEN" : (ru ? "ВЫХОД ОТМЕНЁН" : "ВИХІД СКАСОВАНО"));
             Add(table, "ACTION RESERVED", de ? "AKTION RESERVIERT" : (ru ? "ДЕЙСТВИЕ ЗАРЕЗЕРВИРОВАНО" : "ДІЮ ЗАРЕЗЕРВОВАНО"));
+            Add(table, "ABOUT / CREDITS", de ? "ÜBER DAS PROGRAMM" : (ru ? "О ПРОГРАММЕ" : "ПРО ПРОГРАМУ"));
             Add(table, "EXIT KAELIS?", de ? "KAELIS BEENDEN?" : (ru ? "ВЫЙТИ ИЗ KAELIS?" : "ВИЙТИ З KAELIS?"));
             Add(table, "Confirm application exit", de ? "Beenden bestätigen" : (ru ? "Подтвердите выход" : "Підтвердіть вихід"));
             Add(table, "Classic 2D", de ? "Classic 2D" : (ru ? "Классический 2D" : "Класичний 2D"));
@@ -396,9 +439,36 @@ namespace Kaleidoscope2.Menu
             Add(table, "Experimental / Coming Soon", de ? "Experimentell / bald verfügbar" : (ru ? "Эксперименты / скоро" : "Експерименти / незабаром"));
             Add(table, "Original kaleidoscope surface renderer.", de ? "Originaler Kaleidoskop-Oberflächenrenderer." : (ru ? "Оригинальный рендер поверхности калейдоскопа." : "Оригінальний рендер поверхні калейдоскопа."));
             Add(table, "Crystal-based premium optical scene. Protected until a safe public menu hook exists.", de ? "Premium-Optikszene auf Kristallbasis. Geschützt, bis ein sicherer Menü-Hook verfügbar ist." : (ru ? "Премиальная оптическая сцена на базе кристалла. Защищено до появления безопасного меню-хука." : "Преміальна оптична сцена на базі кристала. Захищено до появи безпечного меню-хука."));
+            Add(table, "Crystal-based premium optical scene with real volumetric mesh and optics controls.", de ? "Premium-Optikszene mit echtem volumetrischem Mesh und Optiksteuerung." : (ru ? "Премиальная оптическая сцена с настоящей объёмной сеткой и настройками оптики." : "Преміальна оптична сцена зі справжньою об'ємною сіткою та налаштуваннями оптики."));
             Add(table, "Depth/funnel mode with curved visual space.", de ? "Tiefen-/Trichtermodus mit gekrümmtem Bildraum." : (ru ? "Режим глубины/воронки с изогнутым визуальным пространством." : "Режим глибини/воронки з викривленим візуальним простором."));
             Add(table, "Continuous movement toward the kaleidoscope center.", de ? "Kontinuierliche Bewegung zum Kaleidoskopzentrum." : (ru ? "Непрерывное движение к центру калейдоскопа." : "Безперервний рух до центру калейдоскопа."));
             Add(table, "Future optical modes remain staged here until promoted.", de ? "Zukünftige optische Modi bleiben hier, bis sie freigegeben werden." : (ru ? "Будущие оптические режимы остаются здесь до продвижения." : "Майбутні оптичні режими залишаються тут до випуску."));
+            Add(table, "CREATION STORY", de ? "ENTSTEHUNG" : (ru ? "ИСТОРИЯ СОЗДАНИЯ" : "ІСТОРІЯ СТВОРЕННЯ"));
+            Add(table, "CREDITS & LICENSE", de ? "CREDITS & LIZENZ" : (ru ? "КРЕДИТЫ И ЛИЦЕНЗИЯ" : "КРЕДИТИ Й ЛІЦЕНЗІЯ"));
+            Add(table, "COMFORT", de ? "KOMFORT" : (ru ? "КОМФОРТ" : "КОМФОРТ"));
+            Add(table, "DEMONSTRATIONS", de ? "DEMONSTRATIONEN" : (ru ? "ДЕМОНСТРАЦИИ" : "ДЕМОНСТРАЦІЇ"));
+            Add(table, "PREVIEW", de ? "VORSCHAU" : (ru ? "ПРЕДПРОСМОТР" : "ПЕРЕДПЕРЕГЛЯД"));
+            Add(table, "OPEN PANEL", de ? "PANEL ÖFFNEN" : (ru ? "ОТКРЫТЬ ПАНЕЛЬ" : "ВІДКРИТИ ПАНЕЛЬ"));
+            Add(table, "START", de ? "START" : (ru ? "СТАРТ" : "СТАРТ"));
+            Add(table, "SAFE EXIT", de ? "SICHERER AUSSTIEG" : (ru ? "БЕЗОПАСНЫЙ ВЫХОД" : "БЕЗПЕЧНИЙ ВИХІД"));
+            Add(table, "RESULT ACTION", de ? "ERGEBNISAKTION" : (ru ? "ДЕЙСТВИЕ РЕЗУЛЬТАТА" : "ДІЯ РЕЗУЛЬТАТУ"));
+            Add(table, "Meditation Mode", de ? "Meditation" : (ru ? "Режим медитации" : "Режим медитації"));
+            Add(table, "Replay Demo", de ? "Replay Demo" : (ru ? "Replay Demo" : "Replay Demo"));
+            Add(table, "Benchmark Demo", de ? "Benchmark Demo" : (ru ? "Benchmark Demo" : "Benchmark Demo"));
+            Add(table, "Stop Active Session", de ? "Aktive Sitzung stoppen" : (ru ? "Остановить активный сеанс" : "Зупинити активний сеанс"));
+            Add(table, "Save Benchmark Result", de ? "Benchmark-Ergebnis speichern" : (ru ? "Сохранить результат Benchmark" : "Зберегти результат Benchmark"));
+            Add(table, "Start Meditation Mode", de ? "Meditation starten" : (ru ? "Запустить медитацию" : "Запустити медитацію"));
+            Add(table, "Start Replay Demo", de ? "Replay Demo starten" : (ru ? "Запустить Replay Demo" : "Запустити Replay Demo"));
+            Add(table, "BENCHMARK DEMO", de ? "BENCHMARK DEMO" : (ru ? "BENCHMARK DEMO" : "BENCHMARK DEMO"));
+            Add(table, "REPLAY DEMO", de ? "REPLAY DEMO" : (ru ? "REPLAY DEMO" : "REPLAY DEMO"));
+            Add(table, "CINEMATIC PERFORMANCE SHOWCASE", de ? "KINEMATISCHE PERFORMANCE-SHOW" : (ru ? "КИНЕМАТИЧЕСКАЯ ДЕМОНСТРАЦИЯ ПРОИЗВОДИТЕЛЬНОСТИ" : "КІНЕМАТИЧНА ДЕМОНСТРАЦІЯ ПРОДУКТИВНОСТІ"));
+            Add(table, "Created by", de ? "Erstellt von" : (ru ? "Автор" : "Автор"));
+            Add(table, "Music and Sound", de ? "Musik und Sound" : (ru ? "Музыка и звук" : "Музика і звук"));
+            Add(table, "YouTube", "YouTube");
+            Add(table, "Contact", de ? "Kontakt" : (ru ? "Контакты" : "Контакти"));
+            Add(table, "Copyright", de ? "Copyright" : (ru ? "Авторские права" : "Авторські права"));
+            Add(table, "License", de ? "Lizenz" : (ru ? "Лицензия" : "Ліцензія"));
+            Add(table, "All Rights Reserved", de ? "Alle Rechte vorbehalten" : (ru ? "Все права защищены" : "Усі права захищено"));
             AddProductionLabels(table);
             AddOpticsLabels(table);
             AddPresetLabels(table);
@@ -406,7 +476,7 @@ namespace Kaleidoscope2.Menu
             Add(table, "SAVE SETTINGS AND EXIT", de ? "SPEICHERN UND BEENDEN" : (ru ? "СОХРАНИТЬ И ВЫЙТИ" : "ЗБЕРЕГТИ І ВИЙТИ"));
             Add(table, "EXIT WITHOUT SAVING", de ? "OHNE SPEICHERN BEENDEN" : (ru ? "ВЫЙТИ БЕЗ СОХРАНЕНИЯ" : "ВИЙТИ БЕЗ ЗБЕРЕЖЕННЯ"));
             Add(table, "CANCEL", de ? "ABBRECHEN" : (ru ? "ОТМЕНА" : "СКАСУВАТИ"));
-            Add(table, "Close the KAELIS experience shell. Saving settings is reserved until a persistence service exists.", de ? "Schließt die KAELIS-Erlebnishülle. Speichern ist reserviert, bis ein Persistenzdienst existiert." : (ru ? "Закрывает оболочку KAELIS. Сохранение зарезервировано до появления сервиса настроек." : "Закриває оболонку KAELIS. Збереження зарезервовано до появи сервісу налаштувань."));
+            Add(table, "Close the KAELIS experience shell. Settings persistence is available; save-and-exit remains unavailable until its confirmation flow is connected.", de ? "Schließt die KAELIS-Erlebnishülle. Einstellungsspeicherung ist verfügbar; Speichern und Beenden bleibt bis zur Bestätigungslogik deaktiviert." : (ru ? "Закрывает оболочку KAELIS. Сервис сохранения настроек доступен; сохранение и выход останутся недоступны до подключения подтверждения." : "Закриває оболонку KAELIS. Сервіс збереження налаштувань доступний; збереження й вихід лишаються недоступними до підключення підтвердження."));
         }
 
         private static void AddProductionLabels(Dictionary<string, string> table)
@@ -430,7 +500,6 @@ namespace Kaleidoscope2.Menu
             Add(table, "Recording: Disabled", de ? "Aufnahme: aus" : (ru ? "Запись: выключена" : "Запис: вимкнено"));
             Add(table, "Recording: Output folder missing", de ? "Aufnahme: Ausgabeordner fehlt" : (ru ? "Запись: нет папки вывода" : "Запис: немає папки виводу"));
             Add(table, "Recording: Ready", de ? "Aufnahme: bereit" : (ru ? "Запись: готова" : "Запис: готовий"));
-            Add(table, "Recording: Reserved", de ? "Aufnahme: reserviert" : (ru ? "Запись: зарезервирована" : "Запис: зарезервовано"));
         }
 
         private static void AddOpticsLabels(Dictionary<string, string> table)

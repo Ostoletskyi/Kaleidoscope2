@@ -8,14 +8,18 @@ namespace Kaleidoscope2.Menu.FX
     public sealed class PremiumMenuPrismReactionSettings
     {
         [SerializeField] private Rect crystalRectNormalized = new Rect(0.47f, 0.22f, 0.36f, 0.61f);
-        [SerializeField, Range(0f, 0.45f)] private float prismIntensity = 0.30f;
-        [SerializeField, Range(0.05f, 4f)] private float prismFadeInSpeed = 1.70f;
-        [SerializeField, Range(0.05f, 4f)] private float prismFadeOutSpeed = 0.86f;
+        [SerializeField, Range(0f, 1f)] private float prismIntensity = 0.72f;
+        [SerializeField, Range(0.05f, 4f)] private float prismFadeInSpeed = 2.60f;
+        [SerializeField, Range(0.05f, 4f)] private float prismFadeOutSpeed = 1.10f;
         [SerializeField, Range(0f, 0.6f)] private float prismOffset = 0.22f;
-        [SerializeField, Range(0.02f, 0.5f)] private float prismSpread = 0.24f;
-        [SerializeField, Range(0.35f, 0.65f)] private float prismSoftness = 0.50f;
-        [SerializeField, Range(0.001f, 0.14f)] private float prismColorSeparation = 0.052f;
+        [SerializeField, Range(0.02f, 0.5f)] private float prismSpread = 0.34f;
+        [SerializeField, Range(0.35f, 0.65f)] private float prismSoftness = 0.58f;
+        [SerializeField, Range(0.001f, 0.14f)] private float prismColorSeparation = 0.095f;
         [SerializeField, Range(0.05f, 1f)] private float prismLifetimeSmoothing = 0.30f;
+        [SerializeField] private Vector2 triggerLineStartNormalized = new Vector2(0.53f, 0.31f);
+        [SerializeField] private Vector2 triggerLineEndNormalized = new Vector2(0.80f, 0.72f);
+        [SerializeField, Range(0.01f, 0.28f)] private float triggerZoneWidthNormalized = 0.085f;
+        [SerializeField, Range(0f, 2f)] private float cameraGlowIntensity = 1.35f;
 
         public Rect CrystalRectNormalized
         {
@@ -31,7 +35,7 @@ namespace Kaleidoscope2.Menu.FX
             }
         }
 
-        public float PrismIntensity { get { return Mathf.Clamp(prismIntensity, 0f, 0.45f); } }
+        public float PrismIntensity { get { return Mathf.Clamp(prismIntensity, 0f, 1f); } }
         public float PrismFadeInSpeed { get { return Mathf.Clamp(prismFadeInSpeed, 0.05f, 4f); } }
         public float PrismFadeOutSpeed { get { return Mathf.Clamp(prismFadeOutSpeed, 0.05f, 4f); } }
         public float PrismOffset { get { return Mathf.Clamp(prismOffset, 0f, 0.6f); } }
@@ -39,6 +43,31 @@ namespace Kaleidoscope2.Menu.FX
         public float PrismSoftness { get { return Mathf.Clamp(prismSoftness, 0.35f, 0.65f); } }
         public float PrismColorSeparation { get { return Mathf.Clamp(prismColorSeparation, 0.001f, 0.14f); } }
         public float PrismLifetimeSmoothing { get { return Mathf.Clamp(prismLifetimeSmoothing, 0.05f, 1f); } }
+        public Vector2 TriggerLineStartNormalized { get { return Clamp01(triggerLineStartNormalized); } }
+
+        public Vector2 TriggerLineEndNormalized
+        {
+            get
+            {
+                Vector2 start = TriggerLineStartNormalized;
+                Vector2 end = Clamp01(triggerLineEndNormalized);
+                if ((end - start).sqrMagnitude >= 0.001f)
+                {
+                    return end;
+                }
+
+                Rect crystal = CrystalRectNormalized;
+                return Clamp01(crystal.center + new Vector2(crystal.width * 0.32f, crystal.height * 0.32f));
+            }
+        }
+
+        public float TriggerZoneWidthNormalized { get { return Mathf.Clamp(triggerZoneWidthNormalized, 0.01f, 0.28f); } }
+        public float CameraGlowIntensity { get { return Mathf.Clamp(cameraGlowIntensity, 0f, 2f); } }
+
+        private static Vector2 Clamp01(Vector2 value)
+        {
+            return new Vector2(Mathf.Clamp01(value.x), Mathf.Clamp01(value.y));
+        }
     }
 
     [DisallowMultipleComponent]
@@ -50,7 +79,9 @@ namespace Kaleidoscope2.Menu.FX
         private PremiumMenuPrismReactionController mirroredSource;
         private float mirroredIntensityScale = 1f;
         private float visibleIntensity;
+        private float visibleFlareIntensity;
         private Vector2 refractedCenterNormalized = new Vector2(0.65f, 0.48f);
+        private Vector2 flareCenterNormalized = new Vector2(0.65f, 0.48f);
         private Vector2 refractedDirection = Vector2.right;
 
         public override Texture mainTexture
@@ -58,8 +89,9 @@ namespace Kaleidoscope2.Menu.FX
             get { return s_WhiteTexture; }
         }
 
-        internal PremiumMenuPrismReactionSettings Settings { get { return settings; } }
+        public PremiumMenuPrismReactionSettings Settings { get { return settings; } }
         internal float VisibleIntensity { get { return visibleIntensity; } }
+        internal float VisibleFlareIntensity { get { return visibleFlareIntensity; } }
 
         internal void AssignMaterial(Material materialInstance)
         {
@@ -121,7 +153,11 @@ namespace Kaleidoscope2.Menu.FX
             float crystalRadius = Mathf.Max(1f, Mathf.Min(crystalSize.x, crystalSize.y) * 0.48f);
 
             float strongestInfluence = 0f;
+            float strongestLineInfluence = 0f;
             PremiumMenuBeamSample strongestBeam = default(PremiumMenuBeamSample);
+            Vector2 strongestLinePoint = crystalCenter;
+            Vector2 triggerLineStart = NormalizedToLocal(settings.TriggerLineStartNormalized, bounds);
+            Vector2 triggerLineEnd = NormalizedToLocal(settings.TriggerLineEndNormalized, bounds);
             for (int index = 0; index < beamSource.BeamCount; index++)
             {
                 PremiumMenuBeamSample beam;
@@ -135,6 +171,15 @@ namespace Kaleidoscope2.Menu.FX
                 float normalizedDistance = Mathf.InverseLerp(intersectionRange * 0.28f, intersectionRange, beamDistance);
                 float influence = 1f - Mathf.SmoothStep(0f, 1f, normalizedDistance);
                 influence *= Mathf.Lerp(0.72f, 1f, Mathf.InverseLerp(0.03f, 0.08f, beam.Opacity));
+                Vector2 linePoint;
+                float lineInfluence = EvaluateBeamTriggerLineInfluence(beam, triggerLineStart, triggerLineEnd, bounds, settings.TriggerZoneWidthNormalized, out linePoint);
+                if (lineInfluence > strongestLineInfluence)
+                {
+                    strongestLineInfluence = lineInfluence;
+                    strongestLinePoint = linePoint;
+                }
+
+                influence = Mathf.Max(influence, lineInfluence);
                 if (influence > strongestInfluence)
                 {
                     strongestInfluence = influence;
@@ -142,22 +187,37 @@ namespace Kaleidoscope2.Menu.FX
                 }
             }
 
+            float shapedInfluence = strongestInfluence > 0f
+                ? Mathf.Pow(Mathf.Clamp01(strongestInfluence), 0.72f)
+                : 0f;
             float breathing = 0.92f + Mathf.Sin(time * 0.31f) * 0.08f;
-            float targetIntensity = strongestInfluence * settings.PrismIntensity * breathing;
+            float targetIntensity = shapedInfluence * settings.PrismIntensity * breathing;
             float responseSpeed = targetIntensity > visibleIntensity ? settings.PrismFadeInSpeed : settings.PrismFadeOutSpeed;
             float smoothing = Mathf.Lerp(1f, 0.34f, settings.PrismLifetimeSmoothing);
             visibleIntensity = Mathf.MoveTowards(visibleIntensity, targetIntensity, responseSpeed * smoothing * Mathf.Max(0f, deltaTime));
+            float flareInfluence = strongestLineInfluence > 0f
+                ? Mathf.Pow(Mathf.Clamp01(strongestLineInfluence), 0.62f)
+                : 0f;
+            float targetFlareIntensity = Mathf.Clamp(flareInfluence * settings.PrismIntensity * settings.CameraGlowIntensity * breathing, 0f, 2f);
+            float flareResponseSpeed = targetFlareIntensity > visibleFlareIntensity
+                ? settings.PrismFadeInSpeed * 1.35f
+                : settings.PrismFadeOutSpeed * 0.82f;
+            visibleFlareIntensity = Mathf.MoveTowards(visibleFlareIntensity, targetFlareIntensity, flareResponseSpeed * smoothing * Mathf.Max(0f, deltaTime));
 
             if (strongestInfluence > 0.0001f)
             {
                 Vector2 outgoingDirection = strongestBeam.Direction.sqrMagnitude > 0.0001f
                     ? strongestBeam.Direction.normalized
                     : Vector2.right;
-                Vector2 closestBeamPoint = strongestBeam.Center
-                    + strongestBeam.Normal * Vector2.Dot(crystalCenter - strongestBeam.Center, strongestBeam.Normal);
-                Vector2 reactionPoint = Vector2.Lerp(crystalCenter, closestBeamPoint, 0.34f)
+                Vector2 sourcePoint = strongestLineInfluence > 0.0001f ? strongestLinePoint : crystalCenter;
+                Vector2 closestBeamPoint = sourcePoint
+                    - strongestBeam.Normal * Vector2.Dot(sourcePoint - strongestBeam.Center, strongestBeam.Normal);
+                Vector2 reactionPoint = Vector2.Lerp(sourcePoint, closestBeamPoint, 0.34f)
                     + outgoingDirection * crystalRadius * settings.PrismOffset;
                 refractedCenterNormalized = LocalToNormalized(reactionPoint, bounds);
+                flareCenterNormalized = strongestLineInfluence > 0.0001f
+                    ? LocalToNormalized(strongestLinePoint, bounds)
+                    : refractedCenterNormalized;
                 refractedDirection = outgoingDirection;
             }
 
@@ -172,7 +232,9 @@ namespace Kaleidoscope2.Menu.FX
             }
 
             visibleIntensity = Mathf.Min(settings != null ? settings.PrismIntensity * 1.18f : 1f, mirroredSource.visibleIntensity * mirroredIntensityScale);
+            visibleFlareIntensity = Mathf.Min(settings != null ? settings.CameraGlowIntensity : 1f, mirroredSource.visibleFlareIntensity * mirroredIntensityScale);
             refractedCenterNormalized = mirroredSource.refractedCenterNormalized;
+            flareCenterNormalized = mirroredSource.flareCenterNormalized;
             refractedDirection = mirroredSource.refractedDirection;
             UpdateMaterialProperties(time);
         }
@@ -206,6 +268,9 @@ namespace Kaleidoscope2.Menu.FX
                 MenuAtmosphereShaderIds.PrismReaction,
                 new Vector4(refractedCenterNormalized.x, refractedCenterNormalized.y, visibleIntensity, settings.PrismSoftness));
             runtimeMaterial.SetVector(
+                MenuAtmosphereShaderIds.PrismFlare,
+                new Vector4(flareCenterNormalized.x, flareCenterNormalized.y, visibleFlareIntensity, settings.CameraGlowIntensity));
+            runtimeMaterial.SetVector(
                 MenuAtmosphereShaderIds.PrismDirection,
                 new Vector4(refractedDirection.x, refractedDirection.y, settings.PrismOffset, settings.PrismSpread));
             runtimeMaterial.SetVector(
@@ -225,6 +290,42 @@ namespace Kaleidoscope2.Menu.FX
             return new Vector2(
                 bounds.width > 0.001f ? Mathf.InverseLerp(bounds.xMin, bounds.xMax, point.x) : 0.5f,
                 bounds.height > 0.001f ? Mathf.InverseLerp(bounds.yMin, bounds.yMax, point.y) : 0.5f);
+        }
+
+        private static float EvaluateBeamTriggerLineInfluence(
+            PremiumMenuBeamSample beam,
+            Vector2 triggerLineStart,
+            Vector2 triggerLineEnd,
+            Rect bounds,
+            float triggerZoneWidthNormalized,
+            out Vector2 closestPoint)
+        {
+            closestPoint = (triggerLineStart + triggerLineEnd) * 0.5f;
+            if ((triggerLineEnd - triggerLineStart).sqrMagnitude < 1f)
+            {
+                return 0f;
+            }
+
+            float bestDistance = float.MaxValue;
+            const int samples = 8;
+            for (int sampleIndex = 0; sampleIndex <= samples; sampleIndex++)
+            {
+                float t = sampleIndex / (float)samples;
+                Vector2 point = Vector2.Lerp(triggerLineStart, triggerLineEnd, t);
+                float distance = Mathf.Abs(Vector2.Dot(point - beam.Center, beam.Normal));
+                if (distance < bestDistance)
+                {
+                    bestDistance = distance;
+                    closestPoint = point;
+                }
+            }
+
+            float zoneWidth = Mathf.Max(1f, Mathf.Min(bounds.width, bounds.height) * Mathf.Clamp(triggerZoneWidthNormalized, 0.01f, 0.28f));
+            float range = zoneWidth + beam.Thickness * 0.5f;
+            float normalizedDistance = Mathf.InverseLerp(zoneWidth * 0.18f, range, bestDistance);
+            float influence = 1f - Mathf.SmoothStep(0f, 1f, normalizedDistance);
+            influence *= Mathf.Lerp(0.74f, 1f, Mathf.InverseLerp(0.03f, 0.09f, beam.Opacity));
+            return Mathf.Clamp01(influence);
         }
     }
 }

@@ -3,11 +3,24 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using Kaleidoscope2.Core;
+using Kaleidoscope2.Demo;
 using UnityEngine;
 using UnityEngine.Networking;
 
 namespace Kaleidoscope2.AudioReactive
 {
+    [Serializable]
+    public struct AudioRuntimeSnapshot
+    {
+        public bool UsingDemoContent;
+        public string DemoTrackId;
+        public List<string> Playlist;
+        public int PlaylistIndex;
+        public string LastLoadedPath;
+        public bool WasPlaying;
+        public float PlaybackTime;
+    }
+
     [DisallowMultipleComponent]
     public sealed class AudioReactiveModule : KaleidoscopeModuleBase
     {
@@ -27,16 +40,35 @@ namespace Kaleidoscope2.AudioReactive
         [SerializeField] private bool autoplayOnLoad = true;
 
         private readonly List<string> playlist = new List<string>(256);
-        private int playlistIndex;
+        private readonly List<AudioClip> curatedPlaylist = new List<AudioClip>(32);
+        private int currentTrackIndex;
         private Coroutine loadingRoutine;
         private string lastLoadedPath;
         private bool stopRequested;
         private PlaybackState playbackState = PlaybackState.Idle;
-        private float currentTrackStartedAt;
+        private float currentTrackExpectedEndAt;
+        private bool usingDemoContent;
+        private bool usingDemoContentFallback;
+        private string activeDemoTrackId = string.Empty;
+        private int consecutiveLoadFailures;
 
         public override string ModuleId
         {
             get { return "AudioReactive"; }
+        }
+        public bool UsingDemoContentFallback { get { return usingDemoContentFallback; } }
+        public int CurrentTrackIndex { get { return currentTrackIndex; } }
+        public int ActivePlaylistCount { get { return GetPlaylistCount(); } }
+        public bool CuratedDemoAudioUnavailable
+        {
+            get
+            {
+                return usingDemoContent
+                    && usingDemoContentFallback
+                    && audioSource != null
+                    && audioSource.clip == null
+                    && GetPlaylistCount() == 0;
+            }
         }
 
         protected override void OnInitialized()
@@ -54,6 +86,8 @@ namespace Kaleidoscope2.AudioReactive
 
             return command.Type == KaleidoscopeCommandType.SetAudioFilePath
                 || command.Type == KaleidoscopeCommandType.SetAudioFolderPath
+                || command.Type == KaleidoscopeCommandType.SetDemoAudioContent
+                || command.Type == KaleidoscopeCommandType.SetAudioPlaybackEnabled
                 || command.Type == KaleidoscopeCommandType.PreviousAudioTrack
                 || command.Type == KaleidoscopeCommandType.ToggleAudioPlayback
                 || command.Type == KaleidoscopeCommandType.NextAudioTrack;
@@ -74,6 +108,14 @@ namespace Kaleidoscope2.AudioReactive
 
                 case KaleidoscopeCommandType.SetAudioFolderPath:
                     LoadFolder(command.StringValue);
+                    break;
+
+                case KaleidoscopeCommandType.SetDemoAudioContent:
+                    LoadDemoAudio(command.StringValue);
+                    break;
+
+                case KaleidoscopeCommandType.SetAudioPlaybackEnabled:
+                    SetPlaybackEnabled(command.BoolValue);
                     break;
 
                 case KaleidoscopeCommandType.PreviousAudioTrack:
@@ -123,11 +165,66 @@ namespace Kaleidoscope2.AudioReactive
             {
                 detail += ", " + playbackState.ToString().ToLowerInvariant();
                 detail += audioSource.isPlaying ? " (audible)" : " (not audible)";
-                detail += ", track " + (playlistIndex + 1) + "/" + Mathf.Max(playlist.Count, 1);
+                detail += ", track " + (currentTrackIndex + 1) + "/" + Mathf.Max(GetPlaylistCount(), 1);
                 detail += ", time " + audioSource.time.ToString("0.0") + "/" + audioSource.clip.length.ToString("0.0");
             }
 
             return CreateStatus(detail);
+        }
+
+        public AudioRuntimeSnapshot CaptureRuntimeSnapshot()
+        {
+            return new AudioRuntimeSnapshot
+            {
+                UsingDemoContent = usingDemoContent,
+                DemoTrackId = activeDemoTrackId,
+                Playlist = new List<string>(playlist),
+                PlaylistIndex = currentTrackIndex,
+                LastLoadedPath = lastLoadedPath,
+                WasPlaying = audioSource != null && audioSource.isPlaying,
+                PlaybackTime = audioSource != null && audioSource.clip != null ? audioSource.time : 0f
+            };
+        }
+
+        public void RestoreRuntimeSnapshot(AudioRuntimeSnapshot snapshot)
+        {
+            if (snapshot.UsingDemoContent)
+            {
+                LoadDemoAudio(snapshot.DemoTrackId);
+                if (curatedPlaylist.Count > 0)
+                {
+                    SetCuratedClipAtIndex(snapshot.PlaylistIndex, false, snapshot.PlaybackTime);
+                }
+                else if (playlist.Count > 0)
+                {
+                    StartLoadingAtIndex(snapshot.PlaylistIndex, false, snapshot.PlaybackTime);
+                }
+
+                SetPlaybackEnabled(snapshot.WasPlaying, snapshot.PlaybackTime);
+                return;
+            }
+
+            usingDemoContent = false;
+            usingDemoContentFallback = false;
+            activeDemoTrackId = string.Empty;
+            playlist.Clear();
+            curatedPlaylist.Clear();
+            if (snapshot.Playlist != null)
+            {
+                playlist.AddRange(snapshot.Playlist);
+            }
+
+            currentTrackIndex = Mathf.Clamp(snapshot.PlaylistIndex, 0, Mathf.Max(0, playlist.Count - 1));
+            if (playlist.Count > 0)
+            {
+                StartLoadingAtIndex(currentTrackIndex, snapshot.WasPlaying, snapshot.PlaybackTime);
+            }
+            else if (audioSource != null)
+            {
+                audioSource.Stop();
+                audioSource.clip = null;
+                playbackState = PlaybackState.Idle;
+            }
         }
 
         private void EnsureAudioSource()
@@ -176,8 +273,12 @@ namespace Kaleidoscope2.AudioReactive
 
         private void LoadSingleFile(string path)
         {
+            usingDemoContent = false;
+            usingDemoContentFallback = false;
+            activeDemoTrackId = string.Empty;
             playlist.Clear();
-            playlistIndex = 0;
+            curatedPlaylist.Clear();
+            currentTrackIndex = 0;
 
             if (string.IsNullOrWhiteSpace(path))
             {
@@ -203,8 +304,12 @@ namespace Kaleidoscope2.AudioReactive
 
         private void LoadFolder(string folderPath)
         {
+            usingDemoContent = false;
+            usingDemoContentFallback = false;
+            activeDemoTrackId = string.Empty;
             playlist.Clear();
-            playlistIndex = 0;
+            curatedPlaylist.Clear();
+            currentTrackIndex = 0;
 
             if (string.IsNullOrWhiteSpace(folderPath))
             {
@@ -245,7 +350,104 @@ namespace Kaleidoscope2.AudioReactive
             }
         }
 
-        private void StartLoadingAtIndex(int index, bool playWhenLoaded)
+        private void LoadDemoAudio(string trackId)
+        {
+            EnsureAudioSource();
+            usingDemoContent = true;
+            usingDemoContentFallback = false;
+            activeDemoTrackId = string.IsNullOrWhiteSpace(trackId) ? DemoContentCatalog.DefaultAudioTrackId : trackId;
+            playlist.Clear();
+            curatedPlaylist.Clear();
+            currentTrackIndex = 0;
+            consecutiveLoadFailures = 0;
+
+            DemoContentCatalog catalog = DemoContentCatalog.LoadDefault();
+            if (catalog != null)
+            {
+                AudioClip[] authoredPlaylist = catalog.MeditationAudioPlaylist;
+                if (authoredPlaylist != null)
+                {
+                    for (int index = 0; index < authoredPlaylist.Length; index++)
+                    {
+                        if (authoredPlaylist[index] != null)
+                        {
+                            curatedPlaylist.Add(authoredPlaylist[index]);
+                        }
+                    }
+                }
+
+                if (curatedPlaylist.Count == 0 && catalog.DefaultMeditationAudio != null)
+                {
+                    curatedPlaylist.Add(catalog.DefaultMeditationAudio);
+                }
+
+                if (curatedPlaylist.Count > 0)
+                {
+                    SetCuratedClipAtIndex(0, false, 0f);
+                    return;
+                }
+            }
+
+            string packagedDirectory = Path.Combine(Application.streamingAssetsPath, "Kaleidoscope2", "DemoContent", "Audio");
+            if (Directory.Exists(packagedDirectory))
+            {
+                usingDemoContentFallback = true;
+                string[] packagedFiles = Directory.GetFiles(packagedDirectory);
+                Array.Sort(packagedFiles, StringComparer.OrdinalIgnoreCase);
+                for (int index = 0; index < packagedFiles.Length; index++)
+                {
+                    if (HasSupportedExtension(packagedFiles[index]))
+                    {
+                        playlist.Add(packagedFiles[index]);
+                    }
+                }
+
+                if (playlist.Count > 0)
+                {
+                    StartLoadingAtIndex(0, false, 0f);
+                    return;
+                }
+            }
+
+            usingDemoContentFallback = true;
+            audioSource.Stop();
+            audioSource.clip = null;
+            playbackState = PlaybackState.Idle;
+            ReportWarning("Curated demo audio unavailable; continuing without audio.");
+        }
+
+        private void SetCuratedClipAtIndex(int index, bool playWhenReady, float startTime)
+        {
+            if (curatedPlaylist.Count == 0)
+            {
+                return;
+            }
+
+            index = ResolveWrappedTrackIndex(index, curatedPlaylist.Count);
+
+            if (loadingRoutine != null)
+            {
+                StopCoroutine(loadingRoutine);
+                loadingRoutine = null;
+            }
+
+            currentTrackIndex = index;
+            audioSource.Stop();
+            audioSource.clip = curatedPlaylist[currentTrackIndex];
+            lastLoadedPath = "catalog:" + audioSource.clip.name;
+            stopRequested = !playWhenReady;
+            if (playWhenReady)
+            {
+                PlayLoadedClip(startTime);
+            }
+            else
+            {
+                audioSource.time = Mathf.Clamp(startTime, 0f, Mathf.Max(0f, audioSource.clip.length - TrackEndToleranceSeconds));
+                playbackState = PlaybackState.Stopped;
+            }
+        }
+
+        private void StartLoadingAtIndex(int index, bool playWhenLoaded, float startTime = 0f)
         {
             if (playlist.Count == 0)
             {
@@ -253,20 +455,11 @@ namespace Kaleidoscope2.AudioReactive
                 return;
             }
 
-            if (index < 0)
-            {
-                index = playlist.Count - 1;
-            }
-            else if (index >= playlist.Count)
-            {
-                index = 0;
-            }
-
-            playlistIndex = index;
-            StartLoading(playlist[playlistIndex], playWhenLoaded);
+            currentTrackIndex = ResolveWrappedTrackIndex(index, playlist.Count);
+            StartLoading(playlist[currentTrackIndex], playWhenLoaded, startTime);
         }
 
-        private void StartLoading(string filePath, bool playWhenLoaded)
+        private void StartLoading(string filePath, bool playWhenLoaded, float startTime = 0f)
         {
             EnsureAudioSource();
 
@@ -282,10 +475,10 @@ namespace Kaleidoscope2.AudioReactive
 
             stopRequested = !playWhenLoaded;
             playbackState = PlaybackState.Loading;
-            loadingRoutine = StartCoroutine(LoadAudioClipCoroutine(filePath, playWhenLoaded));
+            loadingRoutine = StartCoroutine(LoadAudioClipCoroutine(filePath, playWhenLoaded, startTime));
         }
 
-        private IEnumerator LoadAudioClipCoroutine(string filePath, bool playWhenLoaded)
+        private IEnumerator LoadAudioClipCoroutine(string filePath, bool playWhenLoaded, float startTime)
         {
             lastLoadedPath = filePath;
 
@@ -295,6 +488,7 @@ namespace Kaleidoscope2.AudioReactive
                 ReportWarning("Unsupported audio type: " + filePath);
                 playbackState = PlaybackState.Idle;
                 loadingRoutine = null;
+                TrySkipFailedCuratedFile(playWhenLoaded);
                 yield break;
             }
 
@@ -308,6 +502,7 @@ namespace Kaleidoscope2.AudioReactive
                     ReportWarning("Audio load failed: " + request.error);
                     playbackState = PlaybackState.Idle;
                     loadingRoutine = null;
+                    TrySkipFailedCuratedFile(playWhenLoaded);
                     yield break;
                 }
 
@@ -317,6 +512,7 @@ namespace Kaleidoscope2.AudioReactive
                     ReportWarning("Audio clip decode returned null.");
                     playbackState = PlaybackState.Idle;
                     loadingRoutine = null;
+                    TrySkipFailedCuratedFile(playWhenLoaded);
                     yield break;
                 }
 
@@ -324,10 +520,11 @@ namespace Kaleidoscope2.AudioReactive
 
                 if (playWhenLoaded)
                 {
-                    PlayLoadedClip();
+                    PlayLoadedClip(startTime);
                 }
                 else
                 {
+                    audioSource.time = Mathf.Clamp(startTime, 0f, Mathf.Max(0f, audioSource.clip.length - TrackEndToleranceSeconds));
                     playbackState = PlaybackState.Stopped;
                 }
 
@@ -341,9 +538,13 @@ namespace Kaleidoscope2.AudioReactive
 
             if (audioSource.clip == null)
             {
-                if (playlist.Count > 0)
+                if (curatedPlaylist.Count > 0)
                 {
-                    StartLoadingAtIndex(playlistIndex, true);
+                    SetCuratedClipAtIndex(currentTrackIndex, true, 0f);
+                }
+                else if (playlist.Count > 0)
+                {
+                    StartLoadingAtIndex(currentTrackIndex, true);
                 }
                 else
                 {
@@ -364,29 +565,66 @@ namespace Kaleidoscope2.AudioReactive
             PlayLoadedClip();
         }
 
+        private void SetPlaybackEnabled(bool enabled, float startTime = 0f)
+        {
+            EnsureAudioSource();
+            if (!enabled)
+            {
+                audioSource.Stop();
+                stopRequested = true;
+                playbackState = PlaybackState.Stopped;
+                return;
+            }
+
+            if (audioSource.clip != null)
+            {
+                PlayLoadedClip(startTime);
+            }
+            else if (playlist.Count > 0)
+            {
+                StartLoadingAtIndex(currentTrackIndex, true, startTime);
+            }
+            else if (curatedPlaylist.Count > 0)
+            {
+                SetCuratedClipAtIndex(currentTrackIndex, true, startTime);
+            }
+        }
+
         private void PlayNextTrack()
         {
+            if (curatedPlaylist.Count > 0)
+            {
+                SetCuratedClipAtIndex(currentTrackIndex + 1, true, 0f);
+                return;
+            }
+
             if (playlist.Count == 0)
             {
                 ReportWarning("No audio playlist loaded.");
                 return;
             }
 
-            StartLoadingAtIndex(playlistIndex + 1, true);
+            StartLoadingAtIndex(currentTrackIndex + 1, true);
         }
 
         private void PlayPreviousTrack()
         {
+            if (curatedPlaylist.Count > 0)
+            {
+                SetCuratedClipAtIndex(currentTrackIndex - 1, true, 0f);
+                return;
+            }
+
             if (playlist.Count == 0)
             {
                 ReportWarning("No audio playlist loaded.");
                 return;
             }
 
-            StartLoadingAtIndex(playlistIndex - 1, true);
+            StartLoadingAtIndex(currentTrackIndex - 1, true);
         }
 
-        private void PlayLoadedClip()
+        private void PlayLoadedClip(float startTime = 0f)
         {
             if (audioSource == null || audioSource.clip == null)
             {
@@ -404,10 +642,33 @@ namespace Kaleidoscope2.AudioReactive
                 audioSource.volume = 1f;
             }
 
-            audioSource.time = 0f;
+            audioSource.time = Mathf.Clamp(startTime, 0f, Mathf.Max(0f, audioSource.clip.length - TrackEndToleranceSeconds));
             audioSource.Play();
-            currentTrackStartedAt = Time.unscaledTime;
+            currentTrackExpectedEndAt = Time.unscaledTime + Mathf.Max(0f, audioSource.clip.length - audioSource.time);
             playbackState = PlaybackState.Playing;
+            consecutiveLoadFailures = 0;
+        }
+
+        private int GetPlaylistCount()
+        {
+            return curatedPlaylist.Count > 0 ? curatedPlaylist.Count : playlist.Count;
+        }
+
+        private void TrySkipFailedCuratedFile(bool playWhenLoaded)
+        {
+            if (!usingDemoContent || playlist.Count == 0)
+            {
+                return;
+            }
+
+            consecutiveLoadFailures++;
+            if (consecutiveLoadFailures >= playlist.Count)
+            {
+                ReportWarning("No valid curated demo audio tracks could be loaded; continuing silently.");
+                return;
+            }
+
+            StartLoadingAtIndex(currentTrackIndex + 1, playWhenLoaded);
         }
 
         private bool HasReachedTrackEnd()
@@ -428,8 +689,20 @@ namespace Kaleidoscope2.AudioReactive
                 return true;
             }
 
-            float expectedEndAt = currentTrackStartedAt + clipLength;
-            return Time.unscaledTime >= expectedEndAt - TrackEndToleranceSeconds && audioSource.time > clipLength * 0.75f;
+            // Unity may reset AudioSource.time to zero when a non-looping clip completes.
+            // Track the expected end time so a completed playlist clip advances instead of restarting.
+            return Time.unscaledTime >= currentTrackExpectedEndAt - TrackEndToleranceSeconds;
+        }
+
+        public static int ResolveWrappedTrackIndex(int requestedIndex, int trackCount)
+        {
+            if (trackCount <= 0)
+            {
+                return 0;
+            }
+
+            int resolved = requestedIndex % trackCount;
+            return resolved < 0 ? resolved + trackCount : resolved;
         }
 
         private void ResumeInterruptedPlayback()

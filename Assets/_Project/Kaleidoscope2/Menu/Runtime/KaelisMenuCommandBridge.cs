@@ -1,5 +1,7 @@
 using System.IO;
 using Kaleidoscope2.Core;
+using Kaleidoscope2.Demo;
+using Kaleidoscope2.Settings;
 using UnityEngine;
 
 namespace Kaleidoscope2.Menu
@@ -96,9 +98,112 @@ namespace Kaleidoscope2.Menu
             return Dispatch(KaleidoscopeCommand.SetDiagnosticsVisible(true), "Show Diagnostics");
         }
 
+        public bool StartMeditationMode()
+        {
+            if (!Dispatch(KaleidoscopeCommand.SetMeditationModeEnabled(true), "Meditation Mode"))
+            {
+                return false;
+            }
+
+            SettingsRestoreService sessions = DemoRuntimeLookup.FindModule<SettingsRestoreService>(director);
+            return sessions != null && sessions.IsActive(TemporarySessionKind.Meditation);
+        }
+
+        public bool ToggleCrystalSplitComfort()
+        {
+            if (director == null)
+            {
+                ResolveDirector();
+            }
+
+            bool enabled = director == null || !director.State.CrystalSplitPresentation.Enabled;
+            return Dispatch(KaleidoscopeCommand.SetCrystalSplitComfortEnabled(enabled), "Split Comfort");
+        }
+
+        public bool StartReplayDemo()
+        {
+            if (!Dispatch(KaleidoscopeCommand.StartReplayDemo(), "Replay Demo"))
+            {
+                return false;
+            }
+
+            SettingsRestoreService sessions = DemoRuntimeLookup.FindModule<SettingsRestoreService>(director);
+            return sessions != null && sessions.IsActive(TemporarySessionKind.ReplayDemo);
+        }
+
+        public bool StartBenchmarkDemo()
+        {
+            if (!Dispatch(KaleidoscopeCommand.StartBenchmarkDemo(), "Benchmark Demo"))
+            {
+                return false;
+            }
+
+            SettingsRestoreService sessions = DemoRuntimeLookup.FindModule<SettingsRestoreService>(director);
+            return sessions != null && sessions.IsActive(TemporarySessionKind.BenchmarkDemo);
+        }
+
+        public bool CancelTemporarySession()
+        {
+            return Dispatch(KaleidoscopeCommand.CancelTemporarySession(), "Stop Temporary Session");
+        }
+
+        public bool SaveBenchmarkResult()
+        {
+            if (!HasBenchmarkResult())
+            {
+                return false;
+            }
+
+            return Dispatch(KaleidoscopeCommand.SaveBenchmarkResult(), "Save Benchmark Result");
+        }
+
+        public bool HasBenchmarkResult()
+        {
+            if (director == null)
+            {
+                ResolveDirector();
+            }
+
+            BenchmarkResultView resultView = DemoRuntimeLookup.FindModule<BenchmarkResultView>(director);
+            return resultView != null && resultView.HasResult;
+        }
+
         public bool SetSecondDisplayOutput(bool enabled)
         {
             return Dispatch(KaleidoscopeCommand.SetSecondDisplayOutputEnabled(enabled), enabled ? "Enable Second Display Output" : "Disable Second Display Output");
+        }
+
+        public bool SetSettingsAutoSaveEnabled(bool enabled)
+        {
+            return Dispatch(KaleidoscopeCommand.SetSettingsAutoSaveEnabled(enabled), enabled ? "Enable Settings Auto Save" : "Disable Settings Auto Save");
+        }
+
+        public bool SaveSettings()
+        {
+            return Dispatch(KaleidoscopeCommand.SaveSettings(), "Save Settings");
+        }
+
+        public bool ResetSettings()
+        {
+            return Dispatch(KaleidoscopeCommand.ResetSettings(), "Reset Settings");
+        }
+
+        public bool TryGetSettingsAutoSaveEnabled(out bool enabled)
+        {
+            enabled = false;
+            if (director == null)
+            {
+                ResolveDirector();
+            }
+
+            SettingsPersistenceService settings = DemoRuntimeLookup.FindModule<SettingsPersistenceService>(director);
+            if (settings == null)
+            {
+                return false;
+            }
+
+            enabled = settings.AutoSaveEnabled;
+            return true;
         }
 
         public bool TestSecondDisplayOutput()
@@ -108,7 +213,7 @@ namespace Kaleidoscope2.Menu
 
         public bool TrySetRecordingEnabled(KaelisProductionOptions options)
         {
-            Debug.Log("[KAELIS Menu] Recording backend is reserved. Requested create clip: "
+            Debug.Log("[KAELIS Menu] Showcase Recording service is not implemented. Requested create clip: "
                 + (options != null && options.CreateVideoClip ? "ON" : "OFF")
                 + ", output folder: "
                 + (options != null && !string.IsNullOrWhiteSpace(options.RecordingOutputFolder) ? options.RecordingOutputFolder : "none")
@@ -118,7 +223,7 @@ namespace Kaleidoscope2.Menu
 
         public bool TryPrepareRecordingForExperience(KaelisProductionOptions options, bool hasAudioSource)
         {
-            Debug.Log("[KAELIS Menu] Would auto-start video recording with experience. Backend reserved. Audio source: "
+            Debug.Log("[KAELIS Menu] Would auto-start video recording with experience. Showcase Recording service is not implemented. Audio source: "
                 + (hasAudioSource ? "available" : "not selected")
                 + ", output folder: "
                 + (options != null && !string.IsNullOrWhiteSpace(options.RecordingOutputFolder) ? options.RecordingOutputFolder : "none")
@@ -128,7 +233,7 @@ namespace Kaleidoscope2.Menu
 
         public bool TryToggleRecording(KaelisProductionOptions options)
         {
-            Debug.Log("[KAELIS Menu] Recording hotkey received, but recording backend is reserved. Intended output folder: "
+            Debug.Log("[KAELIS Menu] Recording hotkey received, but Showcase Recording service is not implemented. Intended output folder: "
                 + (options != null && !string.IsNullOrWhiteSpace(options.RecordingOutputFolder) ? options.RecordingOutputFolder : "none")
                 + ".");
             return false;
@@ -148,7 +253,7 @@ namespace Kaleidoscope2.Menu
             folderPath = selected;
             return true;
 #else
-            Debug.LogWarning("[KAELIS Menu] Native folder picker is reserved outside the Unity editor for now: " + title + ".");
+            Debug.LogWarning("[KAELIS Menu] Native folder picker service is unavailable outside the Unity editor for now: " + title + ".");
             return false;
 #endif
         }
