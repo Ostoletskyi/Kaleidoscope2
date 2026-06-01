@@ -4,6 +4,7 @@ namespace Kaleidoscope2.ImageSource
     {
         None = 0,
         SingleImage = 1,
-        FolderSlideshow = 2
+        FolderSlideshow = 2,
+        CuratedAssets = 3
     }
 }

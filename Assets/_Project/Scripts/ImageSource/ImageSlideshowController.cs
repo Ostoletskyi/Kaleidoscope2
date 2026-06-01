@@ -11,10 +11,13 @@ namespace Kaleidoscope2.ImageSource
         private readonly ImageTextureLoader loader = new ImageTextureLoader();
         private readonly ImageCrossfadeController crossfade = new ImageCrossfadeController();
         private readonly List<string> imagePaths = new List<string>(512);
+        private readonly List<Texture2D> imageAssets = new List<Texture2D>(512);
         private readonly System.Random random = new System.Random();
 
         private Texture2D currentTexture;
         private Texture2D nextTexture;
+        private bool ownsCurrentTexture;
+        private bool ownsNextTexture;
         private int currentIndex;
         private int nextIndex;
         private float timer;
@@ -41,9 +44,19 @@ namespace Kaleidoscope2.ImageSource
             get { return currentIndex; }
         }
 
+        public int ImageCount
+        {
+            get { return imageAssets.Count > 0 ? imageAssets.Count : imagePaths.Count; }
+        }
+
+        public float ElapsedInCurrentImage
+        {
+            get { return timer; }
+        }
+
         public float NextSwitchIn
         {
-            get { return active && imagePaths.Count > 1 ? Mathf.Max(0f, imageSwitchInterval - timer) : 0f; }
+            get { return active && ImageCount > 1 ? Mathf.Max(0f, imageSwitchInterval - timer) : 0f; }
         }
 
         public bool IsActive
@@ -88,6 +101,7 @@ namespace Kaleidoscope2.ImageSource
         {
             StopSlideshow();
             imagePaths.Clear();
+            imageAssets.Clear();
 
             if (paths != null)
             {
@@ -105,12 +119,32 @@ namespace Kaleidoscope2.ImageSource
             StartSlideshow();
         }
 
+        public void SetImageAssets(IReadOnlyList<Texture2D> assets)
+        {
+            StopSlideshow();
+            imagePaths.Clear();
+            imageAssets.Clear();
+            if (assets != null)
+            {
+                for (int index = 0; index < assets.Count; index++)
+                {
+                    if (assets[index] != null)
+                    {
+                        imageAssets.Add(assets[index]);
+                    }
+                }
+            }
+
+            mode = ImageSourceMode.CuratedAssets;
+            StartSlideshow();
+        }
+
         public void StartSlideshow()
         {
             timer = 0f;
             currentIndex = 0;
             nextIndex = -1;
-            active = imagePaths.Count > 0;
+            active = ImageCount > 0;
 
             if (!active)
             {
@@ -138,7 +172,7 @@ namespace Kaleidoscope2.ImageSource
 
         public void NextImage()
         {
-            if (!active || imagePaths.Count <= 1)
+            if (!active || ImageCount <= 1)
             {
                 return;
             }
@@ -148,7 +182,7 @@ namespace Kaleidoscope2.ImageSource
 
         public void PreviousImage()
         {
-            if (!active || imagePaths.Count <= 1)
+            if (!active || ImageCount <= 1)
             {
                 return;
             }
@@ -156,7 +190,7 @@ namespace Kaleidoscope2.ImageSource
             int previousIndex = currentIndex - 1;
             if (previousIndex < 0)
             {
-                previousIndex = loopImages ? imagePaths.Count - 1 : 0;
+                previousIndex = loopImages ? ImageCount - 1 : 0;
             }
 
             BeginTransition(previousIndex);
@@ -164,7 +198,7 @@ namespace Kaleidoscope2.ImageSource
 
         public void Tick(float deltaTime)
         {
-            if (!active || imagePaths.Count == 0)
+            if (!active || ImageCount == 0)
             {
                 return;
             }
@@ -180,7 +214,7 @@ namespace Kaleidoscope2.ImageSource
                 return;
             }
 
-            if (imagePaths.Count <= 1)
+            if (ImageCount <= 1)
             {
                 return;
             }
@@ -198,19 +232,38 @@ namespace Kaleidoscope2.ImageSource
             crossfade.Dispose();
         }
 
+        public void RestorePosition(int index, float elapsed)
+        {
+            if (!active || ImageCount == 0)
+            {
+                return;
+            }
+
+            int resolved = Mathf.Clamp(index, 0, ImageCount - 1);
+            if (resolved != currentIndex)
+            {
+                LoadCurrent(resolved);
+                PrepareNextTexture();
+            }
+
+            timer = Mathf.Clamp(elapsed, 0f, imageSwitchInterval);
+        }
+
         private bool LoadCurrent(int index)
         {
-            DestroyTexture(ref currentTexture);
+            DestroyTexture(ref currentTexture, ref ownsCurrentTexture);
 
             string message;
             Texture2D texture;
-            if (!TryLoadImageAt(index, out texture, out message))
+            bool ownsTexture;
+            if (!TryLoadImageAt(index, out texture, out ownsTexture, out message))
             {
                 lastMessage = message;
                 return false;
             }
 
             currentTexture = texture;
+            ownsCurrentTexture = ownsTexture;
             currentIndex = index;
             crossfade.SetCurrent(currentTexture);
             return true;
@@ -218,10 +271,10 @@ namespace Kaleidoscope2.ImageSource
 
         private void PrepareNextTexture()
         {
-            DestroyTexture(ref nextTexture);
+            DestroyTexture(ref nextTexture, ref ownsNextTexture);
             nextIndex = -1;
 
-            if (imagePaths.Count <= 1)
+            if (ImageCount <= 1)
             {
                 return;
             }
@@ -229,7 +282,8 @@ namespace Kaleidoscope2.ImageSource
             nextIndex = GetNextIndex();
             string message;
             Texture2D texture;
-            if (!TryLoadImageAt(nextIndex, out texture, out message))
+            bool ownsTexture;
+            if (!TryLoadImageAt(nextIndex, out texture, out ownsTexture, out message))
             {
                 lastMessage = message;
                 nextIndex = -1;
@@ -237,11 +291,12 @@ namespace Kaleidoscope2.ImageSource
             }
 
             nextTexture = texture;
+            ownsNextTexture = ownsTexture;
         }
 
         private void BeginTransition(int targetIndex)
         {
-            if (targetIndex < 0 || targetIndex >= imagePaths.Count || targetIndex == currentIndex)
+            if (targetIndex < 0 || targetIndex >= ImageCount || targetIndex == currentIndex)
             {
                 timer = 0f;
                 return;
@@ -249,10 +304,11 @@ namespace Kaleidoscope2.ImageSource
 
             if (nextTexture == null || nextIndex != targetIndex)
             {
-                DestroyTexture(ref nextTexture);
+                DestroyTexture(ref nextTexture, ref ownsNextTexture);
                 string message;
                 Texture2D texture;
-                if (!TryLoadImageAt(targetIndex, out texture, out message))
+                bool ownsTexture;
+                if (!TryLoadImageAt(targetIndex, out texture, out ownsTexture, out message))
                 {
                     lastMessage = message;
                     timer = 0f;
@@ -260,6 +316,7 @@ namespace Kaleidoscope2.ImageSource
                 }
 
                 nextTexture = texture;
+                ownsNextTexture = ownsTexture;
                 nextIndex = targetIndex;
             }
 
@@ -270,14 +327,17 @@ namespace Kaleidoscope2.ImageSource
         private void PromoteNextTexture()
         {
             Texture2D oldTexture = currentTexture;
+            bool ownedOldTexture = ownsCurrentTexture;
             currentTexture = nextTexture;
+            ownsCurrentTexture = ownsNextTexture;
             currentIndex = nextIndex;
             nextTexture = null;
+            ownsNextTexture = false;
             nextIndex = -1;
             timer = 0f;
             crossfade.SetCurrent(currentTexture);
 
-            if (oldTexture != null && oldTexture != currentTexture)
+            if (ownedOldTexture && oldTexture != null && oldTexture != currentTexture)
             {
                 ImageTextureLoader.DestroyTexture(oldTexture);
             }
@@ -287,7 +347,7 @@ namespace Kaleidoscope2.ImageSource
 
         private int GetNextIndex()
         {
-            if (imagePaths.Count <= 1)
+            if (ImageCount <= 1)
             {
                 return currentIndex;
             }
@@ -298,7 +358,7 @@ namespace Kaleidoscope2.ImageSource
                 int guard = 0;
                 while (candidate == currentIndex && guard < 20)
                 {
-                    candidate = random.Next(0, imagePaths.Count);
+                    candidate = random.Next(0, ImageCount);
                     guard++;
                 }
 
@@ -306,7 +366,7 @@ namespace Kaleidoscope2.ImageSource
             }
 
             int next = currentIndex + 1;
-            if (next >= imagePaths.Count)
+            if (next >= ImageCount)
             {
                 return loopImages ? 0 : currentIndex;
             }
@@ -314,35 +374,45 @@ namespace Kaleidoscope2.ImageSource
             return next;
         }
 
-        private bool TryLoadImageAt(int index, out Texture2D texture, out string message)
+        private bool TryLoadImageAt(int index, out Texture2D texture, out bool ownsTexture, out string message)
         {
             texture = null;
+            ownsTexture = false;
             message = string.Empty;
 
-            if (index < 0 || index >= imagePaths.Count)
+            if (index < 0 || index >= ImageCount)
             {
                 message = "Image index is out of range.";
                 return false;
             }
 
-            return loader.TryLoad(imagePaths[index], out texture, out message);
+            if (imageAssets.Count > 0)
+            {
+                texture = imageAssets[index];
+                message = "Curated asset reference loaded.";
+                return true;
+            }
+
+            bool loaded = loader.TryLoad(imagePaths[index], out texture, out message);
+            ownsTexture = loaded && texture != null;
+            return loaded;
         }
 
         private void DestroyCurrentTextures()
         {
-            DestroyTexture(ref currentTexture);
-            DestroyTexture(ref nextTexture);
+            DestroyTexture(ref currentTexture, ref ownsCurrentTexture);
+            DestroyTexture(ref nextTexture, ref ownsNextTexture);
         }
 
-        private static void DestroyTexture(ref Texture2D texture)
+        private static void DestroyTexture(ref Texture2D texture, ref bool ownsTexture)
         {
-            if (texture == null)
+            if (ownsTexture && texture != null)
             {
-                return;
+                ImageTextureLoader.DestroyTexture(texture);
             }
 
-            ImageTextureLoader.DestroyTexture(texture);
             texture = null;
+            ownsTexture = false;
         }
     }
 }
