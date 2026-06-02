@@ -63,6 +63,9 @@ namespace Kaleidoscope2.Core
         [SerializeField] private bool premiumFacetHighlightsEnabled = true;
         [SerializeField] private bool premiumShapeMorphingEnabled = true;
         [SerializeField] private bool premiumDebugOpticalDiagnosticsEnabled;
+        [SerializeField] private bool premiumCrystalStabilizationActive;
+        [SerializeField, Range(0f, 1f)] private float premiumCrystalStabilizationAlignProgress;
+        [SerializeField] private string premiumCrystalStabilizationDiagnostics = "Premium stabilization inactive";
         [SerializeField] private DiamondCrystalDebugMode debugMode = DiamondCrystalDebugMode.FinalCrystalComposite;
         [SerializeField] private CrystalDebugEffectSettings crystalDebugEffectSettings = new CrystalDebugEffectSettings();
         [SerializeField, Range(0f, 1f)] private float realMeshAlpha = 0.58f;
@@ -138,6 +141,9 @@ namespace Kaleidoscope2.Core
         public bool PremiumFacetHighlightsEnabled { get { return premiumFacetHighlightsEnabled; } }
         public bool PremiumShapeMorphingEnabled { get { return premiumShapeMorphingEnabled; } }
         public bool PremiumDebugOpticalDiagnosticsEnabled { get { return premiumDebugOpticalDiagnosticsEnabled; } }
+        public bool PremiumCrystalStabilizationActive { get { return premiumCrystalStabilizationActive; } }
+        public float PremiumCrystalStabilizationAlignProgress { get { return Mathf.Clamp01(premiumCrystalStabilizationAlignProgress); } }
+        public string PremiumCrystalStabilizationDiagnostics { get { return premiumCrystalStabilizationDiagnostics; } }
         public DiamondCrystalDebugMode DebugMode { get { return debugMode; } }
         public string DebugModeLabel { get { return DiamondFocusSettings.GetDebugModeLabel(debugMode); } }
         public CrystalDebugEffectSettings CrystalDebugEffects
@@ -294,6 +300,9 @@ namespace Kaleidoscope2.Core
             premiumFacetHighlightsEnabled = diamondSettings.PremiumFacetHighlightsEnabled;
             premiumShapeMorphingEnabled = diamondSettings.PremiumShapeMorphingEnabled;
             premiumDebugOpticalDiagnosticsEnabled = diamondSettings.PremiumDebugOpticalDiagnosticsEnabled;
+            premiumCrystalStabilizationActive = diamondSettings.PremiumCrystalStabilizationActive;
+            premiumCrystalStabilizationAlignProgress = diamondSettings.PremiumCrystalStabilizationAlignProgress;
+            premiumCrystalStabilizationDiagnostics = diamondSettings.PremiumCrystalStabilizationDiagnostics;
             debugMode = diamondSettings.DebugMode;
             CrystalDebugEffects.CopyFrom(diamondSettings.CrystalDebugEffects);
             ApplyMenuOptics(diamondSettings, lightRigSettings);

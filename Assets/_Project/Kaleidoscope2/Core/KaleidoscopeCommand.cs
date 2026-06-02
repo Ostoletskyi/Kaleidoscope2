@@ -121,7 +121,9 @@ namespace Kaleidoscope2.Core
         SaveSettings = 113,
         ResetSettings = 114,
         AdjustClassicCrystalScalePercent = 115,
-        SetClassicCrystalScalePercent = 116
+        SetClassicCrystalScalePercent = 116,
+        CycleTopRowMirrorCountPreset = 117,
+        TriggerPremiumCrystalStabilization = 118
     }
 
     public enum KaleidoscopeCommandOrigin
@@ -237,6 +239,14 @@ namespace Kaleidoscope2.Core
             return new KaleidoscopeCommand(KaleidoscopeCommandType.SetMirrorCount)
             {
                 intValue = count
+            };
+        }
+
+        public static KaleidoscopeCommand CycleTopRowMirrorCountPreset(int groupIndex)
+        {
+            return new KaleidoscopeCommand(KaleidoscopeCommandType.CycleTopRowMirrorCountPreset)
+            {
+                intValue = groupIndex
             };
         }
 
@@ -639,6 +649,11 @@ namespace Kaleidoscope2.Core
             {
                 floatValue = speed
             };
+        }
+
+        public static KaleidoscopeCommand TriggerPremiumCrystalStabilization()
+        {
+            return new KaleidoscopeCommand(KaleidoscopeCommandType.TriggerPremiumCrystalStabilization);
         }
 
         public static KaleidoscopeCommand IncreaseDiamondRotationSpeed(float amount)

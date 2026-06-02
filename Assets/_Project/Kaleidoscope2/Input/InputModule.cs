@@ -291,19 +291,19 @@ namespace Kaleidoscope2.InputSystem
 
             if (UnityEngine.Input.GetKeyDown(sixSegmentsKey))
             {
-                director.Dispatch(KaleidoscopeCommand.SetMirrorCount(6));
+                director.Dispatch(KaleidoscopeCommand.CycleTopRowMirrorCountPreset(1));
             }
             if (UnityEngine.Input.GetKeyDown(twelveSegmentsKey))
             {
-                director.Dispatch(KaleidoscopeCommand.SetMirrorCount(12));
+                director.Dispatch(KaleidoscopeCommand.CycleTopRowMirrorCountPreset(2));
             }
             if (UnityEngine.Input.GetKeyDown(twentyFourSegmentsKey))
             {
-                director.Dispatch(KaleidoscopeCommand.SetMirrorCount(24));
+                director.Dispatch(KaleidoscopeCommand.CycleTopRowMirrorCountPreset(3));
             }
             if (UnityEngine.Input.GetKeyDown(fortyEightSegmentsKey))
             {
-                director.Dispatch(KaleidoscopeCommand.SetMirrorCount(48));
+                director.Dispatch(KaleidoscopeCommand.CycleTopRowMirrorCountPreset(4));
             }
             if (UnityEngine.Input.GetKeyDown(ninetySixSegmentsKey))
             {
@@ -819,6 +819,13 @@ namespace Kaleidoscope2.InputSystem
             if (settings == null || direction != settings.TargetRotationDirection)
             {
                 DiamondInputRouter.DispatchDirection(director, direction);
+            }
+
+            if (settings != null
+                && IsPremiumCrystalInputActive(settings)
+                && UnityEngine.Input.GetKeyDown(resetSpeedsKey))
+            {
+                director.Dispatch(KaleidoscopeCommand.TriggerPremiumCrystalStabilization());
             }
 
             if (dispatchPremiumWheelScale)

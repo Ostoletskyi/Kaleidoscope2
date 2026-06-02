@@ -13,6 +13,11 @@ namespace Kaleidoscope2.DiamondFocus
             }
 
             deltaTime = Mathf.Max(0f, deltaTime);
+            if (settings.TickPremiumCrystalStabilization(deltaTime))
+            {
+                return;
+            }
+
             Vector2 rotationInput = settings.TargetRotationDirection;
             Vector3 velocity = settings.RotationVelocity;
 

@@ -4,6 +4,9 @@ Shader "Kaleidoscope2/Mirror"
     {
         _MainTex ("Texture", 2D) = "white" {}
         _MirrorCount ("Mirror Count", Float) = 6
+        _MirrorCountFrom ("Mirror Count From", Float) = 6
+        _MirrorCountTo ("Mirror Count To", Float) = 6
+        _MirrorTransition ("Mirror Transition", Range(0,1)) = 1
         _Rotation ("Rotation (rad)", Float) = 0
         _Zoom ("Zoom", Float) = 1
         _CenterOffset ("Center Offset", Vector) = (0, 0, 0, 0)
@@ -30,6 +33,9 @@ Shader "Kaleidoscope2/Mirror"
             sampler2D _MainTex;
             float4 _MainTex_ST;
             float _MirrorCount;
+            float _MirrorCountFrom;
+            float _MirrorCountTo;
+            float _MirrorTransition;
             float _Rotation;
             float _Zoom;
             float4 _CenterOffset;
@@ -61,10 +67,8 @@ Shader "Kaleidoscope2/Mirror"
             static const float PI = 3.14159265;
             static const float TWO_PI = 6.28318530;
 
-            fixed4 frag(v2f i) : SV_Target
+            fixed4 SampleMirrorConfiguration(float2 uv, float mirrorCount)
             {
-                float2 uv = i.uv;
-
                 float2 p = (uv - 0.5) + _CenterOffset.xy;
 
                 float zoom = max(_Zoom, 0.0001);
@@ -73,7 +77,7 @@ Shader "Kaleidoscope2/Mirror"
                 float r = length(p);
                 float angle = atan2(p.y, p.x) + _Rotation;
 
-                float mirrors = max(1.0, floor(_MirrorCount + 0.5));
+                float mirrors = max(1.0, floor(mirrorCount + 0.5));
                 float segment = TWO_PI / mirrors;
 
                 // Wrap angle into [0..segment), then mirror it around the segment center.
@@ -117,6 +121,14 @@ Shader "Kaleidoscope2/Mirror"
                 }
 
                 return col;
+            }
+
+            fixed4 frag(v2f i) : SV_Target
+            {
+                float transition = saturate(_MirrorTransition);
+                fixed4 fromColor = SampleMirrorConfiguration(i.uv, _MirrorCountFrom);
+                fixed4 toColor = SampleMirrorConfiguration(i.uv, _MirrorCountTo);
+                return lerp(fromColor, toColor, transition);
             }
             ENDCG
         }

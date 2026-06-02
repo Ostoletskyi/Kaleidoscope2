@@ -33,6 +33,17 @@ namespace Kaleidoscope2.DiamondFocus
         private CrystalStage3DDebugMode stageDebugMode = CrystalStage3DDebugMode.FinalPremiumComposite;
         private float comfortExpansion;
         private float comfortOrbitAngleRadians;
+        private float comfortCycleSeconds;
+        private bool premiumStabilizationWasActive;
+        private float frozenComfortExpansion;
+        private float frozenComfortOrbitAngleRadians;
+        private float frozenComfortCycleSeconds;
+        private float comfortExpansionVisualOffset;
+        private float comfortOrbitVisualOffsetRadians;
+        private float comfortCycleVisualOffsetSeconds;
+        private float comfortExpansionOffsetVelocity;
+        private float comfortOrbitOffsetVelocity;
+        private float comfortCycleOffsetVelocity;
 
         public RealMeshCrystalRenderer(Transform ownerTransform, Shader shader, int crystalLayer)
         {
@@ -236,6 +247,7 @@ namespace Kaleidoscope2.DiamondFocus
         {
             comfortExpansion = presentation != null ? presentation.Expansion : 0f;
             comfortOrbitAngleRadians = presentation != null ? presentation.OrbitAngleRadians : 0f;
+            comfortCycleSeconds = presentation != null ? presentation.CycleSeconds : 0f;
         }
 
         public void Render()
@@ -256,6 +268,13 @@ namespace Kaleidoscope2.DiamondFocus
             CrystalStage3DDebugMode resolvedDebugMode = geometryValidationMaterialEnabled
                 ? CrystalStage3DDebugMode.SolidLitGeometry
                 : stageDebugMode;
+            float resolvedComfortExpansion;
+            float resolvedComfortOrbitAngleRadians;
+            float resolvedComfortCycleSeconds;
+            ResolveComfortPresentationForRender(
+                out resolvedComfortExpansion,
+                out resolvedComfortOrbitAngleRadians,
+                out resolvedComfortCycleSeconds);
             if (spatialStage.Render(
                 sourceTexture,
                 settings,
@@ -266,8 +285,11 @@ namespace Kaleidoscope2.DiamondFocus
                 visible,
                 geometryValidationMaterialEnabled,
                 resolvedDebugMode,
-                comfortExpansion,
-                comfortOrbitAngleRadians))
+                resolvedComfortExpansion,
+                resolvedComfortOrbitAngleRadians,
+                resolvedComfortCycleSeconds,
+                settings != null && settings.PremiumCrystalStabilizationActive,
+                settings != null ? settings.PremiumCrystalStabilizationAlignProgress : 0f))
             {
                 ReleaseOutput();
                 ApplyFallbackRuntimeVisibility(false);
@@ -293,6 +315,73 @@ namespace Kaleidoscope2.DiamondFocus
             renderCamera = null;
             sourceTexture = null;
             settings = null;
+        }
+
+        private void ResolveComfortPresentationForRender(
+            out float resolvedExpansion,
+            out float resolvedOrbitAngleRadians,
+            out float resolvedCycleSeconds)
+        {
+            bool stabilizationActive = settings != null && settings.PremiumCrystalStabilizationActive;
+            float deltaTime = Mathf.Max(Time.deltaTime, 1f / 60f);
+            if (stabilizationActive)
+            {
+                if (!premiumStabilizationWasActive)
+                {
+                    frozenComfortExpansion = comfortExpansion + comfortExpansionVisualOffset;
+                    frozenComfortOrbitAngleRadians = comfortOrbitAngleRadians + comfortOrbitVisualOffsetRadians;
+                    frozenComfortCycleSeconds = comfortCycleSeconds + comfortCycleVisualOffsetSeconds;
+                    premiumStabilizationWasActive = true;
+                    comfortExpansionVisualOffset = 0f;
+                    comfortOrbitVisualOffsetRadians = 0f;
+                    comfortCycleVisualOffsetSeconds = 0f;
+                    comfortExpansionOffsetVelocity = 0f;
+                    comfortOrbitOffsetVelocity = 0f;
+                    comfortCycleOffsetVelocity = 0f;
+                }
+
+                resolvedExpansion = frozenComfortExpansion;
+                resolvedOrbitAngleRadians = frozenComfortOrbitAngleRadians;
+                resolvedCycleSeconds = frozenComfortCycleSeconds;
+                return;
+            }
+
+            if (premiumStabilizationWasActive)
+            {
+                comfortExpansionVisualOffset = frozenComfortExpansion - comfortExpansion;
+                comfortOrbitVisualOffsetRadians = Mathf.DeltaAngle(
+                    comfortOrbitAngleRadians * Mathf.Rad2Deg,
+                    frozenComfortOrbitAngleRadians * Mathf.Rad2Deg) * Mathf.Deg2Rad;
+                comfortCycleVisualOffsetSeconds = frozenComfortCycleSeconds - comfortCycleSeconds;
+                premiumStabilizationWasActive = false;
+            }
+
+            const float releaseSmoothTime = 0.55f;
+            comfortExpansionVisualOffset = Mathf.SmoothDamp(
+                comfortExpansionVisualOffset,
+                0f,
+                ref comfortExpansionOffsetVelocity,
+                releaseSmoothTime,
+                float.PositiveInfinity,
+                deltaTime);
+            comfortOrbitVisualOffsetRadians = Mathf.SmoothDamp(
+                comfortOrbitVisualOffsetRadians,
+                0f,
+                ref comfortOrbitOffsetVelocity,
+                releaseSmoothTime,
+                float.PositiveInfinity,
+                deltaTime);
+            comfortCycleVisualOffsetSeconds = Mathf.SmoothDamp(
+                comfortCycleVisualOffsetSeconds,
+                0f,
+                ref comfortCycleOffsetVelocity,
+                releaseSmoothTime,
+                float.PositiveInfinity,
+                deltaTime);
+
+            resolvedExpansion = Mathf.Clamp01(comfortExpansion + comfortExpansionVisualOffset);
+            resolvedOrbitAngleRadians = comfortOrbitAngleRadians + comfortOrbitVisualOffsetRadians;
+            resolvedCycleSeconds = Mathf.Max(0f, comfortCycleSeconds + comfortCycleVisualOffsetSeconds);
         }
 
         private void ApplyRuntimeVisibility(bool value)

@@ -6,6 +6,9 @@ namespace Kaleidoscope2.Mirror
     public static class MirrorShaderIds
     {
         public static readonly int MirrorCount = Shader.PropertyToID("_MirrorCount");
+        public static readonly int MirrorCountFrom = Shader.PropertyToID("_MirrorCountFrom");
+        public static readonly int MirrorCountTo = Shader.PropertyToID("_MirrorCountTo");
+        public static readonly int MirrorTransition = Shader.PropertyToID("_MirrorTransition");
         public static readonly int Rotation = Shader.PropertyToID("_Rotation");
         public static readonly int Zoom = Shader.PropertyToID("_Zoom");
         public static readonly int CenterOffset = Shader.PropertyToID("_CenterOffset");
@@ -71,6 +74,10 @@ namespace Kaleidoscope2.Mirror
 
             MirrorSettings settings = runtimeState.MirrorSettings;
             int mirrorCount = settings != null ? settings.MirrorCount : 6;
+            MirrorCountTransitionState transitionState = settings != null ? settings.MirrorCountTransition : null;
+            int mirrorCountFrom = transitionState != null && transitionState.Active ? transitionState.FromCount : mirrorCount;
+            int mirrorCountTo = transitionState != null && transitionState.Active ? transitionState.ToCount : mirrorCount;
+            float mirrorTransition = transitionState != null && transitionState.Active ? transitionState.SmoothProgress : 1f;
             float rotationRadians = settings != null ? settings.Rotation * Mathf.Deg2Rad : 0f;
             float zoom = settings != null ? settings.Zoom : 1f;
             Vector2 centerOffset = settings != null ? settings.CenterOffset : Vector2.zero;
@@ -78,6 +85,9 @@ namespace Kaleidoscope2.Mirror
             float guidesVisible = settings != null && settings.GuidesVisible ? 1f : 0f;
 
             material.SetFloat(MirrorShaderIds.MirrorCount, mirrorCount);
+            material.SetFloat(MirrorShaderIds.MirrorCountFrom, mirrorCountFrom);
+            material.SetFloat(MirrorShaderIds.MirrorCountTo, mirrorCountTo);
+            material.SetFloat(MirrorShaderIds.MirrorTransition, mirrorTransition);
             material.SetFloat(MirrorShaderIds.Rotation, rotationRadians);
             material.SetFloat(MirrorShaderIds.Zoom, zoom);
             material.SetVector(MirrorShaderIds.CenterOffset, centerOffset);
@@ -102,6 +112,8 @@ namespace Kaleidoscope2.Mirror
             {
                 return;
             }
+
+            settings.TickMirrorCountTransition(deltaTime);
 
             float rotationUnits = settings.RotationSpeed;
             if (Mathf.Abs(rotationUnits) > 0.0001f)
@@ -155,6 +167,7 @@ namespace Kaleidoscope2.Mirror
             }
 
             return command.Type == KaleidoscopeCommandType.SetMirrorCount
+                || command.Type == KaleidoscopeCommandType.CycleTopRowMirrorCountPreset
                 || command.Type == KaleidoscopeCommandType.SetMirrorRotation
                 || command.Type == KaleidoscopeCommandType.SetMirrorRotationSpeed
                 || command.Type == KaleidoscopeCommandType.SetMirrorZoom
@@ -189,9 +202,27 @@ namespace Kaleidoscope2.Mirror
         public override KaleidoscopeModuleStatus GetStatus()
         {
             MirrorSettings settings = Settings;
-            string message = settings == null
-                ? "Waiting for runtime state."
-                : "Mirror " + settings.MirrorCount + " segments, zoom " + settings.Zoom.ToString("0.00") + ".";
+            string message;
+            if (settings == null)
+            {
+                message = "Waiting for runtime state.";
+            }
+            else if (settings.MirrorCountTransition.Active)
+            {
+                message = "Mirror transitioning "
+                    + settings.MirrorCountTransition.FromCount.ToString()
+                    + "->"
+                    + settings.MirrorCountTransition.ToCount.ToString()
+                    + " segments, progress "
+                    + settings.MirrorCountTransition.SmoothProgress.ToString("0.00")
+                    + ", zoom "
+                    + settings.Zoom.ToString("0.00")
+                    + ".";
+            }
+            else
+            {
+                message = "Mirror " + settings.MirrorCount.ToString() + " segments, zoom " + settings.Zoom.ToString("0.00") + ".";
+            }
 
             return CreateStatus(message);
         }

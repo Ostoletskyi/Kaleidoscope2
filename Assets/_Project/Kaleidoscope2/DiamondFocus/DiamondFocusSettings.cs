@@ -114,8 +114,10 @@ namespace Kaleidoscope2.Core
         public const float DirectedLightIntensityMin = -10f;
         public const float DirectedLightIntensityMax = 10f;
         public const float PremiumCrystalScalePercentMin = 20f;
-        public const float PremiumCrystalScalePercentMax = 300f;
+        public const float PremiumCrystalScalePercentMax = 700f;
         public const float PremiumCrystalScalePercentDefault = 100f;
+        public const float PremiumCrystalStabilizationAlignSeconds = 0.35f;
+        public const float PremiumCrystalStabilizationHoldSeconds = 3f;
         public const float ClassicCrystalScalePercentMin = 20f;
         public const float ClassicCrystalScalePercentMax = 300f;
         public const float ClassicCrystalScalePercentDefault = 100f;
@@ -177,6 +179,15 @@ namespace Kaleidoscope2.Core
         [SerializeField] private Vector3 rotationVelocity = new Vector3(10f, 17f, 4f);
         [SerializeField] private float currentRotationSpeed = 20f;
         [SerializeField] private float targetRotationSpeed = 20f;
+        [SerializeField] private bool premiumCrystalStabilizationActive;
+        [SerializeField] private float premiumCrystalStabilizationElapsed;
+        [SerializeField] private Vector3 premiumCrystalStabilizationFromEuler;
+        [SerializeField] private Vector3 premiumCrystalStabilizationRestoreVelocity;
+        [SerializeField] private Vector2 premiumCrystalStabilizationRestoreTargetDirection;
+        [SerializeField] private Vector2 premiumCrystalStabilizationRestoreCurrentDirection;
+        [SerializeField] private float premiumCrystalStabilizationRestoreCurrentSpeed;
+        [SerializeField] private float premiumCrystalStabilizationRestoreTargetSpeed;
+        [SerializeField] private bool premiumCrystalStabilizationRestoreCaptured;
 
         [Header("Rotation")]
         [SerializeField] private float minRotationSpeed = 0f;
@@ -336,6 +347,45 @@ namespace Kaleidoscope2.Core
         public float MaxRotationSpeed { get { return Mathf.Max(1f, maxRotationSpeed); } }
         public float SpeedAcceleration { get { return Mathf.Max(1f, speedAcceleration); } }
         public float DirectionAcceleration { get { return Mathf.Max(0.01f, directionAcceleration); } }
+        public bool PremiumCrystalStabilizationActive { get { return premiumCrystalStabilizationActive; } }
+        public float PremiumCrystalStabilizationElapsed { get { return Mathf.Max(0f, premiumCrystalStabilizationElapsed); } }
+        public float PremiumCrystalStabilizationAlignProgress
+        {
+            get
+            {
+                if (!premiumCrystalStabilizationActive)
+                {
+                    return 0f;
+                }
+
+                float value = Mathf.Clamp01(premiumCrystalStabilizationElapsed / PremiumCrystalStabilizationAlignSeconds);
+                return value * value * value * (value * (value * 6f - 15f) + 10f);
+            }
+        }
+        public float PremiumCrystalStabilizationHoldProgress
+        {
+            get
+            {
+                if (!premiumCrystalStabilizationActive)
+                {
+                    return 0f;
+                }
+
+                float holdElapsed = Mathf.Max(0f, premiumCrystalStabilizationElapsed - PremiumCrystalStabilizationAlignSeconds);
+                return Mathf.Clamp01(holdElapsed / PremiumCrystalStabilizationHoldSeconds);
+            }
+        }
+        public string PremiumCrystalStabilizationDiagnostics
+        {
+            get
+            {
+                return "Premium stabilization active " + (PremiumCrystalStabilizationActive ? "true" : "false")
+                    + ", align " + PremiumCrystalStabilizationAlignProgress.ToString("0.00")
+                    + ", hold " + PremiumCrystalStabilizationHoldProgress.ToString("0.00")
+                    + ", align seconds " + PremiumCrystalStabilizationAlignSeconds.ToString("0.00")
+                    + ", hold seconds " + PremiumCrystalStabilizationHoldSeconds.ToString("0.00");
+            }
+        }
         public float Transparency { get { return Mathf.Clamp01(transparency); } }
         public float RefractionStrength { get { return Mathf.Clamp(refractionStrength, 0f, 0.12f); } }
         public float DispersionStrength { get { return Mathf.Max(0f, dispersionStrength); } }
@@ -731,16 +781,31 @@ namespace Kaleidoscope2.Core
 
         public void SetTargetRotationDirection(Vector2 value)
         {
+            if (premiumCrystalStabilizationActive)
+            {
+                return;
+            }
+
             targetRotationDirection = value.sqrMagnitude > 0.0001f ? value.normalized : Vector2.zero;
         }
 
         public void SetCurrentRotationDirection(Vector2 value)
         {
+            if (premiumCrystalStabilizationActive)
+            {
+                return;
+            }
+
             currentRotationDirection = NormalizeOrDefault(value);
         }
 
         public void SetCurrentRotationSpeed(float value)
         {
+            if (premiumCrystalStabilizationActive)
+            {
+                return;
+            }
+
             float speed = Mathf.Clamp(value, MinRotationSpeed, MaxRotationSpeed);
             Vector3 direction = rotationVelocity.sqrMagnitude > 0.0001f
                 ? rotationVelocity.normalized
@@ -750,6 +815,11 @@ namespace Kaleidoscope2.Core
 
         public void SetTargetRotationSpeed(float value)
         {
+            if (premiumCrystalStabilizationActive)
+            {
+                return;
+            }
+
             targetRotationSpeed = Mathf.Clamp(value, MinRotationSpeed, MaxRotationSpeed);
         }
 
@@ -1547,6 +1617,11 @@ namespace Kaleidoscope2.Core
 
         public void SetRotationVelocity(Vector3 value)
         {
+            if (premiumCrystalStabilizationActive)
+            {
+                return;
+            }
+
             rotationVelocity = Vector3.ClampMagnitude(value, MaxRotationSpeed);
             currentRotationSpeed = rotationVelocity.magnitude;
 
@@ -1557,12 +1632,85 @@ namespace Kaleidoscope2.Core
 
         public void AddRotationVelocity(Vector3 delta)
         {
+            if (premiumCrystalStabilizationActive)
+            {
+                return;
+            }
+
             SetRotationVelocity(rotationVelocity + delta);
         }
 
         public void SetRotationEuler(Vector3 value)
         {
             rotationEuler = new Vector3(TrimLongAngle(value.x), TrimLongAngle(value.y), TrimLongAngle(value.z));
+        }
+
+        public void TriggerPremiumCrystalStabilization()
+        {
+            premiumCrystalStabilizationFromEuler = RotationEuler;
+            if (!premiumCrystalStabilizationActive || !premiumCrystalStabilizationRestoreCaptured)
+            {
+                premiumCrystalStabilizationRestoreVelocity = RotationVelocity;
+                premiumCrystalStabilizationRestoreTargetDirection = targetRotationDirection;
+                premiumCrystalStabilizationRestoreCurrentDirection = currentRotationDirection;
+                premiumCrystalStabilizationRestoreCurrentSpeed = currentRotationSpeed;
+                premiumCrystalStabilizationRestoreTargetSpeed = targetRotationSpeed;
+                premiumCrystalStabilizationRestoreCaptured = true;
+            }
+
+            premiumCrystalStabilizationElapsed = 0f;
+            premiumCrystalStabilizationActive = true;
+            targetRotationDirection = Vector2.zero;
+            currentRotationDirection = Vector2.zero;
+            rotationVelocity = Vector3.zero;
+            currentRotationSpeed = 0f;
+            targetRotationSpeed = 0f;
+        }
+
+        public bool TickPremiumCrystalStabilization(float deltaTime)
+        {
+            if (!premiumCrystalStabilizationActive)
+            {
+                return false;
+            }
+
+            premiumCrystalStabilizationElapsed += Mathf.Max(0f, deltaTime);
+            float alignProgress = PremiumCrystalStabilizationAlignProgress;
+            SetRotationEuler(LerpEuler(premiumCrystalStabilizationFromEuler, Vector3.zero, alignProgress));
+            targetRotationDirection = Vector2.zero;
+            currentRotationDirection = Vector2.zero;
+            rotationVelocity = Vector3.zero;
+            currentRotationSpeed = 0f;
+            targetRotationSpeed = 0f;
+
+            if (premiumCrystalStabilizationElapsed < PremiumCrystalStabilizationAlignSeconds + PremiumCrystalStabilizationHoldSeconds)
+            {
+                return true;
+            }
+
+            RestorePremiumCrystalStabilizationMotion();
+            return true;
+        }
+
+        private void RestorePremiumCrystalStabilizationMotion()
+        {
+            premiumCrystalStabilizationActive = false;
+            premiumCrystalStabilizationElapsed = 0f;
+            if (!premiumCrystalStabilizationRestoreCaptured)
+            {
+                return;
+            }
+
+            rotationVelocity = Vector3.ClampMagnitude(premiumCrystalStabilizationRestoreVelocity, MaxRotationSpeed);
+            currentRotationSpeed = Mathf.Clamp(premiumCrystalStabilizationRestoreCurrentSpeed, MinRotationSpeed, MaxRotationSpeed);
+            targetRotationSpeed = Mathf.Clamp(premiumCrystalStabilizationRestoreTargetSpeed, MinRotationSpeed, MaxRotationSpeed);
+            currentRotationDirection = premiumCrystalStabilizationRestoreCurrentDirection.sqrMagnitude > 0.0001f
+                ? premiumCrystalStabilizationRestoreCurrentDirection.normalized
+                : Vector2.zero;
+            targetRotationDirection = premiumCrystalStabilizationRestoreTargetDirection.sqrMagnitude > 0.0001f
+                ? premiumCrystalStabilizationRestoreTargetDirection.normalized
+                : Vector2.zero;
+            premiumCrystalStabilizationRestoreCaptured = false;
         }
 
         public Vector3 BuildRotationAxis(Vector2 direction)
@@ -1576,6 +1724,15 @@ namespace Kaleidoscope2.Core
 
             direction.Normalize();
             return new Vector3(direction.y, direction.x, direction.x * direction.y * 0.45f).normalized;
+        }
+
+        private static Vector3 LerpEuler(Vector3 from, Vector3 to, float progress)
+        {
+            float t = Mathf.Clamp01(progress);
+            return new Vector3(
+                Mathf.LerpAngle(from.x, to.x, t),
+                Mathf.LerpAngle(from.y, to.y, t),
+                Mathf.LerpAngle(from.z, to.z, t));
         }
 
         public static string GetPremiumCrystalEffectLabel(PremiumCrystalEffectToggle value)

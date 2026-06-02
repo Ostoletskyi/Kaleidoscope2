@@ -219,6 +219,10 @@ namespace Kaleidoscope2.Core
                     state.MirrorSettings.SetMirrorCount(command.IntValue);
                     return true;
 
+                case KaleidoscopeCommandType.CycleTopRowMirrorCountPreset:
+                    state.MirrorSettings.CycleTopRowMirrorCountPreset(command.IntValue);
+                    return true;
+
                 case KaleidoscopeCommandType.SetMirrorRotation:
                     state.MirrorSettings.SetRotation(command.FloatValue);
                     return true;

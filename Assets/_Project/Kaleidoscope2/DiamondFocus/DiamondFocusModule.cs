@@ -144,6 +144,7 @@ namespace Kaleidoscope2.DiamondFocus
                 || command.Type == KaleidoscopeCommandType.SetPremiumCrystalOpticalMode
                 || command.Type == KaleidoscopeCommandType.CyclePremiumCrystalOpticalMode
                 || command.Type == KaleidoscopeCommandType.SetDiamondRotationDirection
+                || command.Type == KaleidoscopeCommandType.TriggerPremiumCrystalStabilization
                 || command.Type == KaleidoscopeCommandType.AdjustDiamondRotationSpeed
                 || command.Type == KaleidoscopeCommandType.SetDiamondRotationSpeed
                 || command.Type == KaleidoscopeCommandType.IncreaseDiamondRotationSpeed
@@ -223,6 +224,10 @@ namespace Kaleidoscope2.DiamondFocus
 
                 case KaleidoscopeCommandType.SetDiamondRotationDirection:
                     settings.SetTargetRotationDirection(command.Vector2Value);
+                    break;
+
+                case KaleidoscopeCommandType.TriggerPremiumCrystalStabilization:
+                    settings.TriggerPremiumCrystalStabilization();
                     break;
 
                 case KaleidoscopeCommandType.AdjustDiamondRotationSpeed:

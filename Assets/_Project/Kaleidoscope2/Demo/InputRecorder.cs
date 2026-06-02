@@ -133,6 +133,7 @@ namespace Kaleidoscope2.Demo
             {
                 case KaleidoscopeCommandType.SetVisualMode:
                 case KaleidoscopeCommandType.SetMirrorCount:
+                case KaleidoscopeCommandType.CycleTopRowMirrorCountPreset:
                 case KaleidoscopeCommandType.SetMirrorRotationSpeed:
                 case KaleidoscopeCommandType.SetMirrorRotationSpeedUnits:
                 case KaleidoscopeCommandType.SetMirrorZoom:

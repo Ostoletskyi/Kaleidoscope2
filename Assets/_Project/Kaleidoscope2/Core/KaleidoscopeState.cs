@@ -659,6 +659,106 @@ namespace Kaleidoscope2.Core
     }
 
     [Serializable]
+    public sealed class MirrorCountTransitionState
+    {
+        public const float DefaultDurationSeconds = 1f;
+
+        [SerializeField] private int fromCount = 6;
+        [SerializeField] private int toCount = 6;
+        [SerializeField] private float elapsed;
+        [SerializeField] private float duration = DefaultDurationSeconds;
+        [SerializeField] private bool active;
+
+        public int FromCount
+        {
+            get { return fromCount; }
+        }
+
+        public int ToCount
+        {
+            get { return toCount; }
+        }
+
+        public float Elapsed
+        {
+            get { return elapsed; }
+        }
+
+        public float Duration
+        {
+            get { return duration; }
+        }
+
+        public bool Active
+        {
+            get { return active; }
+        }
+
+        public float Progress
+        {
+            get { return duration > 0.0001f ? Mathf.Clamp01(elapsed / duration) : 1f; }
+        }
+
+        public float SmoothProgress
+        {
+            get
+            {
+                float t = Progress;
+                return t * t * t * (t * (t * 6f - 15f) + 10f);
+            }
+        }
+
+        public void Begin(int from, int to)
+        {
+            fromCount = Mathf.Clamp(from, MirrorSettings.MirrorCountMin, MirrorSettings.MirrorCountMax);
+            toCount = Mathf.Clamp(to, MirrorSettings.MirrorCountMin, MirrorSettings.MirrorCountMax);
+            duration = DefaultDurationSeconds;
+            elapsed = 0f;
+            active = fromCount != toCount;
+            if (!active)
+            {
+                elapsed = duration;
+            }
+        }
+
+        public void Tick(float deltaTime)
+        {
+            if (!active)
+            {
+                return;
+            }
+
+            elapsed = Mathf.Min(duration, elapsed + Mathf.Max(0f, deltaTime));
+            if (elapsed >= duration - 0.0001f)
+            {
+                elapsed = duration;
+                fromCount = toCount;
+                active = false;
+            }
+        }
+
+        public void SetImmediate(int count)
+        {
+            int resolved = Mathf.Clamp(count, MirrorSettings.MirrorCountMin, MirrorSettings.MirrorCountMax);
+            fromCount = resolved;
+            toCount = resolved;
+            duration = DefaultDurationSeconds;
+            elapsed = duration;
+            active = false;
+        }
+
+        public int ResolveNearestVisualCount(int fallback)
+        {
+            if (!active)
+            {
+                return Mathf.Clamp(fallback, MirrorSettings.MirrorCountMin, MirrorSettings.MirrorCountMax);
+            }
+
+            return SmoothProgress < 0.5f ? fromCount : toCount;
+        }
+    }
+
+    [Serializable]
     public sealed class MirrorSettings
     {
         public const int MirrorCountMin = 1;
@@ -673,6 +773,8 @@ namespace Kaleidoscope2.Core
         [SerializeField] private float zoom = 1f;
         [SerializeField] private Vector2 centerOffset = Vector2.zero;
         [SerializeField] private bool guidesVisible;
+        [SerializeField] private MirrorCountTransitionState mirrorCountTransition = new MirrorCountTransitionState();
+        [SerializeField] private int[] topRowMirrorCycleSteps = new int[TopRowMirrorCountCycle.GroupCount];
 
         public int MirrorCount
         {
@@ -709,9 +811,52 @@ namespace Kaleidoscope2.Core
             get { return centerOffset; }
         }
 
+        public MirrorCountTransitionState MirrorCountTransition
+        {
+            get
+            {
+                EnsureMirrorCountTransition();
+                return mirrorCountTransition;
+            }
+        }
+
         public void SetMirrorCount(int count)
         {
+            EnsureMirrorCountTransition();
+            int target = Mathf.Clamp(count, MirrorCountMin, MirrorCountMax);
+            int from = mirrorCountTransition.Active
+                ? mirrorCountTransition.ResolveNearestVisualCount(mirrorCount)
+                : mirrorCount;
+            mirrorCount = target;
+            mirrorCountTransition.Begin(from, target);
+        }
+
+        public void SetMirrorCountImmediate(int count)
+        {
+            EnsureMirrorCountTransition();
             mirrorCount = Mathf.Clamp(count, MirrorCountMin, MirrorCountMax);
+            mirrorCountTransition.SetImmediate(mirrorCount);
+        }
+
+        public void CycleTopRowMirrorCountPreset(int groupIndex)
+        {
+            if (!TopRowMirrorCountCycle.IsCycleGroupIndex(groupIndex))
+            {
+                return;
+            }
+
+            EnsureTopRowMirrorCycleSteps();
+            int storageIndex = groupIndex - TopRowMirrorCountCycle.MinGroupIndex;
+            int step = topRowMirrorCycleSteps[storageIndex];
+            int count = TopRowMirrorCountCycle.ResolveCountForStep(groupIndex, step);
+            topRowMirrorCycleSteps[storageIndex] = TopRowMirrorCountCycle.ResolveWrappedStep(step + 1);
+            SetMirrorCount(count);
+        }
+
+        public void TickMirrorCountTransition(float deltaTime)
+        {
+            EnsureMirrorCountTransition();
+            mirrorCountTransition.Tick(deltaTime);
         }
 
         public void SetRotation(float value)
@@ -742,6 +887,25 @@ namespace Kaleidoscope2.Core
         public void SetCenterOffset(Vector2 value)
         {
             centerOffset = value;
+        }
+
+        private void EnsureMirrorCountTransition()
+        {
+            if (mirrorCountTransition == null)
+            {
+                mirrorCountTransition = new MirrorCountTransitionState();
+                mirrorCountTransition.SetImmediate(mirrorCount);
+            }
+        }
+
+        private void EnsureTopRowMirrorCycleSteps()
+        {
+            if (topRowMirrorCycleSteps != null && topRowMirrorCycleSteps.Length == TopRowMirrorCountCycle.GroupCount)
+            {
+                return;
+            }
+
+            topRowMirrorCycleSteps = new int[TopRowMirrorCountCycle.GroupCount];
         }
     }
 
