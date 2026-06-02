@@ -309,7 +309,13 @@ menu/help description, one tooltip, and a declared scope: `Classic`,
 | `Numpad 9` | Select the `Experimental / Debug Effects` capability class. | Both where supported |
 | `Numpad Del` / `Numpad .` | Cycle the subclass inside the currently selected class only. | Selected class |
 | `Numpad +` / `Numpad -` | Smooth curated crystal geometry morph forward/backward, independently of selected class. | Both |
+| `Numpad 5` while Premium3D is active | Trigger Premium crystal brake / camera-facing align / 3-second freeze through `TriggerPremiumCrystalStabilization`; it must restore prior motion after release. | Premium |
 | `Mouse Wheel` | Scale the visible crystal presentation through the shared wheel-scale owner: Classic crystal overlay or Premium crystal size. It must not alter mirror zoom, camera, tunnel, source image, or global scene scale. | Both |
+| Top-row `1` | Cycle mirror presets `3 -> 4 -> 6 -> 4 -> 3 ...` through `TopRowMirrorCountCycle`. | Both |
+| Top-row `2` | Cycle mirror presets `8 -> 10 -> 12 -> 10 -> 8 ...` through `TopRowMirrorCountCycle`. | Both |
+| Top-row `3` | Cycle mirror presets `14 -> 16 -> 24 -> 16 -> 14 ...` through `TopRowMirrorCountCycle`. | Both |
+| Top-row `4` | Cycle mirror presets `28 -> 36 -> 48 -> 36 -> 28 ...` through `TopRowMirrorCountCycle`. | Both |
+| Top-row `5..9` | Keep the existing direct mirror counts `96 / 192 / 384 / 768 / 1536`. | Both |
 | `F1` | Open or toggle the current hotkey/help view. | UI |
 | `H` | Toggle clean view for non-essential menu/help/status/HUD overlays only. | UI |
 | `Escape` | Return to the initial/root menu without resetting visual or crystal state. | UI |
@@ -331,6 +337,9 @@ menu/help description, one tooltip, and a declared scope: `Classic`,
 - `Numpad Del` may not morph geometry unless `Geometry` is the selected class.
 - `Numpad + / -` always target smooth curated geometry; they may not cycle
   optics, debug, effects, or render philosophy.
+- Top-row mirror-count changes must route through state owners and render with
+  a `1.0` second `MirrorCountTransitionState` crossfade between from/to
+  mirror configurations; they must not jump by animating the integer count.
 - `F2..F12` must never open file browsers, control slideshows, change image
   source, or switch Classic/Premium.
 - Invisible states such as `CrystalOff` remain explicit diagnostic/API/menu
@@ -577,6 +586,34 @@ While its parent comfort session enables the pattern:
   when splitting would produce broken topology; it must never use broken mesh
   debris, random shards, invisible stand-ins, blobs, or white primitive
   placeholders;
+- Premium six-copy mode is implemented as adaptive motion-design morphing with
+  component separation: `PremiumComfortFormationMorphState` resolves
+  detaching/orbiting/merging phase values, `PremiumComfortFormationLayout`
+  computes size-aware viewport-safe placement, and
+  `PremiumComfortFormationComponentAnimator` resolves per-copy transform,
+  scale, alpha, and intensity interpolation for full-mesh components;
+- Premium six-copy orbit exposes exactly `6` visible crystal copy renderers;
+  the primary crystal is a split/merge bridge only and is hidden during the
+  `Orbiting` phase so no residual center or seventh crystal remains;
+- Premium crystal scale ceiling is `700%`, an additive `+100%` extension over
+  the prior raised `600%` ceiling, and clamps must continue to reference the
+  shared scale constant;
+- Premium large-scale rendering uses bounds-based depth protection against the
+  background/kaleidoscope plane: `PremiumCrystalDepthProtection` compares the
+  back-most point of each primary/copy bounds to the protected plane, applies
+  the configured safe clearance, and the final `SpatialCrystalStage3D`
+  writer moves that object toward the camera after all Premium scale/layout
+  writers and before `RenderStageCamera`; correction must be dynamic from
+  actual penetration, not clipped to the legacy smoothing constant;
+- Premium fullscreen-scale material safety keeps large non-Absolute-Mirror
+  crystals glass-like by reducing wall-like alpha/brightness/specular energy
+  while preserving transparent/refractive transmission through the visible
+  kaleidoscope scene;
+- `Numpad 5` Premium stabilization is a command-routed temporary state:
+  `InputModule` emits `TriggerPremiumCrystalStabilization`,
+  `DiamondFocusSettings` owns the align/freeze timer, `DiamondRotationController`
+  brakes rotation while active, and the Premium renderer/stage consumes the
+  state to freeze the six-copy formation and align full crystals to the screen;
 - after detaching, the units complete one eased orbit near the outer
   composition; Premium copies must remain inside viewport `x/y` `0.15..0.85`
   by calculating orbit radius from current copy scale, estimated visual bounds,

@@ -13,6 +13,7 @@ using Kaleidoscope2.ImageSource;
 using Kaleidoscope2.InputSystem;
 using Kaleidoscope2.Menu;
 using Kaleidoscope2.Menu.FX;
+using Kaleidoscope2.Mirror;
 using Kaleidoscope2.Settings;
 using TMPro;
 using UnityEditor;
@@ -195,6 +196,7 @@ namespace Kaleidoscope2.Menu.Editor
             ValidateNestedDemoSectionCloseAndEscape(canvasTransform, director, demoPanel, "BenchmarkDemoCommand", benchmarkPanel);
             ValidatePremiumCrystalMeshes();
             ValidatePremiumMorphCompletionRetainsTargetMesh();
+            ValidatePremiumSixWayFormationRender();
             ValidateSharedCrystalDebugEffectMaterials();
             ValidateRuntimeCrystalControlRouting(director);
             ValidateDedicatedGeometryMorphShortcuts(director);
@@ -586,6 +588,7 @@ namespace Kaleidoscope2.Menu.Editor
                     false,
                     CrystalStage3DDebugMode.FinalPremiumComposite,
                     0f,
+                    0f,
                     0f), "Premium transition validation stage must render its morph frame.");
                 int transitioningVertexCount = stage.MeshVertexCount;
 
@@ -604,6 +607,7 @@ namespace Kaleidoscope2.Menu.Editor
                     false,
                     CrystalStage3DDebugMode.FinalPremiumComposite,
                     0f,
+                    0f,
                     0f), "Premium transition validation stage must render its settled frame.");
                 Require(stage.MeshVertexCount == transitioningVertexCount, "Completed Premium transition must retain the final morph topology rather than snap to a reduced primitive mesh.");
                 Require(stage.DiagnosticsLabel.Contains("final mesh source completed Premium morph topology retained"), "Completed Premium transition diagnostics must identify its retained Premium mesh source.");
@@ -618,8 +622,172 @@ namespace Kaleidoscope2.Menu.Editor
             }
         }
 
+        private static void ValidatePremiumSixWayFormationRender()
+        {
+            GameObject owner = new GameObject("PremiumSixWayFormationValidationOwner");
+            GameObject viewer = new GameObject("PremiumSixWayFormationMainView");
+            RenderTexture sourceTexture = new RenderTexture(128, 128, 24, RenderTextureFormat.ARGB32);
+            SpatialCrystalStage3D stage = new SpatialCrystalStage3D();
+            try
+            {
+                Camera viewerCamera = viewer.AddComponent<Camera>();
+                viewerCamera.enabled = true;
+                viewerCamera.fieldOfView = 60f;
+                viewerCamera.nearClipPlane = 0.03f;
+                viewerCamera.farClipPlane = 80f;
+                viewer.transform.position = new Vector3(0f, 0f, -10f);
+                viewer.transform.rotation = Quaternion.identity;
+                sourceTexture.Create();
+
+                DiamondFocusSettings settings = new DiamondFocusSettings();
+                settings.SetEnabled(true);
+                settings.SetCrystalSimulationMode(CrystalRenderMode.RealMesh3D);
+                settings.SetPremiumCrystalShape(PremiumCrystalShapeType.StarPrism);
+                settings.SetPremiumCrystalScalePercent(160f);
+                CrystalSharedSettings sharedSettings = new CrystalSharedSettings();
+                sharedSettings.SyncFromDiamond(settings);
+
+                stage.Initialize(owner.transform, 31);
+                Require(stage.Render(
+                    sourceTexture,
+                    sharedSettings,
+                    sharedSettings.Shape,
+                    CrystalMaterialMode.Diamond,
+                    Vector3.zero,
+                    8f,
+                    true,
+                    false,
+                    CrystalStage3DDebugMode.FinalPremiumComposite,
+                    1f,
+                    Mathf.PI,
+                    7.5f), "Premium six-way formation validation stage must render its orbiting frame.");
+                Require(stage.ActiveComfortCopyRendererCount == 6, "Premium orbiting formation must expose exactly six active copy renderers.");
+                Require(!stage.PrimaryCrystalRendererVisible, "Premium orbiting formation must hide the primary renderer so no seventh center crystal remains.");
+                Require(stage.ComfortFormationDiagnostics.Contains("primary visible false"), "Premium orbit diagnostics must record the hidden primary bridge.");
+                Require(stage.ComfortFormationDiagnostics.Contains("target child viewport"), "Premium formation layout must target readable viewport-sized copies.");
+                Require(stage.DiagnosticsLabel.Contains("premium depth protection enabled true"), "Premium formation render must keep depth protection active.");
+                Require(stage.DiagnosticsLabel.Contains("plane background"), "Premium depth protection diagnostics must identify the protected background plane.");
+
+                Require(stage.Render(
+                    sourceTexture,
+                    sharedSettings,
+                    sharedSettings.Shape,
+                    CrystalMaterialMode.Diamond,
+                    Vector3.zero,
+                    8f,
+                    true,
+                    false,
+                    CrystalStage3DDebugMode.FinalPremiumComposite,
+                    0.5f,
+                    Mathf.PI * 2f,
+                    11f), "Premium six-way formation validation stage must render its merging frame.");
+                Require(stage.PrimaryCrystalRendererVisible, "Premium merging formation must restore the primary morph bridge instead of teleporting closed.");
+
+                settings.SetPremiumCrystalScalePercent(DiamondFocusSettings.PremiumCrystalScalePercentMax);
+                sharedSettings.SyncFromDiamond(settings);
+                Require(stage.Render(
+                    sourceTexture,
+                    sharedSettings,
+                    sharedSettings.Shape,
+                    CrystalMaterialMode.Diamond,
+                    Vector3.zero,
+                    8f,
+                    true,
+                    false,
+                    CrystalStage3DDebugMode.FinalPremiumComposite,
+                    1f,
+                    Mathf.PI,
+                    7.5f), "Premium six-way formation validation stage must render at the raised maximum scale.");
+                Debug.Log("[KAELIS Menu SmokeTest] Premium max-scale depth diagnostics: " + stage.PremiumDepthProtectionDiagnostics);
+                Debug.Log("[KAELIS Menu SmokeTest] Premium max-scale material diagnostics: " + stage.PremiumFullscreenMaterialDiagnostics);
+                Debug.Log("[KAELIS Menu SmokeTest] Premium visible hierarchy diagnostics: " + stage.PremiumVisibleHierarchyDiagnostics);
+                Require(stage.DiagnosticsLabel.Contains("current crystal scale percent 700"), "Premium max-scale render diagnostics must expose the 700% ceiling.");
+                Require(stage.DiagnosticsLabel.Contains("max applied"), "Premium depth protection must track visible target correction during six-copy formation.");
+                Require(stage.PremiumDepthProtectionDiagnostics.Contains("final pass after ConfigureTransforms/ConfigureComfortCopies before RenderStageCamera"), "Premium depth protection must be the final KAELIS transform correction before rendering.");
+                Require(stage.PremiumDepthProtectionDiagnostics.Contains("max penetration after 0.000") || stage.PremiumDepthProtectionDiagnostics.Contains("max penetration after 0,000"), "Premium max-scale depth protection must leave no residual background-plane penetration after correction.");
+                Require(stage.PremiumDepthProtectionDiagnostics.Contains("plane normal"), "Premium depth diagnostics must expose the corrected protected-plane normal.");
+                Require(stage.PremiumVisibleHierarchyDiagnostics.Contains("RealMeshCrystal"), "Premium hierarchy diagnostics must identify the visible primary crystal path.");
+                Require(stage.PremiumVisibleHierarchyDiagnostics.Contains("ComfortCrystalCopy_1"), "Premium hierarchy diagnostics must identify visible formation copy paths.");
+                Require(stage.PremiumFullscreenMaterialDiagnostics.Contains("premium fullscreen material safety active true"), "Premium max-scale material must enable fullscreen glass safety.");
+                Require(stage.PremiumFullscreenMaterialDiagnostics.Contains("alpha 0.300") || stage.PremiumFullscreenMaterialDiagnostics.Contains("alpha 0,300"), "Premium fullscreen material safety must lower the shader alpha at maximum scale.");
+
+                Require(stage.Render(
+                    sourceTexture,
+                    sharedSettings,
+                    sharedSettings.Shape,
+                    CrystalMaterialMode.Diamond,
+                    Vector3.zero,
+                    8f,
+                    true,
+                    false,
+                    CrystalStage3DDebugMode.FinalPremiumComposite,
+                    0f,
+                    0f,
+                    0f), "Premium max-scale single-crystal validation stage must render.");
+                Debug.Log("[KAELIS Menu SmokeTest] Premium max-scale primary depth diagnostics: " + stage.PremiumDepthProtectionDiagnostics);
+                Debug.Log("[KAELIS Menu SmokeTest] Premium max-scale primary material diagnostics: " + stage.PremiumFullscreenMaterialDiagnostics);
+                Debug.Log("[KAELIS Menu SmokeTest] Premium max-scale primary hierarchy diagnostics: " + stage.PremiumVisibleHierarchyDiagnostics);
+                Require(stage.PrimaryCrystalRendererVisible, "Premium max-scale single render must expose the primary crystal.");
+                Require(stage.ActiveComfortCopyRendererCount == 0, "Premium max-scale single render must hide formation copies.");
+                Require(stage.PremiumDepthProtectionDiagnostics.Contains("visible target count 1"), "Premium max-scale single render must depth-correct the visible primary renderer.");
+                Require(stage.PremiumDepthProtectionDiagnostics.Contains("max penetration after 0.000") || stage.PremiumDepthProtectionDiagnostics.Contains("max penetration after 0,000"), "Premium max-scale single render must leave no residual background-plane penetration after correction.");
+                Require(stage.PremiumFullscreenMaterialDiagnostics.Contains("premium fullscreen material safety active true"), "Premium max-scale single render must keep fullscreen glass safety active.");
+            }
+            finally
+            {
+                stage.Shutdown();
+                sourceTexture.Release();
+                UnityEngine.Object.DestroyImmediate(sourceTexture);
+                UnityEngine.Object.DestroyImmediate(viewer);
+                UnityEngine.Object.DestroyImmediate(owner);
+            }
+        }
+
         private static void ValidateComfortAndBenchmarkContracts(KaleidoscopeDirector director)
         {
+            Require(DiamondFocusSettings.PremiumCrystalScalePercentMax == 700f, "Premium crystal scale ceiling must be extended additively from 600% to 700%.");
+            Require(PremiumCrystalDepthProtection.EnablePremiumDepthProtection, "Premium depth protection must remain enabled.");
+            Require(Mathf.Approximately(PremiumCrystalDepthProtection.SafeDepthClearance, 0.18f), "Premium depth protection must reserve its configured safe clearance.");
+            Require(Mathf.Approximately(PremiumCrystalDepthProtection.MaxCameraForwardOffset, 3.5f), "Premium depth protection must retain its legacy smoothing-speed floor constant.");
+            Require(Mathf.Approximately(PremiumCrystalDepthProtection.DepthCorrectionSmoothTime, 0.18f), "Premium depth protection must expose its smoothing time.");
+            PremiumCrystalDepthCorrection unsafeDepth = PremiumCrystalDepthProtection.Resolve(
+                new Bounds(new Vector3(0f, 0f, 3.4f), Vector3.one),
+                new Vector3(0f, 0f, -10f),
+                Vector3.forward,
+                new Vector3(0f, 0f, 3.5f));
+            Require(unsafeDepth.Active && unsafeDepth.RequiredCameraForwardOffset > 0.5f, "Premium depth protection must request camera-forward correction when crystal bounds approach the background plane.");
+            PremiumCrystalDepthCorrection largeUnsafeDepth = PremiumCrystalDepthProtection.Resolve(
+                new Bounds(new Vector3(0f, 0f, 8f), new Vector3(1f, 1f, 12f)),
+                new Vector3(0f, 0f, -10f),
+                Vector3.forward,
+                new Vector3(0f, 0f, 3.5f));
+            Require(largeUnsafeDepth.RawPenetration > PremiumCrystalDepthProtection.MaxCameraForwardOffset, "Premium depth protection test must cover penetration larger than the legacy 3.5 offset.");
+            Require(largeUnsafeDepth.RequiredCameraForwardOffset > PremiumCrystalDepthProtection.MaxCameraForwardOffset, "Premium depth protection must compute correction dynamically instead of leaving max-scale geometry clamped inside the background plane.");
+            Require(Mathf.Approximately(largeUnsafeDepth.RequiredCameraForwardOffset, largeUnsafeDepth.RawPenetration), "Premium dynamic depth correction must match the actual raw penetration for max-scale bounds.");
+            PremiumCrystalDepthCorrection safeDepth = PremiumCrystalDepthProtection.Resolve(
+                new Bounds(Vector3.zero, Vector3.one),
+                new Vector3(0f, 0f, -10f),
+                Vector3.forward,
+                new Vector3(0f, 0f, 3.5f));
+            Require(!safeDepth.Active && Mathf.Approximately(safeDepth.RequiredCameraForwardOffset, 0f), "Premium depth protection must not move already-safe crystal bounds.");
+            Require(KaleidoscopeCommand.TriggerPremiumCrystalStabilization().Type == KaleidoscopeCommandType.TriggerPremiumCrystalStabilization, "Numpad 5 Premium brake must have a semantic command.");
+            DiamondFocusSettings stabilizationSettings = new DiamondFocusSettings();
+            stabilizationSettings.SetRotationEuler(new Vector3(45f, 24f, 12f));
+            stabilizationSettings.SetRotationVelocity(new Vector3(10f, 17f, 4f));
+            Vector3 restoredVelocity = stabilizationSettings.RotationVelocity;
+            stabilizationSettings.TriggerPremiumCrystalStabilization();
+            Require(stabilizationSettings.PremiumCrystalStabilizationActive, "Premium stabilization must become active when triggered.");
+            Require(Mathf.Approximately(stabilizationSettings.CurrentRotationSpeed, 0f), "Premium stabilization must brake current rotation speed immediately.");
+            DiamondRotationController stabilizationController = new DiamondRotationController();
+            stabilizationController.Tick(stabilizationSettings, DiamondFocusSettings.PremiumCrystalStabilizationAlignSeconds * 0.5f);
+            Require(stabilizationSettings.PremiumCrystalStabilizationActive, "Premium stabilization must remain active during camera-facing alignment.");
+            Require(stabilizationSettings.PremiumCrystalStabilizationAlignProgress > 0f, "Premium stabilization must expose smooth alignment progress.");
+            Require(stabilizationSettings.RotationVelocity == Vector3.zero, "Premium stabilization must freeze rotation velocity while active.");
+            stabilizationController.Tick(stabilizationSettings, DiamondFocusSettings.PremiumCrystalStabilizationAlignSeconds * 0.5f + 1.5f);
+            Require(stabilizationSettings.PremiumCrystalStabilizationActive, "Premium stabilization must stay frozen through its three-second hold.");
+            stabilizationController.Tick(stabilizationSettings, 1.51f);
+            Require(!stabilizationSettings.PremiumCrystalStabilizationActive, "Premium stabilization must complete after its align plus exact three-second hold window.");
+            Require(stabilizationSettings.RotationVelocity == restoredVelocity, "Premium stabilization must restore the previous rotation velocity after release.");
             Require(Mathf.Approximately(MeditationModeController.EvaluateMirrorRotationSpeedUnits(0f), 540f), "Meditation must start at its 1.5 rotations/sec comfort cap.");
             Require(Mathf.Approximately(MeditationModeController.EvaluateMirrorRotationSpeedUnits(5f), 90f), "Meditation breathing must smoothly reach 0.25 rotations/sec after five seconds.");
             Require(Mathf.Approximately(MeditationModeController.EvaluateMirrorRotationSpeedUnits(10f), 540f), "Meditation breathing must return to 1.5 rotations/sec after ten seconds.");
@@ -648,8 +816,27 @@ namespace Kaleidoscope2.Menu.Editor
             Vector2 hugeOrbit = SpatialCrystalStage3D.ResolveAdaptiveComfortViewportLayout(new Vector2(1.20f, 1.20f), new Vector2(0.5f, 0.5f), SpatialCrystalStage3D.PremiumComfortViewportSafeMargin);
             Require(mediumOrbit.y > smallOrbit.y, "Premium formation orbit radius must increase when visible crystal copies get larger.");
             Require(mediumOrbit.y >= 0.60f * mediumOrbit.x * 1.1f, "Premium formation medium copies must keep enough adjacent spacing for a six-copy orbit.");
+            Require(0.60f * mediumOrbit.x >= PremiumComfortFormationLayout.MinimumReadableChildViewportSize, "Premium formation medium copies must stay visibly larger than the old tiny split scale.");
             Require(hugeOrbit.x < mediumOrbit.x, "Premium formation must reduce child copy scale when large copies would violate safe bounds.");
             Require(hugeOrbit.y <= SpatialCrystalStage3D.ResolveSafeComfortViewportRadius(new Vector2(0.5f, 0.5f), new Vector2(1.20f, 1.20f) * hugeOrbit.x * 0.5f, SpatialCrystalStage3D.PremiumComfortViewportSafeMargin) + 0.0001f, "Premium formation adaptive radius must remain inside the 15% safe viewport margin.");
+            Require(smallOrbit.y < mediumOrbit.y, "Premium formation small copies must stay closer to center than larger copies.");
+            PremiumComfortFormationMorphState earlyMorph = PremiumComfortFormationMorphState.Evaluate(0.2f, 0f, 3f);
+            Require(earlyMorph.Phase == PremiumComfortFormationPhase.Detaching, "Premium formation early split must resolve as a detaching morph phase.");
+            Require(earlyMorph.PrimaryAlphaMultiplier > earlyMorph.ComponentAlphaMultiplier, "Premium formation must keep the original body readable while components begin to appear.");
+            PremiumComfortFormationMorphState orbitMorph = PremiumComfortFormationMorphState.Evaluate(1f, Mathf.PI, 7.5f);
+            Require(orbitMorph.Phase == PremiumComfortFormationPhase.Orbiting, "Premium formation detached copies must resolve as an orbiting morph phase.");
+            Require(!orbitMorph.PrimaryVisible, "Premium orbiting morph state must disable the primary bridge to prevent a seventh center crystal.");
+            Require(Mathf.Approximately(orbitMorph.ComponentScale, 1f), "Premium orbiting components must render at the resolved readable layout scale.");
+            PremiumComfortFormationMorphState mergeMorph = PremiumComfortFormationMorphState.Evaluate(0.5f, Mathf.PI * 2f, 11f);
+            Require(mergeMorph.Phase == PremiumComfortFormationPhase.Merging, "Premium formation return path must resolve as a merging morph phase.");
+            Require(mergeMorph.PrimaryVisible, "Premium merging morph state must restore the primary bridge for continuous re-formation.");
+            PremiumComfortFormationLayoutResult componentLayout = new PremiumComfortFormationLayoutResult(1f, mediumOrbit.y, mediumOrbit.x, "test layout");
+            PremiumComfortFormationComponentPose componentPose = PremiumComfortFormationComponentAnimator.Resolve(0, componentLayout, orbitMorph);
+            Require(componentPose.Visible, "Premium formation orbit components must be visible full-mesh copies.");
+            Require(componentPose.LocalOffset.magnitude > 0.25f, "Premium formation component pose must separate from the center instead of spawning in place.");
+            Require(componentPose.ScaleMultiplier.x > 0.05f, "Premium formation component pose must preserve readable copy scale.");
+
+            ValidateTopRowMirrorCountCyclesAndTransitions();
 
             Require(DiamondFocusSettings.GetMaterialModeLabel(DiamondCrystalMaterialMode.FuturisticPlastic) == "Opal Prism Glass", "Former plastic material mode must resolve to a premium glass label.");
             CrystalModeProfile opalProfile = CrystalModeLibrary.Resolve(DiamondCrystalMaterialMode.FuturisticPlastic, 0, false, 1f);
@@ -674,6 +861,98 @@ namespace Kaleidoscope2.Menu.Editor
             director.Dispatch(KaleidoscopeCommand.ToggleCleanView());
             Require(!director.State.CleanViewEnabled, "H clean-view command route must restore non-essential overlay presentation.");
             director.Dispatch(KaleidoscopeCommand.SetCleanViewEnabled(initialCleanView), KaleidoscopeCommandOrigin.Restore);
+        }
+
+        private static void ValidateTopRowMirrorCountCyclesAndTransitions()
+        {
+            int[][] expectedSequences =
+            {
+                new[] { 3, 4, 6, 4, 3 },
+                new[] { 8, 10, 12, 10, 8 },
+                new[] { 14, 16, 24, 16, 14 },
+                new[] { 28, 36, 48, 36, 28 }
+            };
+            for (int groupIndex = TopRowMirrorCountCycle.MinGroupIndex; groupIndex <= TopRowMirrorCountCycle.MaxGroupIndex; groupIndex++)
+            {
+                int[] expected = expectedSequences[groupIndex - TopRowMirrorCountCycle.MinGroupIndex];
+                for (int step = 0; step < expected.Length; step++)
+                {
+                    Require(TopRowMirrorCountCycle.ResolveCountForStep(groupIndex, step) == expected[step], "Top-row mirror preset cycle group " + groupIndex.ToString() + " must follow its ping-pong sequence.");
+                }
+            }
+
+            MirrorSettings topRowMirror = new MirrorSettings();
+            topRowMirror.CycleTopRowMirrorCountPreset(1);
+            Require(topRowMirror.MirrorCount == 3, "Top-row key 1 first press must select 3 mirrors.");
+            topRowMirror.TickMirrorCountTransition(1.1f);
+            topRowMirror.CycleTopRowMirrorCountPreset(1);
+            Require(topRowMirror.MirrorCount == 4, "Top-row key 1 second press must select 4 mirrors.");
+            topRowMirror.TickMirrorCountTransition(1.1f);
+            topRowMirror.CycleTopRowMirrorCountPreset(1);
+            Require(topRowMirror.MirrorCount == 6, "Top-row key 1 third press must select 6 mirrors.");
+            Require(KaleidoscopeCommand.SetMirrorCount(96).IntValue == 96
+                && KaleidoscopeCommand.SetMirrorCount(192).IntValue == 192
+                && KaleidoscopeCommand.SetMirrorCount(384).IntValue == 384
+                && KaleidoscopeCommand.SetMirrorCount(768).IntValue == 768
+                && KaleidoscopeCommand.SetMirrorCount(1536).IntValue == 1536,
+                "Top-row keys 5-9 must retain their direct existing mirror-count values.");
+
+            MirrorSettings transitionMirror = new MirrorSettings();
+            transitionMirror.SetMirrorCount(12);
+            Require(transitionMirror.MirrorCount == 12, "Mirror count truth state must update immediately to the target value.");
+            Require(transitionMirror.MirrorCountTransition.Active, "SetMirrorCount must start a smooth visual transition.");
+            Require(transitionMirror.MirrorCountTransition.FromCount == 6 && transitionMirror.MirrorCountTransition.ToCount == 12, "Mirror transition must capture from/to configurations.");
+            Require(Mathf.Approximately(transitionMirror.MirrorCountTransition.Duration, 1f), "Mirror count visual transition duration must be 1.0 second.");
+            transitionMirror.TickMirrorCountTransition(0.5f);
+            Require(transitionMirror.MirrorCountTransition.Active, "Mirror count transition must remain active halfway through its one-second duration.");
+            Require(transitionMirror.MirrorCountTransition.SmoothProgress > 0f && transitionMirror.MirrorCountTransition.SmoothProgress < 1f, "Mirror count transition must expose a smooth mid-transition progress value.");
+            transitionMirror.TickMirrorCountTransition(0.5f);
+            Require(!transitionMirror.MirrorCountTransition.Active, "Mirror count transition must complete after one second.");
+            Require(transitionMirror.MirrorCountTransition.FromCount == 12 && transitionMirror.MirrorCountTransition.ToCount == 12, "Mirror count transition must settle on the target configuration.");
+
+            ValidateMirrorModuleTransitionMaterialBinding();
+        }
+
+        private static void ValidateMirrorModuleTransitionMaterialBinding()
+        {
+            Shader shader = Shader.Find("Kaleidoscope2/Mirror");
+            Require(shader != null, "Mirror shader must be available for smooth mirror-count transition validation.");
+            GameObject owner = new GameObject("MirrorTransitionBindingValidationOwner");
+            Material material = new Material(shader);
+            RenderTexture sourceTexture = new RenderTexture(16, 16, 0, RenderTextureFormat.ARGB32);
+            try
+            {
+                sourceTexture.Create();
+                MirrorModule module = owner.AddComponent<MirrorModule>();
+                FieldInfo materialField = typeof(MirrorModule).GetField("mirrorMaterial", BindingFlags.Instance | BindingFlags.NonPublic);
+                Require(materialField != null, "MirrorModule mirror material field missing for binding validation.");
+                materialField.SetValue(module, material);
+
+                KaleidoscopeState state = new KaleidoscopeState();
+                state.MirrorSettings.SetMirrorCount(12);
+                module.Initialize(state);
+                module.Process(sourceTexture, state);
+                Require(Mathf.Approximately(material.GetFloat(MirrorShaderIds.MirrorCountFrom), 6f), "Mirror material must receive transition from-count.");
+                Require(Mathf.Approximately(material.GetFloat(MirrorShaderIds.MirrorCountTo), 12f), "Mirror material must receive transition to-count.");
+                Require(Mathf.Approximately(material.GetFloat(MirrorShaderIds.MirrorTransition), 0f), "Mirror material must start transition progress at 0.");
+
+                module.Tick(0.5f);
+                module.Process(sourceTexture, state);
+                Require(material.GetFloat(MirrorShaderIds.MirrorTransition) > 0f && material.GetFloat(MirrorShaderIds.MirrorTransition) < 1f, "Mirror material must receive mid-transition progress.");
+
+                module.Tick(0.5f);
+                module.Process(sourceTexture, state);
+                Require(Mathf.Approximately(material.GetFloat(MirrorShaderIds.MirrorCountFrom), 12f), "Mirror material must settle from-count to the target after transition.");
+                Require(Mathf.Approximately(material.GetFloat(MirrorShaderIds.MirrorCountTo), 12f), "Mirror material must settle to-count to the target after transition.");
+                Require(Mathf.Approximately(material.GetFloat(MirrorShaderIds.MirrorTransition), 1f), "Mirror material must settle transition progress to 1 after transition.");
+            }
+            finally
+            {
+                sourceTexture.Release();
+                UnityEngine.Object.DestroyImmediate(sourceTexture);
+                UnityEngine.Object.DestroyImmediate(material);
+                UnityEngine.Object.DestroyImmediate(owner);
+            }
         }
 
         private static void ValidateCuratedDemoTexturePlayback()

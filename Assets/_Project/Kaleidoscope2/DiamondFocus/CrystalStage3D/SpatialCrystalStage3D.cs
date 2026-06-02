@@ -35,14 +35,8 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
         private const bool CrystalScalePulseEnabled = false;
         private const bool CameraBreathingEnabled = false;
         private const bool AnimatedCoverageCorrectionEnabled = false;
-        public const int ComfortSplitChildCount = 6;
-        public const float PremiumComfortViewportSafeMargin = 0.15f;
-        private const float ComfortSplitDesiredChildScale = 0.34f;
-        private const float ComfortSplitMinimumChildScale = 0.01f;
-        private const float ComfortSplitMaximumOrbitRadius = 2.12f;
-        private const float ComfortSplitBalancedViewportRadius = 0.20f;
-        private const float ComfortSplitSeparationMultiplier = 1.35f;
-        private const float ComfortSplitSafeRadiusUse = 0.92f;
+        public const int ComfortSplitChildCount = PremiumComfortFormationLayout.CopyCount;
+        public const float PremiumComfortViewportSafeMargin = PremiumComfortFormationLayout.SafeMargin;
         private static readonly int StageMainTexId = Shader.PropertyToID("_MainTex");
         private static readonly int StageViewAspectId = Shader.PropertyToID("_ViewAspect");
         private static readonly int StageTextureAspectId = Shader.PropertyToID("_TextureAspect");
@@ -92,6 +86,8 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
         private static readonly int CrystalSpectralSplitScaleId = Shader.PropertyToID("_SpectralSplitScale");
         private static readonly int CrystalAbsoluteMirrorStrengthId = Shader.PropertyToID("_AbsoluteMirrorStrength");
         private static readonly int CrystalDebugModeId = Shader.PropertyToID("_CrystalDebugMode");
+        private static readonly int CrystalHighlightCompressionId = Shader.PropertyToID("_HighlightCompression");
+        private static readonly int CrystalCoreDarkeningId = Shader.PropertyToID("_CoreDarkening");
         private readonly CrystalDebugEffectApplier debugEffectApplier = new CrystalDebugEffectApplier();
 
         private Transform owner;
@@ -133,6 +129,8 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
         private RenderTexture outputTexture;
         private RenderTexture hiddenReflectionTexture;
         private Camera[] cameraCache = new Camera[8];
+        private readonly MaterialPropertyBlock primaryMorphPropertyBlock = new MaterialPropertyBlock();
+        private readonly MaterialPropertyBlock componentMorphPropertyBlock = new MaterialPropertyBlock();
         private CrystalShape activeShape = (CrystalShape)(-1);
         private int layer;
         private int stageLayerMask;
@@ -150,6 +148,13 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
         private string sourceTextureDiagnostics = "source texture none";
         private string activePremiumShapeLabel = "none";
         private string activePremiumMaterialDiagnostics = "premium material none";
+        private string premiumDepthProtectionDiagnostics = "premium depth protection not sampled";
+        private string premiumFullscreenMaterialDiagnostics = "premium fullscreen material safety inactive";
+        private string premiumVisibleHierarchyDiagnostics = "premium visible hierarchy not sampled";
+        private string premiumStabilizationDiagnostics = "Premium stabilization inactive";
+        private readonly float[] premiumDepthCorrections = new float[ComfortSplitChildCount + 1];
+        private readonly float[] premiumDepthCorrectionVelocities = new float[ComfortSplitChildCount + 1];
+        private readonly bool[] premiumDepthCorrectionInitialized = new bool[ComfortSplitChildCount + 1];
         private bool activeShapeTransition;
         private CrystalShape activeTransitionFromShape = (CrystalShape)(-1);
         private CrystalShape activeTransitionToShape = (CrystalShape)(-1);
@@ -238,6 +243,50 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
             get { return diagnosticsLabel; }
         }
 
+        public string ComfortFormationDiagnostics
+        {
+            get { return comfortFormationDiagnostics; }
+        }
+
+        public string PremiumDepthProtectionDiagnostics
+        {
+            get { return premiumDepthProtectionDiagnostics; }
+        }
+
+        public string PremiumFullscreenMaterialDiagnostics
+        {
+            get { return premiumFullscreenMaterialDiagnostics; }
+        }
+
+        public string PremiumVisibleHierarchyDiagnostics
+        {
+            get { return premiumVisibleHierarchyDiagnostics; }
+        }
+
+        public bool PrimaryCrystalRendererVisible
+        {
+            get { return crystalMeshRenderer != null && crystalMeshRenderer.enabled && crystalObject != null && crystalObject.activeInHierarchy; }
+        }
+
+        public int ActiveComfortCopyRendererCount
+        {
+            get
+            {
+                int count = 0;
+                for (int index = 0; index < ComfortSplitChildCount; index++)
+                {
+                    MeshRenderer renderer = comfortCopyRenderers[index];
+                    GameObject copy = comfortCopyObjects[index];
+                    if (renderer != null && renderer.enabled && copy != null && copy.activeInHierarchy)
+                    {
+                        count++;
+                    }
+                }
+
+                return count;
+            }
+        }
+
         public int RuntimeObjectCount
         {
             get
@@ -308,7 +357,10 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
             bool solidGeometryValidation,
             CrystalStage3DDebugMode debugMode,
             float comfortExpansion,
-            float comfortOrbitAngleRadians)
+            float comfortOrbitAngleRadians,
+            float comfortCycleSeconds,
+            bool premiumStabilizationActive = false,
+            float premiumStabilizationAlignProgress = 0f)
         {
             if (!visible || sourceTexture == null)
             {
@@ -319,6 +371,7 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
                 crystalCameraTargetTextureStatus = "none";
                 opticalStageDiagnostics = "premium optical layers inactive";
                 hiddenReflectionDiagnostics = "hidden reflection background active false";
+                premiumStabilizationDiagnostics = "Premium stabilization inactive";
                 hiddenReflectionRenderedThisFrame = false;
                 hiddenReflectionVisibleToReflectionCamera = false;
                 hiddenReflectionVisibleToMainCamera = false;
@@ -326,6 +379,7 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
                 finalVisibleScreenCoverage = 0f;
                 finalVisibleCoverageDiagnostics = "final visible coverage not measured, stage hidden";
                 ResetFramingLock("stage hidden");
+                ResetPremiumDepthProtection("stage hidden");
                 ResetStaticBaselineTracking("stage hidden");
                 sourceTextureDiagnostics = "source texture none";
                 UpdateCameraDiagnostics();
@@ -337,7 +391,19 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
             ConfigureDirectViewCameras();
             EnsureOutputTexture(sourceTexture.width, sourceTexture.height);
             EnsureCrystalMesh(settings, shape);
-            ConfigureStage(sourceTexture, settings, materialMode, rotation, intensity, solidGeometryValidation, debugMode, comfortExpansion, comfortOrbitAngleRadians);
+            ConfigureStage(
+                sourceTexture,
+                settings,
+                materialMode,
+                rotation,
+                intensity,
+                solidGeometryValidation,
+                debugMode,
+                comfortExpansion,
+                comfortOrbitAngleRadians,
+                comfortCycleSeconds,
+                premiumStabilizationActive,
+                premiumStabilizationAlignProgress);
             RenderStageCamera();
 
             Bounds crystalBounds = crystalMesh != null && crystalObject != null
@@ -435,6 +501,7 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
             finalVisibleScreenCoverage = 0f;
             finalVisibleCoverageDiagnostics = "final visible coverage not measured";
             ResetFramingLock("shutdown");
+            ResetPremiumDepthProtection("shutdown");
             ResetStaticBaselineTracking("shutdown");
             sourceTextureDiagnostics = "source texture none";
             activePremiumShapeLabel = "none";
@@ -887,20 +954,6 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
             }
         }
 
-        private struct ComfortCopyLayout
-        {
-            public ComfortCopyLayout(float radius, float childScale, string diagnostics)
-            {
-                Radius = radius;
-                ChildScale = childScale;
-                Diagnostics = diagnostics;
-            }
-
-            public float Radius { get; private set; }
-            public float ChildScale { get; private set; }
-            public string Diagnostics { get; private set; }
-        }
-
         private void ConfigureStage(
             RenderTexture sourceTexture,
             CrystalSharedSettings settings,
@@ -910,10 +963,32 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
             bool solidGeometryValidation,
             CrystalStage3DDebugMode debugMode,
             float comfortExpansion,
-            float comfortOrbitAngleRadians)
+            float comfortOrbitAngleRadians,
+            float comfortCycleSeconds,
+            bool premiumStabilizationActive,
+            float premiumStabilizationAlignProgress)
         {
             SetVisible(true);
-            ComfortCopyLayout comfortLayout = ConfigureTransforms(sourceTexture, settings, rotation, debugMode, comfortExpansion);
+            premiumStabilizationDiagnostics = settings != null
+                ? settings.PremiumCrystalStabilizationDiagnostics
+                : "Premium stabilization inactive";
+            PremiumComfortFormationMorphState morphState;
+            PremiumComfortFormationLayoutResult comfortLayout = ConfigureTransforms(
+                sourceTexture,
+                settings,
+                rotation,
+                debugMode,
+                comfortExpansion,
+                comfortOrbitAngleRadians,
+                comfortCycleSeconds,
+                premiumStabilizationActive,
+                premiumStabilizationAlignProgress,
+                out morphState);
+            if (morphState.Active)
+            {
+                comfortFormationDiagnostics = comfortLayout.Diagnostics + ", " + morphState.Diagnostics;
+            }
+
             ConfigureLights(settings, intensity);
             hiddenReflectionBackgroundEnabled = settings == null
                 || settings.PremiumHiddenReflectionBackgroundEnabled
@@ -944,16 +1019,24 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
                 materialMode,
                 intensity,
                 solidGeometryValidation || debugMode == CrystalStage3DDebugMode.SolidLitGeometry);
-            ConfigureComfortCopies(rotation, comfortExpansion, comfortOrbitAngleRadians, comfortLayout);
+            ApplyPrimaryMorphPropertyBlock(morphState);
+            ConfigureComfortCopies(rotation, comfortLayout, morphState, premiumStabilizationActive, premiumStabilizationAlignProgress);
+            ApplyFinalPremiumDepthProtection();
         }
 
-        private ComfortCopyLayout ConfigureTransforms(
+        private PremiumComfortFormationLayoutResult ConfigureTransforms(
             RenderTexture sourceTexture,
             CrystalSharedSettings settings,
             Vector3 rotation,
             CrystalStage3DDebugMode debugMode,
-            float comfortExpansion)
+            float comfortExpansion,
+            float comfortOrbitAngleRadians,
+            float comfortCycleSeconds,
+            bool premiumStabilizationActive,
+            float premiumStabilizationAlignProgress,
+            out PremiumComfortFormationMorphState morphState)
         {
+            morphState = PremiumComfortFormationMorphState.Evaluate(comfortExpansion, comfortOrbitAngleRadians, comfortCycleSeconds);
             float aspect = sourceTexture.height > 0 ? sourceTexture.width / (float)sourceTexture.height : 1f;
             bool validationOrbit = ResolveValidationOrbit(settings, debugMode);
             if (validationOrbit)
@@ -999,9 +1082,12 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
                 * DioramaCrystalScale
                 * activePremiumCrystalScaleMultiplier;
             float opening = Mathf.Clamp01(comfortExpansion);
-            ComfortCopyLayout comfortLayout = ResolveComfortCopyLayout(framingCamera, baseScale, opening);
-            crystalObject.transform.localScale = baseScale * Mathf.Lerp(1f, 0.02f, opening);
-            crystalObject.transform.localRotation = Quaternion.Euler(rotation);
+            PremiumComfortFormationLayoutResult comfortLayout = ResolveComfortCopyLayout(framingCamera, baseScale, opening);
+            crystalObject.transform.localScale = Vector3.Scale(baseScale, morphState.PrimaryScaleMultiplier);
+            crystalObject.transform.localRotation = Quaternion.Euler(ResolveCameraFacingEuler(
+                rotation + morphState.PrimaryRotationOffset,
+                premiumStabilizationActive,
+                premiumStabilizationAlignProgress));
 
             backgroundObject.transform.localPosition = new Vector3(0f, 0f, BackgroundDistance);
             backgroundObject.transform.localRotation = Quaternion.identity;
@@ -1015,19 +1101,32 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
             return comfortLayout;
         }
 
-        private void ConfigureComfortCopies(Vector3 rotation, float comfortExpansion, float comfortOrbitAngleRadians, ComfortCopyLayout comfortLayout)
+        private void ConfigureComfortCopies(
+            Vector3 rotation,
+            PremiumComfortFormationLayoutResult comfortLayout,
+            PremiumComfortFormationMorphState morphState,
+            bool premiumStabilizationActive,
+            float premiumStabilizationAlignProgress)
         {
-            float opening = Mathf.Clamp01(comfortExpansion);
-            if (opening <= 0.0001f || crystalObject == null || crystalMeshRenderer == null)
+            if (!morphState.Active || morphState.ComponentAlphaMultiplier <= 0.0001f || crystalObject == null || crystalMeshRenderer == null)
             {
                 for (int index = 0; index < ComfortSplitChildCount; index++)
                 {
                     if (comfortCopyObjects[index] != null)
                     {
+                        if (comfortCopyRenderers[index] != null)
+                        {
+                            comfortCopyRenderers[index].enabled = false;
+                            comfortCopyRenderers[index].SetPropertyBlock(null);
+                        }
+
                         comfortCopyObjects[index].SetActive(false);
                     }
+
+                    ResetPremiumDepthCorrection(index + 1);
                 }
 
+                RefreshPremiumDepthProtectionDiagnostics();
                 return;
             }
 
@@ -1040,15 +1139,86 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
                 GameObject copy = comfortCopyObjects[index];
                 MeshRenderer copyRenderer = comfortCopyRenderers[index];
                 int presentationIndex = index;
-                copy.transform.localPosition = lockedCrystalLocalPosition + ResolveComfortOffset(presentationIndex, comfortOrbitAngleRadians, comfortLayout.Radius) * opening;
-                copy.transform.localRotation = Quaternion.Euler(rotation + ResolveComfortRotationOffset(presentationIndex, comfortOrbitAngleRadians) * opening);
-                float scaleVariation = comfortLayout.ChildScale;
-                copy.transform.localScale = baseScale * Mathf.Lerp(0.04f, scaleVariation, opening);
+                PremiumComfortFormationComponentPose pose = PremiumComfortFormationComponentAnimator.Resolve(
+                    presentationIndex,
+                    comfortLayout,
+                    morphState);
+                copy.transform.localPosition = lockedCrystalLocalPosition + pose.LocalOffset;
+                copy.transform.localRotation = Quaternion.Euler(ResolveCameraFacingEuler(
+                    rotation + pose.RotationOffset,
+                    premiumStabilizationActive,
+                    premiumStabilizationAlignProgress));
+                copy.transform.localScale = Vector3.Scale(baseScale, pose.ScaleMultiplier);
                 copyRenderer.sharedMaterial = crystalMeshRenderer.sharedMaterial;
                 copyRenderer.shadowCastingMode = ShadowCastingMode.Off;
                 copyRenderer.receiveShadows = false;
-                copy.SetActive(opening > 0.005f);
+                ApplyComponentMorphPropertyBlock(copyRenderer, pose);
+                copyRenderer.enabled = pose.Visible;
+                copy.SetActive(pose.Visible);
+                if (!pose.Visible)
+                {
+                    ResetPremiumDepthCorrection(index + 1);
+                }
             }
+        }
+
+        private void ApplyPrimaryMorphPropertyBlock(PremiumComfortFormationMorphState morphState)
+        {
+            if (crystalMeshRenderer == null)
+            {
+                return;
+            }
+
+            if (!morphState.Active)
+            {
+                crystalMeshRenderer.enabled = true;
+                crystalMeshRenderer.SetPropertyBlock(null);
+                return;
+            }
+
+            crystalMeshRenderer.enabled = morphState.PrimaryVisible;
+            if (!morphState.PrimaryVisible)
+            {
+                crystalMeshRenderer.SetPropertyBlock(null);
+                return;
+            }
+
+            Material material = crystalMeshRenderer.sharedMaterial;
+            primaryMorphPropertyBlock.Clear();
+            primaryMorphPropertyBlock.SetFloat(
+                CrystalAlphaId,
+                Mathf.Clamp01(ResolveMaterialFloat(material, CrystalAlphaId, 1f) * morphState.PrimaryAlphaMultiplier));
+            primaryMorphPropertyBlock.SetFloat(
+                CrystalIntensityId,
+                Mathf.Clamp(ResolveMaterialFloat(material, CrystalIntensityId, 1f) * morphState.PrimaryIntensityMultiplier, 0f, 20f));
+            crystalMeshRenderer.SetPropertyBlock(primaryMorphPropertyBlock);
+        }
+
+        private void ApplyComponentMorphPropertyBlock(
+            MeshRenderer copyRenderer,
+            PremiumComfortFormationComponentPose pose)
+        {
+            if (copyRenderer == null)
+            {
+                return;
+            }
+
+            Material material = crystalMeshRenderer != null ? crystalMeshRenderer.sharedMaterial : copyRenderer.sharedMaterial;
+            componentMorphPropertyBlock.Clear();
+            componentMorphPropertyBlock.SetFloat(
+                CrystalAlphaId,
+                Mathf.Clamp01(ResolveMaterialFloat(material, CrystalAlphaId, 1f) * pose.AlphaMultiplier));
+            componentMorphPropertyBlock.SetFloat(
+                CrystalIntensityId,
+                Mathf.Clamp(ResolveMaterialFloat(material, CrystalIntensityId, 1f) * pose.IntensityMultiplier, 0f, 20f));
+            copyRenderer.SetPropertyBlock(componentMorphPropertyBlock);
+        }
+
+        private static float ResolveMaterialFloat(Material material, int propertyId, float fallback)
+        {
+            return material != null && material.HasProperty(propertyId)
+                ? material.GetFloat(propertyId)
+                : fallback;
         }
 
         private void EnsureComfortCopy(int index)
@@ -1076,13 +1246,13 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
             comfortCopyObjects[index] = copy;
         }
 
-        private ComfortCopyLayout ResolveComfortCopyLayout(Camera framingCamera, Vector3 baseScale, float comfortExpansion)
+        private PremiumComfortFormationLayoutResult ResolveComfortCopyLayout(Camera framingCamera, Vector3 baseScale, float comfortExpansion)
         {
             float opening = Mathf.Clamp01(comfortExpansion);
             if (opening <= 0.0001f || framingCamera == null || dioramaObject == null)
             {
                 comfortFormationDiagnostics = "comfort formation inactive";
-                return new ComfortCopyLayout(0f, ComfortSplitDesiredChildScale, comfortFormationDiagnostics);
+                return PremiumComfortFormationLayoutResult.Inactive;
             }
 
             Bounds localBounds = lockedLocalFramingBounds.size != Vector3.zero
@@ -1105,97 +1275,321 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
             Vector2 viewportSizeAtScaleOne = new Vector2(
                 viewWidth > MinimumMeshDimension ? worldWidthAtScaleOne / viewWidth : 1f,
                 viewHeight > MinimumMeshDimension ? worldHeightAtScaleOne / viewHeight : 1f);
-            Vector2 adaptiveLayout = ResolveAdaptiveComfortViewportLayout(viewportSizeAtScaleOne, viewportCenter, PremiumComfortViewportSafeMargin);
-            float childScale = adaptiveLayout.x;
-            Vector2 childHalfExtent = viewportSizeAtScaleOne * childScale * 0.5f;
-            float safeViewportRadius = ResolveSafeComfortViewportRadius(viewportCenter, childHalfExtent, PremiumComfortViewportSafeMargin);
-            float viewportRadius = Mathf.Min(adaptiveLayout.y, safeViewportRadius);
-            float worldRadiusByX = viewportRadius * viewWidth / stageScale;
-            float worldRadiusByY = viewportRadius * viewHeight / stageScale;
-            float localRadius = Mathf.Clamp(Mathf.Min(worldRadiusByX, worldRadiusByY), 0f, ComfortSplitMaximumOrbitRadius);
-
-            comfortFormationDiagnostics = "comfort formation SixCopyOrbitFormation"
-                + ", copies " + ComfortSplitChildCount.ToString()
-                + ", safe viewport margin " + (PremiumComfortViewportSafeMargin * 100f).ToString("0") + "%"
-                + ", viewport radius " + viewportRadius.ToString("0.000")
-                + ", local radius " + localRadius.ToString("0.00")
-                + ", child scale " + childScale.ToString("0.00");
-            return new ComfortCopyLayout(localRadius, childScale, comfortFormationDiagnostics);
+            PremiumComfortFormationLayoutResult layout = PremiumComfortFormationLayout.Resolve(
+                viewportSizeAtScaleOne,
+                viewportCenter,
+                viewWidth,
+                viewHeight,
+                stageScale);
+            comfortFormationDiagnostics = layout.Diagnostics;
+            return layout;
         }
 
         public static float ResolveSafeComfortViewportRadius(Vector2 viewportCenter, Vector2 childHalfExtent, float safeMargin)
         {
-            float margin = Mathf.Clamp(safeMargin, 0f, 0.49f);
-            float radiusX = Mathf.Min(viewportCenter.x - margin - Mathf.Max(0f, childHalfExtent.x), 1f - margin - viewportCenter.x - Mathf.Max(0f, childHalfExtent.x));
-            float radiusY = Mathf.Min(viewportCenter.y - margin - Mathf.Max(0f, childHalfExtent.y), 1f - margin - viewportCenter.y - Mathf.Max(0f, childHalfExtent.y));
-            return Mathf.Max(0f, Mathf.Min(radiusX, radiusY));
+            return PremiumComfortFormationLayout.ResolveSafeViewportRadius(viewportCenter, childHalfExtent, safeMargin);
         }
 
         public static Vector2 ResolveAdaptiveComfortViewportLayout(Vector2 viewportSizeAtScaleOne, Vector2 viewportCenter, float safeMargin)
         {
-            Vector2 sizeAtScaleOne = new Vector2(
-                Mathf.Max(0f, Mathf.Abs(viewportSizeAtScaleOne.x)),
-                Mathf.Max(0f, Mathf.Abs(viewportSizeAtScaleOne.y)));
-            float fitScaleX = sizeAtScaleOne.x > 0.0001f
-                ? ResolveSafeHalfAxis(viewportCenter.x, safeMargin) * 2f / sizeAtScaleOne.x
-                : ComfortSplitDesiredChildScale;
-            float fitScaleY = sizeAtScaleOne.y > 0.0001f
-                ? ResolveSafeHalfAxis(viewportCenter.y, safeMargin) * 2f / sizeAtScaleOne.y
-                : ComfortSplitDesiredChildScale;
-            float childScale = Mathf.Clamp(
-                Mathf.Min(ComfortSplitDesiredChildScale, fitScaleX, fitScaleY),
-                ComfortSplitMinimumChildScale,
-                ComfortSplitDesiredChildScale);
-            float maxDimensionAtScaleOne = Mathf.Max(sizeAtScaleOne.x, sizeAtScaleOne.y);
-            float viewportRadius = 0f;
+            return PremiumComfortFormationLayout.ResolveAdaptiveViewportLayout(viewportSizeAtScaleOne, viewportCenter, safeMargin);
+        }
 
-            for (int iteration = 0; iteration < 3; iteration++)
+        private static Vector3 ResolveCameraFacingEuler(Vector3 euler, bool stabilizationActive, float alignProgress)
+        {
+            if (!stabilizationActive)
             {
-                Vector2 childHalfExtent = sizeAtScaleOne * childScale * 0.5f;
-                float safeRadius = ResolveSafeComfortViewportRadius(viewportCenter, childHalfExtent, safeMargin) * ComfortSplitSafeRadiusUse;
-                float separationRadius = maxDimensionAtScaleOne * childScale * ComfortSplitSeparationMultiplier;
-                float balancedRadius = Mathf.Min(ComfortSplitBalancedViewportRadius, safeRadius);
-                viewportRadius = Mathf.Clamp(Mathf.Max(balancedRadius, separationRadius), 0f, safeRadius);
-
-                if (separationRadius <= safeRadius || maxDimensionAtScaleOne <= 0.0001f)
-                {
-                    break;
-                }
-
-                float fittedScale = safeRadius / (maxDimensionAtScaleOne * ComfortSplitSeparationMultiplier);
-                float nextScale = Mathf.Clamp(Mathf.Min(childScale, fittedScale), ComfortSplitMinimumChildScale, ComfortSplitDesiredChildScale);
-                if (Mathf.Abs(nextScale - childScale) < 0.0005f)
-                {
-                    break;
-                }
-
-                childScale = nextScale;
+                return euler;
             }
 
-            return new Vector2(childScale, Mathf.Max(0f, viewportRadius));
-        }
-
-        private static float ResolveSafeHalfAxis(float center, float safeMargin)
-        {
-            float margin = Mathf.Clamp(safeMargin, 0f, 0.49f);
-            return Mathf.Max(0f, Mathf.Min(center - margin, 1f - margin - center));
-        }
-
-        private static Vector3 ResolveComfortOffset(int index, float orbitAngleRadians, float radius)
-        {
-            float angle = index * Mathf.PI * 2f / ComfortSplitChildCount + orbitAngleRadians;
-            float drift = Mathf.Sin(orbitAngleRadians * 1.5f + index * 0.9f) * Mathf.Min(0.025f, radius * 0.04f);
-            float resolvedRadius = Mathf.Clamp(radius + drift, 0f, Mathf.Max(0f, radius));
-            return new Vector3(Mathf.Cos(angle) * resolvedRadius, Mathf.Sin(angle) * resolvedRadius, 0f);
-        }
-
-        private static Vector3 ResolveComfortRotationOffset(int index, float orbitAngleRadians)
-        {
-            float orbitDegrees = orbitAngleRadians * Mathf.Rad2Deg;
+            float t = Mathf.Clamp01(alignProgress);
             return new Vector3(
-                (index - 2.5f) * 2.2f,
-                (index % 3 - 1) * 4.5f,
-                orbitDegrees + (index % 2 == 0 ? 8f : -7f));
+                Mathf.LerpAngle(euler.x, 0f, t),
+                Mathf.LerpAngle(euler.y, 0f, t),
+                Mathf.LerpAngle(euler.z, 0f, t));
+        }
+
+        private struct PremiumDepthProtectionApplication
+        {
+            public string TargetName;
+            public bool VisibleTarget;
+            public PremiumCrystalDepthCorrection Before;
+            public PremiumCrystalDepthCorrection After;
+            public float AppliedOffset;
+            public Vector3 CorrectionVector;
+            public Vector3 PlaneNormal;
+            public Vector3 CameraPosition;
+            public Vector3 CameraForward;
+
+            public float RawPenetrationBefore
+            {
+                get { return Before.RawPenetration; }
+            }
+
+            public float RawPenetrationAfter
+            {
+                get { return After.RawPenetration; }
+            }
+        }
+
+        private void ApplyFinalPremiumDepthProtection()
+        {
+            UpdatePremiumVisibleHierarchyDiagnostics();
+            if (!PremiumCrystalDepthProtection.EnablePremiumDepthProtection)
+            {
+                premiumDepthProtectionDiagnostics = "premium depth protection enabled false";
+                return;
+            }
+
+            if (crystalMesh == null || stageCamera == null || backgroundObject == null)
+            {
+                premiumDepthProtectionDiagnostics = "premium depth protection enabled true"
+                    + ", final pass after ConfigureTransforms/ConfigureComfortCopies before RenderStageCamera"
+                    + ", unavailable missing visible mesh/camera/background";
+                return;
+            }
+
+            Vector3 planeNormal = -stageCamera.transform.forward.normalized;
+            string detail = string.Empty;
+            int visibleTargetCount = 0;
+            float maxPenetrationBefore = 0f;
+            float maxPenetrationAfter = 0f;
+            float maxApplied = 0f;
+
+            if (PrimaryCrystalRendererVisible)
+            {
+                PremiumDepthProtectionApplication primary = ApplyPremiumDepthProtection(crystalObject.transform, crystalMesh.bounds, 0, "primary");
+                AccumulatePremiumDepthProtection(primary, ref visibleTargetCount, ref maxPenetrationBefore, ref maxPenetrationAfter, ref maxApplied, ref detail);
+            }
+            else
+            {
+                ResetPremiumDepthCorrection(0);
+                detail += ", primary hidden true";
+            }
+
+            for (int index = 0; index < ComfortSplitChildCount; index++)
+            {
+                MeshRenderer renderer = comfortCopyRenderers[index];
+                GameObject copy = comfortCopyObjects[index];
+                int correctionIndex = index + 1;
+                if (renderer != null && renderer.enabled && copy != null && copy.activeInHierarchy)
+                {
+                    PremiumDepthProtectionApplication result = ApplyPremiumDepthProtection(copy.transform, crystalMesh.bounds, correctionIndex, "copy" + correctionIndex.ToString());
+                    AccumulatePremiumDepthProtection(result, ref visibleTargetCount, ref maxPenetrationBefore, ref maxPenetrationAfter, ref maxApplied, ref detail);
+                }
+                else
+                {
+                    ResetPremiumDepthCorrection(correctionIndex);
+                }
+            }
+
+            premiumDepthProtectionDiagnostics = "premium depth protection enabled true"
+                + ", final pass after ConfigureTransforms/ConfigureComfortCopies before RenderStageCamera"
+                + ", final writer order ConfigureTransforms -> ConfigureMaterials -> ApplyPrimaryMorphPropertyBlock -> ConfigureComfortCopies -> ApplyFinalPremiumDepthProtection -> RenderStageCamera"
+                + ", plane background/kaleidoscope"
+                + ", plane point " + CrystalSpatialDiagnostics.FormatVector(backgroundObject.transform.position)
+                + ", plane normal " + CrystalSpatialDiagnostics.FormatVector(planeNormal)
+                + ", camera position " + CrystalSpatialDiagnostics.FormatVector(stageCamera.transform.position)
+                + ", camera forward " + CrystalSpatialDiagnostics.FormatVector(stageCamera.transform.forward)
+                + ", safe clearance " + PremiumCrystalDepthProtection.SafeDepthClearance.ToString("0.00")
+                + ", legacy max camera offset " + PremiumCrystalDepthProtection.MaxCameraForwardOffset.ToString("0.00")
+                + ", smooth time " + PremiumCrystalDepthProtection.DepthCorrectionSmoothTime.ToString("0.00")
+                + ", visible target count " + visibleTargetCount.ToString()
+                + ", max penetration before " + maxPenetrationBefore.ToString("0.000")
+                + ", max penetration after " + maxPenetrationAfter.ToString("0.000")
+                + ", max applied " + maxApplied.ToString("0.000")
+                + detail;
+        }
+
+        private PremiumDepthProtectionApplication ApplyPremiumDepthProtection(Transform target, Bounds localBounds, int correctionIndex, string targetName)
+        {
+            if (!PremiumCrystalDepthProtection.EnablePremiumDepthProtection
+                || target == null
+                || stageCamera == null
+                || backgroundObject == null
+                || correctionIndex < 0
+                || correctionIndex >= premiumDepthCorrections.Length)
+            {
+                return new PremiumDepthProtectionApplication
+                {
+                    TargetName = targetName,
+                    VisibleTarget = false
+                };
+            }
+
+            Bounds worldBounds = CrystalSpatialDiagnostics.TransformBounds(localBounds, target);
+            PremiumCrystalDepthCorrection correction = PremiumCrystalDepthProtection.Resolve(
+                worldBounds,
+                stageCamera.transform.position,
+                stageCamera.transform.forward,
+                backgroundObject.transform.position);
+            float applied = ResolveSmoothedDepthCorrection(correctionIndex, correction.RequiredCameraForwardOffset);
+            Vector3 correctionVector = Vector3.zero;
+            if (applied > 0.0001f)
+            {
+                Vector3 worldOffset = -stageCamera.transform.forward.normalized * applied;
+                correctionVector = worldOffset;
+                Transform parent = target.parent;
+                target.localPosition += parent != null
+                    ? parent.InverseTransformVector(worldOffset)
+                    : worldOffset;
+            }
+
+            Bounds correctedBounds = CrystalSpatialDiagnostics.TransformBounds(localBounds, target);
+            PremiumCrystalDepthCorrection after = PremiumCrystalDepthProtection.Resolve(
+                correctedBounds,
+                stageCamera.transform.position,
+                stageCamera.transform.forward,
+                backgroundObject.transform.position);
+            return new PremiumDepthProtectionApplication
+            {
+                TargetName = targetName,
+                VisibleTarget = true,
+                Before = correction,
+                After = after,
+                AppliedOffset = applied,
+                CorrectionVector = correctionVector,
+                PlaneNormal = -stageCamera.transform.forward.normalized,
+                CameraPosition = stageCamera.transform.position,
+                CameraForward = stageCamera.transform.forward
+            };
+        }
+
+        private static void AccumulatePremiumDepthProtection(
+            PremiumDepthProtectionApplication result,
+            ref int visibleTargetCount,
+            ref float maxPenetrationBefore,
+            ref float maxPenetrationAfter,
+            ref float maxApplied,
+            ref string detail)
+        {
+            if (!result.VisibleTarget)
+            {
+                return;
+            }
+
+            visibleTargetCount++;
+            maxPenetrationBefore = Mathf.Max(maxPenetrationBefore, result.RawPenetrationBefore);
+            maxPenetrationAfter = Mathf.Max(maxPenetrationAfter, result.RawPenetrationAfter);
+            maxApplied = Mathf.Max(maxApplied, result.AppliedOffset);
+            detail += ", " + result.TargetName
+                + " before backMost " + CrystalSpatialDiagnostics.FormatVector(result.Before.BackMostPoint)
+                + " before penetration " + result.RawPenetrationBefore.ToString("0.000")
+                + " correction vector " + CrystalSpatialDiagnostics.FormatVector(result.CorrectionVector)
+                + " after backMost " + CrystalSpatialDiagnostics.FormatVector(result.After.BackMostPoint)
+                + " after penetration " + result.RawPenetrationAfter.ToString("0.000")
+                + " " + PremiumCrystalDepthProtection.FormatDiagnostics(result.TargetName, result.Before, result.AppliedOffset);
+        }
+
+        private float ResolveSmoothedDepthCorrection(int correctionIndex, float targetCorrection)
+        {
+            float target = Mathf.Max(0f, targetCorrection);
+            if (!premiumDepthCorrectionInitialized[correctionIndex])
+            {
+                premiumDepthCorrections[correctionIndex] = target;
+                premiumDepthCorrectionVelocities[correctionIndex] = 0f;
+                premiumDepthCorrectionInitialized[correctionIndex] = true;
+                return target;
+            }
+
+            float current = premiumDepthCorrections[correctionIndex];
+            if (target > current)
+            {
+                premiumDepthCorrections[correctionIndex] = target;
+                premiumDepthCorrectionVelocities[correctionIndex] = 0f;
+                return target;
+            }
+
+            float deltaTime = Mathf.Max(Time.deltaTime, 1f / 60f);
+            float maxSpeed = Mathf.Max(PremiumCrystalDepthProtection.MaxCameraForwardOffset, Mathf.Max(current, target));
+            float smoothed = Mathf.SmoothDamp(
+                current,
+                target,
+                ref premiumDepthCorrectionVelocities[correctionIndex],
+                PremiumCrystalDepthProtection.DepthCorrectionSmoothTime,
+                maxSpeed,
+                deltaTime);
+            premiumDepthCorrections[correctionIndex] = smoothed;
+            return smoothed;
+        }
+
+        private void ResetPremiumDepthCorrection(int correctionIndex)
+        {
+            if (correctionIndex < 0 || correctionIndex >= premiumDepthCorrections.Length)
+            {
+                return;
+            }
+
+            premiumDepthCorrections[correctionIndex] = 0f;
+            premiumDepthCorrectionVelocities[correctionIndex] = 0f;
+            premiumDepthCorrectionInitialized[correctionIndex] = false;
+        }
+
+        private void ResetPremiumDepthProtection(string reason)
+        {
+            for (int index = 0; index < premiumDepthCorrections.Length; index++)
+            {
+                ResetPremiumDepthCorrection(index);
+            }
+
+            premiumDepthProtectionDiagnostics = "premium depth protection reset " + reason;
+        }
+
+        private void RefreshPremiumDepthProtectionDiagnostics()
+        {
+            if (!PremiumCrystalDepthProtection.EnablePremiumDepthProtection)
+            {
+                premiumDepthProtectionDiagnostics = "premium depth protection enabled false";
+                return;
+            }
+
+            float primary = premiumDepthCorrections.Length > 0 ? premiumDepthCorrections[0] : 0f;
+            float maxCopy = 0f;
+            for (int index = 1; index < premiumDepthCorrections.Length; index++)
+            {
+                maxCopy = Mathf.Max(maxCopy, premiumDepthCorrections[index]);
+            }
+
+            premiumDepthProtectionDiagnostics = "premium depth protection enabled true"
+                + ", plane background"
+                + ", safe clearance " + PremiumCrystalDepthProtection.SafeDepthClearance.ToString("0.00")
+                + ", legacy smoothing-speed floor " + PremiumCrystalDepthProtection.MaxCameraForwardOffset.ToString("0.00")
+                + ", smooth time " + PremiumCrystalDepthProtection.DepthCorrectionSmoothTime.ToString("0.00")
+                + ", primary applied " + primary.ToString("0.000")
+                + ", max copy applied " + maxCopy.ToString("0.000");
+        }
+
+        private void UpdatePremiumVisibleHierarchyDiagnostics()
+        {
+            string rootPath = root != null
+                ? CrystalSpatialDiagnostics.GetHierarchyPath(root.transform)
+                : "none";
+            string primaryPath = crystalObject != null
+                ? CrystalSpatialDiagnostics.GetHierarchyPath(crystalObject.transform)
+                : "none";
+            string backgroundPath = backgroundObject != null
+                ? CrystalSpatialDiagnostics.GetHierarchyPath(backgroundObject.transform)
+                : "none";
+            string cameraPath = cameraObject != null
+                ? CrystalSpatialDiagnostics.GetHierarchyPath(cameraObject.transform)
+                : "none";
+            string copyPaths = string.Empty;
+            for (int index = 0; index < ComfortSplitChildCount; index++)
+            {
+                GameObject copy = comfortCopyObjects[index];
+                MeshRenderer renderer = comfortCopyRenderers[index];
+                bool visible = copy != null && copy.activeInHierarchy && renderer != null && renderer.enabled;
+                copyPaths += ", copy" + (index + 1).ToString() + " "
+                    + (copy != null ? CrystalSpatialDiagnostics.GetHierarchyPath(copy.transform) : "none")
+                    + " visible " + (visible ? "true" : "false");
+            }
+
+            premiumVisibleHierarchyDiagnostics = "premium visible hierarchy root " + rootPath
+                + ", primary " + primaryPath
+                + " visible " + (PrimaryCrystalRendererVisible ? "true" : "false")
+                + ", background " + backgroundPath
+                + ", camera " + cameraPath
+                + copyPaths;
         }
 
         private void ConfigureHiddenReflectionTransform(float aspect)
@@ -1895,6 +2289,14 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
             float alpha = settings != null ? settings.RealMeshAlpha : 0.58f;
             float clarity = settings != null ? settings.GemClarity : 0.9f;
             color.a = Mathf.Clamp(alpha + 0.1f + clarity * 0.08f + Mathf.Clamp01(intensity / 20f) * 0.14f, 0.42f, 0.94f);
+            float fullscreenSafety = ResolvePremiumFullscreenScaleSafety(settings);
+            bool absoluteMirrorMaterial = settings != null && settings.AbsoluteMirrorStrength > 0.001f;
+            if (!absoluteMirrorMaterial && fullscreenSafety > 0.0001f)
+            {
+                float fullscreenAlpha = Mathf.Lerp(color.a, Mathf.Min(color.a, 0.3f), fullscreenSafety);
+                color.a = Mathf.Clamp(fullscreenAlpha, 0.18f, 0.94f);
+            }
+
             transparentCrystalMaterial.color = color;
             activePremiumMaterialDiagnostics = settings != null
                 ? "premium gem material " + settings.PremiumMaterialName
@@ -1939,6 +2341,7 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
             }
             else
             {
+                premiumFullscreenMaterialDiagnostics = "premium fullscreen material safety inactive, shader fallback";
                 ConfigureStandardTransparent(transparentCrystalMaterial);
             }
 
@@ -1986,6 +2389,7 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
             float spectralSplitScale = settings != null ? settings.SpectralSplitScale : 1f;
             float absoluteMirrorStrength = settings != null ? settings.AbsoluteMirrorStrength : 0f;
             float debugMode = settings != null ? (float)settings.DebugMode : 0f;
+            float fullscreenSafety = absoluteMirrorStrength > 0.001f ? 0f : ResolvePremiumFullscreenScaleSafety(settings);
             float metallic;
             float smoothness;
             ResolveCrystalSurface(materialMode, out metallic, out smoothness);
@@ -2039,6 +2443,24 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
                 specularStrength *= 0.32f;
             }
 
+            if (fullscreenSafety > 0.0001f)
+            {
+                transparency = Mathf.Max(transparency, Mathf.Lerp(0.12f, 0.62f, fullscreenSafety));
+                directTransmission = Mathf.Max(directTransmission, Mathf.Lerp(0.1f, 0.32f, fullscreenSafety));
+                minimumTransmission = Mathf.Max(minimumTransmission, Mathf.Lerp(0.08f, 0.62f, fullscreenSafety));
+                maxCoreTransmission = Mathf.Max(maxCoreTransmission, Mathf.Lerp(0.16f, 0.34f, fullscreenSafety));
+                centerTransmissionBlock = Mathf.Min(centerTransmissionBlock, Mathf.Lerp(centerTransmissionBlock, 0.45f, fullscreenSafety));
+                intensity = Mathf.Lerp(intensity, Mathf.Min(intensity, 5.2f), fullscreenSafety);
+                intensity01 = Mathf.Clamp01(intensity / 20f);
+                internalBrightness = Mathf.Lerp(internalBrightness, Mathf.Min(internalBrightness, 0.85f), fullscreenSafety);
+                reflectionStrength = Mathf.Lerp(reflectionStrength, Mathf.Min(reflectionStrength, 0.78f), fullscreenSafety);
+                fresnelStrength = Mathf.Lerp(fresnelStrength, Mathf.Min(fresnelStrength, 1.05f), fullscreenSafety);
+                facetFire = Mathf.Lerp(facetFire, Mathf.Min(facetFire, 0.55f), fullscreenSafety);
+                specularStrength = Mathf.Lerp(specularStrength, Mathf.Min(specularStrength, 0.42f), fullscreenSafety);
+                saturationBoost = Mathf.Lerp(saturationBoost, Mathf.Min(saturationBoost, 1.04f), fullscreenSafety);
+                contrastBoost = Mathf.Lerp(contrastBoost, Mathf.Min(contrastBoost, 1.02f), fullscreenSafety);
+            }
+
             if (absoluteMirrorStrength > 0.001f)
             {
                 directTransmission = 0f;
@@ -2077,8 +2499,12 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
             SetMaterialColorIfPresent(material, CrystalTintId, color);
             SetMaterialColorIfPresent(material, CrystalGemCoreColorId, settings != null ? settings.GemCoreColor : color);
             SetMaterialColorIfPresent(material, CrystalGemFireColorId, settings != null ? settings.GemFireColor : new Color(1f, 0.86f, 0.34f, 1f));
-            SetMaterialFloatIfPresent(material, CrystalIntensityId, Mathf.Clamp(intensity, 0f, 20f));
-            SetMaterialFloatIfPresent(material, CrystalAlphaId, absoluteMirrorStrength > 0.001f ? 1f : Mathf.Clamp(color.a, 0.42f, 0.94f));
+            float materialAlphaMin = Mathf.Lerp(0.42f, 0.18f, fullscreenSafety);
+            float materialAlphaMax = Mathf.Lerp(0.94f, 0.42f, fullscreenSafety);
+            float materialAlpha = absoluteMirrorStrength > 0.001f ? 1f : Mathf.Clamp(color.a, materialAlphaMin, materialAlphaMax);
+            float materialIntensity = Mathf.Clamp(intensity, 0f, 20f);
+            SetMaterialFloatIfPresent(material, CrystalIntensityId, materialIntensity);
+            SetMaterialFloatIfPresent(material, CrystalAlphaId, materialAlpha);
             SetMaterialFloatIfPresent(material, CrystalMetallicId, metallic);
             float minimumSmoothness = mirrorFacetsEnabled ? 0.985f : 0.52f;
             SetMaterialFloatIfPresent(material, CrystalSmoothnessId, Mathf.Clamp01(Mathf.Max(smoothness, minimumSmoothness) + intensity01 * 0.02f));
@@ -2088,10 +2514,12 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
             SetMaterialFloatIfPresent(material, CrystalFresnelPowerId, Mathf.Clamp(fresnelPower * 0.76f, 1.0f, 4.2f));
             SetMaterialFloatIfPresent(material, CrystalReflectionStrengthId, Mathf.Clamp(reflectionStrength + internalReflection * 0.18f + fresnelStrength * 0.08f, 0f, 1.5f));
             SetMaterialFloatIfPresent(material, CrystalInternalBrightnessId, Mathf.Clamp(internalBrightness + intensity01 * 0.25f, 0f, 3f));
-            SetMaterialFloatIfPresent(material, CrystalMinimumTransmissionId, absoluteMirrorStrength > 0.001f ? 0f : Mathf.Clamp01(minimumTransmission + gemClarity * 0.03f));
-            SetMaterialFloatIfPresent(material, CrystalSpecularStrengthId, Mathf.Clamp01(specularStrength + 0.28f));
-            SetMaterialFloatIfPresent(material, CrystalRimStrengthId, 1.05f + facetFire * 0.24f + intensity01 * 0.22f);
-            SetMaterialFloatIfPresent(material, CrystalBrightnessFloorId, 0.14f + gemClarity * 0.05f + intensity01 * 0.04f);
+            SetMaterialFloatIfPresent(material, CrystalMinimumTransmissionId, absoluteMirrorStrength > 0.001f ? 0f : Mathf.Clamp01(minimumTransmission + gemClarity * Mathf.Lerp(0.03f, 0.01f, fullscreenSafety)));
+            SetMaterialFloatIfPresent(material, CrystalSpecularStrengthId, Mathf.Clamp01(specularStrength + Mathf.Lerp(0.28f, 0.04f, fullscreenSafety)));
+            float rimStrength = Mathf.Lerp(1.05f + facetFire * 0.24f + intensity01 * 0.22f, 0.52f + facetFire * 0.1f, fullscreenSafety);
+            float brightnessFloor = Mathf.Lerp(0.14f + gemClarity * 0.05f + intensity01 * 0.04f, 0.045f + gemClarity * 0.02f, fullscreenSafety);
+            SetMaterialFloatIfPresent(material, CrystalRimStrengthId, rimStrength);
+            SetMaterialFloatIfPresent(material, CrystalBrightnessFloorId, brightnessFloor);
             SetMaterialFloatIfPresent(material, CrystalGemTintStrengthId, settings != null ? settings.GemTintStrength : 0.16f);
             SetMaterialFloatIfPresent(material, CrystalOpticalDensityId, opticalDensity);
             SetMaterialFloatIfPresent(material, CrystalFacetRefractionId, facetRefraction);
@@ -2114,7 +2542,37 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
             SetMaterialFloatIfPresent(material, CrystalSpectralSplitScaleId, spectralSplitScale);
             SetMaterialFloatIfPresent(material, CrystalAbsoluteMirrorStrengthId, absoluteMirrorStrength);
             SetMaterialFloatIfPresent(material, CrystalDebugModeId, debugMode);
+            SetMaterialFloatIfPresent(material, CrystalHighlightCompressionId, Mathf.Lerp(1.25f, 3f, fullscreenSafety));
+            SetMaterialFloatIfPresent(material, CrystalCoreDarkeningId, Mathf.Lerp(0.18f, 0.34f, fullscreenSafety));
+            premiumFullscreenMaterialDiagnostics = "premium fullscreen material safety active " + (fullscreenSafety > 0.0001f ? "true" : "false")
+                + ", scale percent " + (settings != null ? settings.PremiumCrystalScalePercent.ToString("0") : DiamondFocusSettings.PremiumCrystalScalePercentDefault.ToString("0"))
+                + ", safety progress " + fullscreenSafety.ToString("0.000")
+                + ", absolute mirror guard " + (absoluteMirrorStrength > 0.001f ? "true" : "false")
+                + ", alpha " + materialAlpha.ToString("0.000")
+                + ", intensity " + materialIntensity.ToString("0.000")
+                + ", transparency " + transparency.ToString("0.000")
+                + ", direct transmission " + directTransmission.ToString("0.000")
+                + ", minimum transmission " + minimumTransmission.ToString("0.000")
+                + ", max core transmission " + maxCoreTransmission.ToString("0.000")
+                + ", center transmission block " + centerTransmissionBlock.ToString("0.000")
+                + ", reflection " + reflectionStrength.ToString("0.000")
+                + ", fresnel " + fresnelStrength.ToString("0.000")
+                + ", internal brightness " + internalBrightness.ToString("0.000")
+                + ", facet fire " + facetFire.ToString("0.000")
+                + ", specular " + specularStrength.ToString("0.000")
+                + ", brightness floor " + brightnessFloor.ToString("0.000")
+                + ", highlight compression " + Mathf.Lerp(1.25f, 3f, fullscreenSafety).ToString("0.000");
             debugEffectApplier.Apply(material, settings != null ? settings.CrystalDebugEffects : null, absoluteMirrorStrength > 0.001f);
+        }
+
+        private static float ResolvePremiumFullscreenScaleSafety(CrystalSharedSettings settings)
+        {
+            float scalePercent = settings != null
+                ? settings.PremiumCrystalScalePercent
+                : DiamondFocusSettings.PremiumCrystalScalePercentDefault;
+            float t = Mathf.InverseLerp(260f, DiamondFocusSettings.PremiumCrystalScalePercentMax, scalePercent);
+            t = Mathf.Clamp01(t);
+            return t * t * t * (t * (t * 6f - 15f) + 10f);
         }
 
         private static void ResolveCrystalSurface(CrystalMaterialMode materialMode, out float metallic, out float smoothness)
@@ -2921,6 +3379,10 @@ namespace Kaleidoscope2.DiamondFocus.CrystalStage3D
                 + ", premium shape " + activePremiumShapeLabel
                 + ", " + activeShapeTransitionDiagnostics
                 + ", " + comfortFormationDiagnostics
+                + ", " + premiumVisibleHierarchyDiagnostics
+                + ", " + premiumDepthProtectionDiagnostics
+                + ", " + premiumStabilizationDiagnostics
+                + ", " + premiumFullscreenMaterialDiagnostics
                 + ", " + premiumMaterial
                 + ", crystal bounds " + boundsSize
                 + ", framing bounds " + framingBoundsSize

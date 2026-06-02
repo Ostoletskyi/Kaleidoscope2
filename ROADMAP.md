@@ -98,6 +98,14 @@ existing serialized fields and inspector links.
 | `ComfortSafetyManager` | Comfort caps, reduced-motion constraints, safe eased transition policies. | Render philosophy, visual subclass selection, renderer internals. |
 | `MeditationModeController` | Session start/stop and timed source/audio/motion requests. | Audio decoding, image loading, shader values. |
 | `CrystalSplitComfortController` | Crystal Formation Behavior owner for `SixCopyOrbitFormation`: Classic full-copy choreography and Premium full-mesh copy transformation. | Core geometry selection, optical mode, material mode, debug effect, or input ownership. |
+| `PremiumComfortFormationLayout` | Size-aware Premium six-copy orbit placement from viewport bounds, current copy scale, estimated crystal bounds, aspect ratio, and the 15% safe margin. | Session lifecycle, mesh/material selection, or timing. |
+| `PremiumComfortFormationMorphState` | Premium detaching/orbiting/merging morph phase values for central body and component readability. | Command routing, settings ownership, or renderer object creation. |
+| `PremiumComfortFormationComponentAnimator` | Per-copy full-mesh component transform, scale, brightness, and alpha interpolation for split/merge rendering. | Layout bounds, session timing, or optical/material profiles. |
+| `PremiumCrystalDepthProtection` | Bounds-based Premium primary/copy depth correction against the protected background/kaleidoscope plane with safe clearance, dynamic penetration-sized camera-forward offset, and smoothed release. | Input ownership, shape selection, optical material state, or background rendering. |
+| `SpatialCrystalStage3D` Premium fullscreen material safety | Scale-aware non-Absolute-Mirror glass safety for huge Premium crystals: lower wall-like alpha/brightness/specular energy while preserving transmission/refraction. | Input routing, scale ownership, Absolute Mirror opacity guard, or Classic rendering. |
+| `DiamondFocusSettings` Premium stabilization state | `Numpad 5` Premium brake/align/freeze timer and captured motion restore data. | Renderer transforms, file/source systems, or Classic mirror zoom. |
+| `TopRowMirrorCountCycle` | Top-row digit `1..4` ping-pong mirror preset sequences. | Shader binding, direct `5..9` count values, or renderer internals. |
+| `MirrorCountTransitionState` | One-second from/to/progress visual transition state for mirror-count switching. | Input ownership, preset sequence ownership, or shader sampling. |
 | `DemoPanel` / `DemoMenuController` | UI display and session command dispatch. | Playback timelines or visual state. |
 | `VisualSessionUiController` | Shared setup-success presentation hiding and minimal Meditation/Replay exit HUD. | Session lifecycle, renderer, source, or audio state. |
 | `CleanViewController` | Global `H` clean-view visibility for non-essential overlays. | Visual, source, audio, session, or benchmark metric state. |
@@ -315,6 +323,32 @@ presentation.
   mesh copies sharing the selected mesh/material/optics, orbit once, then
   rejoin. Use controlled duplicates instead of ugly mesh splitting; never use
   primitives, blobs, broken topology, or placeholder copies.
+- Premium six-copy mode is implemented through adaptive motion-design morphing
+  with component separation: `PremiumComfortFormationLayout` computes
+  size-aware 15%-margin placement, `PremiumComfortFormationMorphState`
+  resolves smooth detaching/orbiting/merging state, and
+  `PremiumComfortFormationComponentAnimator` interpolates full-mesh copy
+  transforms/material property blocks so split and merge read as one crystal
+  becoming six and re-forming.
+- During the full orbit phase Premium shows exactly six full-mesh copies; the
+  primary bridge renderer is hidden so no tiny central seventh crystal can
+  remain visible.
+- Premium crystal scale ceiling is now `700%`, preserving the shared clamp
+  route while extending the previously raised `600%` ceiling by `+100%`.
+- Premium primary and six-copy crystals are depth-protected per object:
+  `PremiumCrystalDepthProtection` resolves each world bounds back-most point
+  against the protected background/kaleidoscope plane, keeps
+  `SafeDepthClearance = 0.18`, treats `MaxCameraForwardOffset = 3.5` as the
+  legacy smoothing-speed floor, computes correction from actual penetration,
+  and runs as the final Premium transform correction before `RenderStageCamera`.
+- At fullscreen Premium scale, non-Absolute-Mirror material binding enables
+  scale-aware glass safety so the kaleidoscope remains visible through the
+  crystal instead of becoming an opaque white mass.
+- `Numpad 5` in active Premium3D dispatches
+  `TriggerPremiumCrystalStabilization`, aligns the crystal presentation
+  perpendicular to the screen/camera, freezes rotation and six-copy orbit
+  presentation for a `3.0` second hold after the `0.35` second align phase,
+  then restores prior motion with eased formation release.
 - Keep the calm choreography near `2.5` seconds pre-rotation, `2.5` seconds
   detach, `5` seconds orbit, and `2.5` seconds rejoin.
 - Keep Premium copies inside the visible safe area `x/y = 0.15..0.85` by
@@ -327,6 +361,19 @@ presentation.
   flash, strobe, instant spawn, or explosive movement.
 - Restore a coherent single crystal/prior captured state on session exit or
   failure.
+
+## Mirror Count Switching
+
+- Top-row digits `1..4` are semantic preset cycles owned by
+  `TopRowMirrorCountCycle`: `1` cycles `3/4/6/4`, `2` cycles `8/10/12/10`,
+  `3` cycles `14/16/24/16`, and `4` cycles `28/36/48/36`.
+- Top-row digits `5..9` keep their direct legacy mirror counts:
+  `96/192/384/768/1536`.
+- `SetMirrorCount` updates the target truth state immediately, then
+  `MirrorCountTransitionState` drives a `1.0` second smooth visual transition.
+- `MirrorModule` binds from-count, to-count, and smooth progress to
+  `Kaleidoscope2_Mirror.shader`, which crossfades two mirror configurations
+  instead of interpolating the integer mirror count.
 
 ### Validation
 
@@ -517,7 +564,7 @@ Finish the feature set with truthful messaging and regression confidence.
 | Premium surface quality | `Opal Prism Glass`, `Liquid Mercury Mirror`, `Brushed Steel Mirror`, `Chrome Facet Mirror`, `Blackened Iron Facets`, and `Polished Brass Prism` remain visible, authored, and non-empty; Absolute Mirror opacity remains hard-guarded. |
 | Meditation | Selection opens setup without state change; START begins curated image/playlist route and hides frames; `0.25 <-> 1.5` breathing cycle, semantic gentle activity, and minute direction reversal are smooth; exit restores state/UI. |
 | Comfort cap | Active unsafe speed requests are clamped; inactive mode does not alter normal control resolution. |
-| Crystal formation | Classic uses six medium full copies with no fragments; Premium transforms one whole crystal into six full mesh copies, sizes orbit radius from copy bounds/scale, avoids crowding, stays inside the 15% viewport margin, and rejoins smoothly. |
+| Crystal formation | Classic uses six medium full copies with no fragments; Premium transforms one whole crystal into six full mesh copies through adaptive motion-design morphing with component separation, sizes orbit radius from copy bounds/scale, avoids crowding, stays inside the 15% viewport margin, and rejoins smoothly. |
 | Settings persistence | `SettingsPersistenceService` creates/loads versioned JSON, persists stable visual/crystal/menu preferences, survives restart, backs up corrupt files, ignores temporary-session commands, and never writes raw Replay/InputRecorder history. |
 | Menu crystal interaction map | Startup-menu background crystal map uses normalized rect plus trigger line/zone; stripe crossing produces visible lens/camera glow through a non-raycasting overlay above the background and below UI. |
 | Replay recording | Latest 500 semantic actions and timing metadata are captured without behavior changes or self-recording. |
